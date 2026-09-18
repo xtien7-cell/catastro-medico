@@ -336,6 +336,9 @@
                         </svg>
                         <span id="btn-google-texto">Conectar con Google Drive</span>
                     </button>
+                    <button id="btn-recuperar" class="btn-sync-inner" onclick="recuperarDesdeDrive()" style="background:#3498db; display:none;">
+                        ⬇️ Recuperar datos desde Drive
+                    </button>
                     <p class="sync-info" id="sync-info-texto">
                         Sincroniza automáticamente tus datos en tu propio Google Drive.
                     </p>
@@ -858,7 +861,7 @@
         }
 
         // ==========================================
-        // ☁️ SINCRONIZACIÓN CON GOOGLE DRIVE
+        // ☁️ SINCRONIZACIÓN CON GOOGLE DRIVE (MEJORADA)
         // ==========================================
         
         function recolectarTodosLosDatos() {
@@ -918,6 +921,7 @@
                 document.getElementById('btn-google').classList.add('conectado');
                 document.getElementById('btn-google-texto').innerText = '✅ Conectado a Drive';
                 document.getElementById('sync-info-texto').innerText = 'Tus datos se sincronizan automáticamente.';
+                document.getElementById('btn-recuperar').style.display = 'flex';
                 
                 setTimeout(() => bajarDeDrive(), 2000);
             }
@@ -959,6 +963,7 @@
                         document.getElementById('btn-google').classList.add('conectado');
                         document.getElementById('btn-google-texto').innerText = '✅ Conectado a Drive';
                         document.getElementById('sync-info-texto').innerText = 'Tus datos se sincronizan automáticamente.';
+                        document.getElementById('btn-recuperar').style.display = 'flex';
                         
                         mostrarToast('✅ ¡Conectado con Google Drive!', 'success');
                         
@@ -985,6 +990,7 @@
             document.getElementById('btn-google').classList.remove('conectado');
             document.getElementById('btn-google-texto').innerText = 'Conectar con Google Drive';
             document.getElementById('sync-info-texto').innerText = 'Sincroniza automáticamente tus datos en tu propio Google Drive.';
+            document.getElementById('btn-recuperar').style.display = 'none';
             
             mostrarToast('🔌 Desconectado de Google Drive', 'info');
         }
@@ -999,7 +1005,22 @@
             }
         }
 
-        async function sincronizar() {
+        // Recuperar forzadamente desde Drive
+        async function recuperarDesdeDrive() {
+            if (!tokenAccesoGoogle) {
+                mostrarToast('⚠️ Primero conecta con Google Drive', 'error');
+                return;
+            }
+            
+            if (!confirm('⚠️ Esto reemplazará los datos locales con los del Drive.\n\n¿Continuar?')) {
+                return;
+            }
+            
+            await sincronizar(true);
+        }
+
+        // Sincronización mejorada
+        async function sincronizar(forzarDescarga = false) {
             if (!tokenAccesoGoogle) {
                 mostrarToast('⚠️ Primero conecta con Google Drive', 'error');
                 return;
@@ -1012,23 +1033,67 @@
             try {
                 const archivoRemoto = await buscarArchivoEnDrive();
                 const datosLocales = recolectarTodosLosDatos();
+                const hayDatosLocales = Object.keys(datosLocales.datos || {}).length > 0;
                 
+                // CASO 1: No hay archivo en Drive
                 if (!archivoRemoto) {
-                    await subirADrive();
-                } else {
-                    const datosRemotos = await descargarDeDrive(archivoRemoto.id);
-                    const fechaLocal = new Date(datosLocales.fecha);
-                    const fechaRemota = new Date(datosRemotos.fecha);
-                    
-                    if (fechaRemota > fechaLocal) {
-                        restaurarTodosLosDatos(datosRemotos);
-                        mostrarToast('⬇️ Datos actualizados desde Drive', 'success');
-                        setTimeout(() => window.location.reload(), 1500);
-                    } else if (fechaLocal > fechaRemota) {
+                    if (hayDatosLocales) {
                         await subirADrive();
+                        mostrarToast('⬆️ Datos subidos a Drive', 'success');
                     } else {
-                        mostrarToast('✅ Ya está sincronizado', 'success');
+                        mostrarToast('ℹ️ Sin datos para sincronizar', 'info');
                     }
+                    ultimaSync = new Date();
+                    actualizarIndicadorSync('sincronizado', '☁️ ' + ultimaSync.toTimeString().substring(0,5));
+                    syncEnProgreso = false;
+                    return;
+                }
+                
+                // CASO 2: Sí hay archivo en Drive
+                const datosRemotos = await descargarDeDrive(archivoRemoto.id);
+                const hayDatosRemotos = datosRemotos.datos && Object.keys(datosRemotos.datos).length > 0;
+                
+                // Si forzó descarga
+                if (forzarDescarga && hayDatosRemotos) {
+                    restaurarTodosLosDatos(datosRemotos);
+                    mostrarToast('⬇️ Datos cargados desde Drive', 'success');
+                    setTimeout(() => window.location.reload(), 1500);
+                    syncEnProgreso = false;
+                    return;
+                }
+                
+                // Si NO hay datos locales pero SÍ en Drive → bajar
+                if (!hayDatosLocales && hayDatosRemotos) {
+                    restaurarTodosLosDatos(datosRemotos);
+                    mostrarToast('⬇️ Datos cargados desde Drive', 'success');
+                    setTimeout(() => window.location.reload(), 1500);
+                    syncEnProgreso = false;
+                    return;
+                }
+                
+                // Si hay locales pero NO en Drive → subir
+                if (hayDatosLocales && !hayDatosRemotos) {
+                    await subirADrive();
+                    mostrarToast('⬆️ Datos subidos a Drive', 'success');
+                    ultimaSync = new Date();
+                    actualizarIndicadorSync('sincronizado', '☁️ ' + ultimaSync.toTimeString().substring(0,5));
+                    syncEnProgreso = false;
+                    return;
+                }
+                
+                // Si hay en ambos → comparar fechas
+                const fechaLocal = new Date(datosLocales.fecha).getTime();
+                const fechaRemota = new Date(datosRemotos.fecha).getTime();
+                
+                if (fechaRemota > fechaLocal) {
+                    restaurarTodosLosDatos(datosRemotos);
+                    mostrarToast('⬇️ Datos actualizados desde Drive', 'success');
+                    setTimeout(() => window.location.reload(), 1500);
+                } else if (fechaLocal > fechaRemota) {
+                    await subirADrive();
+                    mostrarToast('⬆️ Datos subidos a Drive', 'success');
+                } else {
+                    mostrarToast('✅ Ya está sincronizado', 'success');
                 }
                 
                 ultimaSync = new Date();
@@ -1095,16 +1160,28 @@
             try {
                 const archivo = await buscarArchivoEnDrive();
                 if (!archivo) return;
+                
                 const datos = await descargarDeDrive(archivo.id);
-                
                 const datosLocales = recolectarTodosLosDatos();
-                const fechaLocal = new Date(datosLocales.fecha);
-                const fechaRemota = new Date(datos.fecha);
+                const hayDatosLocales = Object.keys(datosLocales.datos || {}).length > 0;
+                const hayDatosRemotos = datos.datos && Object.keys(datos.datos).length > 0;
                 
-                if (fechaRemota > fechaLocal) {
+                if (!hayDatosLocales && hayDatosRemotos) {
                     restaurarTodosLosDatos(datos);
-                    mostrarToast('⬇️ Datos actualizados desde Drive', 'success');
+                    mostrarToast('⬇️ Datos cargados desde Drive', 'success');
                     setTimeout(() => window.location.reload(), 1500);
+                    return;
+                }
+                
+                if (hayDatosRemotos) {
+                    const fechaLocal = new Date(datosLocales.fecha).getTime();
+                    const fechaRemota = new Date(datos.fecha).getTime();
+                    
+                    if (fechaRemota > fechaLocal) {
+                        restaurarTodosLosDatos(datos);
+                        mostrarToast('⬇️ Datos actualizados desde Drive', 'success');
+                        setTimeout(() => window.location.reload(), 1500);
+                    }
                 }
             } catch(e) {
                 console.error('Error bajando:', e);
