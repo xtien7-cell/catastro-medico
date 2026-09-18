@@ -15,11 +15,12 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
     <style>
         * { -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: #2c3e50; overflow: hidden; -webkit-user-select: none; user-select: none; }
         
-        /* ========== BARRA SUPERIOR ========== */
         #toolbar { background: #34495e; color: white; padding: 8px 15px; display: flex; gap: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 100; position: relative; flex-wrap: wrap; align-items: center; }
         #toolbar button { padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 12px; transition: all 0.2s; display: flex; align-items: center; gap: 4px; font-family: inherit; white-space: nowrap; }
         .btn-crear { background: #3498db; color: white; }
@@ -38,9 +39,20 @@
         #modo-indicador.bloqueado { background: #e74c3c; color: white; }
         #modo-indicador.editando { background: #27ae60; color: white; }
 
+        #sync-indicador {
+            font-size: 11px; font-weight: bold; padding: 5px 10px;
+            border-radius: 4px; margin-left: 5px; cursor: pointer;
+            transition: all 0.3s;
+        }
+        #sync-indicador.desconectado { background: #7f8c8d; color: white; }
+        #sync-indicador.sincronizando { background: #f39c12; color: white; animation: pulso-sync 1.5s infinite; }
+        #sync-indicador.sincronizado { background: #27ae60; color: white; }
+        #sync-indicador.error { background: #e74c3c; color: white; }
+        #sync-indicador.offline { background: #34495e; color: white; }
+        @keyframes pulso-sync { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
         #btn-hamburguesa { display: none; background: #2c3e50; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 18px; }
 
-        /* ========== BARRA LATERAL ========== */
         #sidebar-filtros {
             position: fixed; left: 0; top: 56px; width: 240px; height: calc(100vh - 56px);
             background: #ffffff; box-shadow: 3px 0 10px rgba(0,0,0,0.15);
@@ -62,7 +74,7 @@
         .sidebar-section-header:not(.abierto) .flecha { transform: rotate(-90deg); }
 
         .sidebar-section-content { max-height: 0; overflow: hidden; transition: max-height 0.35s ease-out; background: #fff; border-bottom: 2px solid #ecf0f1; }
-        .sidebar-section-content.abierto { max-height: 2000px; overflow-y: auto; }
+        .sidebar-section-content.abierto { max-height: 2500px; overflow-y: auto; }
 
         .seccion-inner { padding: 12px; }
         .seccion-inner label { display: block; font-size: 12px; font-weight: bold; color: #2c3e50; margin-bottom: 5px; margin-top: 8px; }
@@ -77,7 +89,6 @@
         .btn-limpiar-filtros { background: #95a5a6; color: white; }
         .btn-limpiar-filtros:hover { background: #7f8c8d; }
 
-        /* ========== BOTONES DE RESPALDO (dentro de Cargar Nuevo Mapa) ========== */
         .btn-sync-inner {
             width: 100%; box-sizing: border-box; margin-top: 6px;
             border: none; padding: 10px; border-radius: 4px;
@@ -90,6 +101,25 @@
         .btn-export-inner:hover { background: #138d75; }
         .btn-import-inner { background: #8e44ad; }
         .btn-import-inner:hover { background: #71368a; }
+        
+        .btn-google {
+            background: #ffffff;
+            color: #444;
+            border: 2px solid #dadce0 !important;
+            font-weight: bold;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 10px !important;
+            transition: all 0.2s;
+        }
+        .btn-google:hover { background: #f8f9fa; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .btn-google.conectado {
+            background: #e8f5e9;
+            border-color: #27ae60 !important;
+            color: #1e7e34;
+        }
+        .google-icon {
+            width: 18px; height: 18px; flex-shrink: 0;
+        }
 
         .sync-separador {
             margin-top: 15px; 
@@ -103,6 +133,13 @@
             margin-bottom: 8px;
             display: block;
         }
+        .sync-info {
+            font-size: 10px;
+            color: #7f8c8d;
+            text-align: center;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
 
         .filtro-hint { font-size: 11px; color: #7f8c8d; padding: 0 0 8px 0; margin: 0; font-style: italic; }
         .filtro-item { display: flex; align-items: center; gap: 8px; padding: 8px 6px; margin-bottom: 2px; border-radius: 5px; cursor: pointer; font-size: 13px; user-select: none; }
@@ -114,7 +151,6 @@
         .btn-matriz:hover { background: #1a252f; }
         .btn-matriz:disabled { background: #95a5a6; cursor: not-allowed; }
 
-        /* ========== MAPA ========== */
         #mapa-wrapper { position: relative; margin-left: 240px; width: calc(100vw - 240px); height: calc(100vh - 56px); overflow: auto; background: #ecf0f1; -webkit-overflow-scrolling: touch; }
         #canvas-zoom { position: relative; transform-origin: top left; display: inline-block; margin: 20px; box-shadow: 0 0 20px rgba(0,0,0,0.5); background: white; }
         #mapa-imagen { display: block; position: relative; user-select: none; pointer-events: none; z-index: 1; max-width: none; }
@@ -127,7 +163,6 @@
 
         #instrucciones { position: fixed; bottom: 15px; left: 260px; background: rgba(255,255,255,0.95); padding: 12px; border-radius: 8px; font-size: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-width: 260px; z-index: 50; }
 
-        /* ========== PANEL LATERAL DERECHO ========== */
         #sidebar-resumen { position: fixed; right: -400px; top: 56px; width: 350px; height: calc(100vh - 56px); background: white; box-shadow: -5px 0 15px rgba(0,0,0,0.2); transition: right 0.3s ease-in-out; z-index: 500; display: flex; flex-direction: column; }
         #sidebar-resumen.abierto { right: 0; }
         .sidebar-header { background: #2c3e50; color: white; padding: 14px; display: flex; justify-content: space-between; align-items: center; }
@@ -149,7 +184,6 @@
         .tag-condicion { display: inline-block; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-right: 4px; margin-top: 4px; }
         .sin-datos { text-align: center; color: #7f8c8d; font-style: italic; margin-top: 20px; font-size: 13px; }
 
-        /* ========== MODALES ========== */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); overflow-y: auto; }
         .modal-content { background-color: #fefefe; margin: 20px auto; padding: 18px; border-radius: 10px; width: 90%; max-width: 800px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); position: relative; }
         .close { color: #aaa; position: absolute; right: 15px; top: 10px; font-size: 28px; font-weight: bold; cursor: pointer; z-index: 20; }
@@ -199,7 +233,6 @@
         .btn-guardar { background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; flex: 1; min-width: 130px; }
         .btn-agregar { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; flex: 1; min-width: 130px; }
 
-        /* ========== MOBILE RESPONSIVE ========== */
         @media (max-width: 768px) {
             #toolbar { padding: 6px 8px; gap: 4px; }
             #toolbar button { padding: 6px 8px; font-size: 11px; }
@@ -207,11 +240,9 @@
             #btn-hamburguesa { display: block; }
             #barrio-activo-info { font-size: 11px; padding: 5px 8px; }
             #modo-indicador { display: none; }
+            #sync-indicador { font-size: 10px; padding: 4px 6px; }
             
-            #sidebar-filtros {
-                left: -260px; width: 260px; top: 56px; height: calc(100vh - 56px);
-                z-index: 200;
-            }
+            #sidebar-filtros { left: -260px; width: 260px; top: 56px; height: calc(100vh - 56px); z-index: 200; }
             #sidebar-filtros.abierto { left: 0; }
             
             #mapa-wrapper { margin-left: 0; width: 100vw; height: calc(100vh - 56px); }
@@ -251,7 +282,6 @@
 </head>
 <body>
 
-    <!-- BARRA SUPERIOR -->
     <div id="toolbar">
         <button id="btn-hamburguesa" onclick="toggleSidebarMovil()">☰</button>
         <button class="btn-crear" onclick="crearCasa()">➕ <span class="texto-largo">Casa</span></button>
@@ -268,13 +298,12 @@
         </div>
         
         <span id="modo-indicador" class="bloqueado">📌 Bloqueado</span>
+        <span id="sync-indicador" class="desconectado" onclick="gestionarSync()">☁️ Sin Drive</span>
         <span id="barrio-activo-info">📍 Sin barrio</span>
     </div>
 
-    <!-- OVERLAY MÓVIL -->
     <div id="overlay-sidebar" onclick="toggleSidebarMovil()"></div>
 
-    <!-- BARRA LATERAL IZQUIERDA -->
     <div id="sidebar-filtros">
         
         <div class="sidebar-section-header" onclick="toggleSeccion('seccion-cargar-mapa', this)">
@@ -289,12 +318,27 @@
                 <input type="file" id="archivo-mapa" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,image/jpeg,image/png,image/gif,image/webp,image/*">
                 <button class="btn-cargar" onclick="cargarNuevoMapa()">✅ Cargar Mapa</button>
                 
-                <!-- SECCIÓN DE RESPALDO: EXPORTAR / IMPORTAR -->
                 <div class="sync-separador">
-                    <span class="sync-titulo">💾 Respaldo de Datos</span>
+                    <span class="sync-titulo">💾 Respaldo Local</span>
                     <button class="btn-sync-inner btn-export-inner" onclick="exportarDatos()">📤 Exportar datos</button>
                     <button class="btn-sync-inner btn-import-inner" onclick="document.getElementById('input-importar').click()">📥 Importar datos</button>
                     <input type="file" id="input-importar" accept=".json,application/json" style="display:none" onchange="importarDatos(event)">
+                </div>
+
+                <div class="sync-separador">
+                    <span class="sync-titulo">☁️ Sincronización en la Nube</span>
+                    <button id="btn-google" class="btn-sync-inner btn-google" onclick="conectarConGoogle()">
+                        <svg class="google-icon" viewBox="0 0 48 48">
+                            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                        </svg>
+                        <span id="btn-google-texto">Conectar con Google Drive</span>
+                    </button>
+                    <p class="sync-info" id="sync-info-texto">
+                        Sincroniza automáticamente tus datos en tu propio Google Drive.
+                    </p>
                 </div>
             </div>
         </div>
@@ -338,7 +382,6 @@
         </div>
     </div>
 
-    <!-- MAPA -->
     <div id="mapa-wrapper">
         <div id="canvas-zoom" style="display:none;">
             <img id="mapa-imagen" src="" alt="">
@@ -348,7 +391,7 @@
             <span class="flecha-izq">⬅️</span>
             <h2>Bienvenido</h2>
             <p>Abre el menú <strong>☰</strong> y carga tu primer mapa.</p>
-            <p style="font-size: 12px; color: #e67e22;"><strong>Tip:</strong> Las imágenes grandes se comprimen automáticamente.</p>
+            <p style="font-size: 12px; color: #e67e22;"><strong>Tip:</strong> Conecta con Google Drive para respaldar automáticamente.</p>
         </div>
     </div>
 
@@ -356,7 +399,6 @@
         <strong>Flujo:</strong> Crear Casa → Nomenclatura → Fijar → Clic para ficha.
     </div>
 
-    <!-- PANEL LATERAL DERECHO -->
     <div id="sidebar-resumen">
         <div class="sidebar-header">
             <h3>Casa: <span id="sidebar-id-casa">---</span></h3>
@@ -369,7 +411,6 @@
         </div>
     </div>
 
-    <!-- MODAL FICHA -->
     <div id="modal-ficha" class="modal">
         <div class="modal-content">
             <span class="close" onclick="cerrarModal()">&times;</span>
@@ -395,7 +436,6 @@
         </div>
     </div>
 
-    <!-- MODAL MATRIZ -->
     <div id="modal-matriz" class="modal">
         <div class="modal-content matriz">
             <span class="close" onclick="cerrarMatriz()">&times;</span>
@@ -422,10 +462,15 @@
         </div>
     </div>
 
-    <!-- TOAST -->
     <div id="toast"></div>
 
     <script>
+        // ==========================================
+        // ⚠️ CLIENT ID DE GOOGLE (YA CONFIGURADO)
+        // ==========================================
+        const GOOGLE_CLIENT_ID = '925687204970-qac4l3sfqgpubgv9jb9cmvujkrdgn52v.apps.googleusercontent.com';
+        // ==========================================
+
         // ==================== VARIABLES ====================
         let canvas = null;
         let barrioActual = null;
@@ -434,6 +479,11 @@
         let aplicandoFiltros = false;
         let zoomActual = 1;
         let modoActivo = 'bloqueado';
+        
+        let tokenAccesoGoogle = null;
+        let tokenClient = null;
+        let syncEnProgreso = false;
+        let ultimaSync = null;
 
         const coloresCondiciones = {
             'Embarazada': { fill: 'rgba(233, 30, 99, 0.7)', stroke: '#e91e63' },
@@ -453,7 +503,6 @@
             'Cerrada': '#95a5a6', 'Abandonada': '#34495e'
         };
 
-        // ==================== TOAST ====================
         function mostrarToast(mensaje, tipo) {
             const toast = document.getElementById('toast');
             toast.innerText = mensaje;
@@ -461,7 +510,6 @@
             setTimeout(() => { toast.className = ''; }, 3000);
         }
 
-        // ==================== SIDEBAR MÓVIL ====================
         function toggleSidebarMovil() {
             const sidebar = document.getElementById('sidebar-filtros');
             const overlay = document.getElementById('overlay-sidebar');
@@ -469,36 +517,25 @@
             overlay.classList.toggle('visible');
         }
 
-        // ==================== PWA MANIFEST + SW ====================
         window.addEventListener('load', function() {
             const manifest = {
-                name: "Catastro Médico",
-                short_name: "Catastro",
-                start_url: ".",
-                display: "standalone",
-                background_color: "#2c3e50",
-                theme_color: "#2c3e50",
-                orientation: "any",
-                icons: [{
-                    src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgZmlsbD0iIzJjM2U1MCIgcng9IjMwIi8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiI+8J+SjzwvdGV4dD48L3N2Zz4=",
-                    sizes: "192x192",
-                    type: "image/svg+xml",
-                    purpose: "any maskable"
-                }]
+                name: "Catastro Médico", short_name: "Catastro", start_url: ".", display: "standalone",
+                background_color: "#2c3e50", theme_color: "#2c3e50", orientation: "any",
+                icons: [{ src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgZmlsbD0iIzJjM2U1MCIgcng9IjMwIi8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiI+8J+SjzwvdGV4dD48L3N2Zz4=", sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" }]
             };
             const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
-            const manifestURL = URL.createObjectURL(manifestBlob);
-            document.getElementById('manifest-placeholder').href = manifestURL;
+            document.getElementById('manifest-placeholder').href = URL.createObjectURL(manifestBlob);
 
             if ('serviceWorker' in navigator) {
                 const swCode = `
-                    const CACHE = 'catastro-v1';
+                    const CACHE = 'catastro-v2';
                     self.addEventListener('install', e => self.skipWaiting());
                     self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
                     self.addEventListener('fetch', e => {
+                        if (e.request.method !== 'GET') return;
                         e.respondWith(
                             caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
-                                if (e.request.method === 'GET' && res.status === 200) {
+                                if (res.status === 200) {
                                     const clone = res.clone();
                                     caches.open(CACHE).then(c => c.put(e.request, clone));
                                 }
@@ -508,26 +545,22 @@
                     });
                 `;
                 const swBlob = new Blob([swCode], {type: 'application/javascript'});
-                const swURL = URL.createObjectURL(swBlob);
-                navigator.serviceWorker.register(swURL).catch(err => console.log('SW no registrado:', err));
+                navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(err => console.log('SW:', err));
             }
 
             try {
                 canvas = new fabric.Canvas('c', {
-                    selection: true,
-                    preserveObjectStacking: true,
-                    backgroundColor: 'transparent',
-                    width: 800,
-                    height: 600,
+                    selection: true, preserveObjectStacking: true,
+                    backgroundColor: 'transparent', width: 800, height: 600,
                     allowTouchScrolling: false
                 });
                 configurarEventosCanvas();
-            } catch(e) {
-                console.error('Error al inicializar canvas:', e);
-            }
+            } catch(e) { console.error('Error canvas:', e); }
             
             actualizarSelectorBarrios();
             document.getElementById('btn-matriz').disabled = true;
+            
+            verificarSesionGuardada();
             
             const activeId = localStorage.getItem('catastro_barrio_activo');
             const lista = cargarBarriosLista();
@@ -536,11 +569,7 @@
             }
         });
 
-        // ==================== ZOOM ====================
-        function cambiarZoom(delta) {
-            zoomActual = Math.max(0.2, Math.min(3, zoomActual + delta));
-            aplicarZoom();
-        }
+        function cambiarZoom(delta) { zoomActual = Math.max(0.2, Math.min(3, zoomActual + delta)); aplicarZoom(); }
         function resetZoom() { zoomActual = 1; aplicarZoom(); }
         function aplicarZoom() {
             document.getElementById('canvas-zoom').style.transform = 'scale(' + zoomActual + ')';
@@ -559,7 +588,6 @@
             header.classList.toggle('abierto');
         }
 
-        // ==================== BARRIOS ====================
         function cargarBarriosLista() {
             try { return JSON.parse(localStorage.getItem('catastro_barrios') || '[]'); } catch(e) { return []; }
         }
@@ -608,7 +636,7 @@
                     const id = 'barrio_' + Date.now();
                     
                     try { localStorage.setItem('catastro_mapa_' + id, dataURL); }
-                    catch (err) { mostrarToast('❌ Imagen muy grande. Prueba con otra más pequeña.', 'error'); return; }
+                    catch (err) { mostrarToast('❌ Imagen muy grande', 'error'); return; }
                     
                     const lista = cargarBarriosLista();
                     lista.push({ id, nombre });
@@ -620,6 +648,8 @@
                     cambiarBarrio(id);
                     actualizarSelectorBarrios();
                     mostrarToast('✅ Barrio "' + nombre + '" cargado', 'success');
+                    
+                    if (tokenAccesoGoogle) subirADrive();
                 };
                 img.onerror = () => mostrarToast('❌ Error al leer la imagen', 'error');
                 img.src = e.target.result;
@@ -683,7 +713,6 @@
                     canvas.backgroundColor = 'transparent';
                     canvas.renderAll();
                 }
-                
                 setTimeout(() => { canvas.calcOffset(); canvas.renderAll(); }, 100);
             };
             nuevoImg.onerror = () => mostrarToast('❌ Error al cargar imagen', 'error');
@@ -737,6 +766,8 @@
             document.getElementById('btn-matriz').disabled = true;
             actualizarSelectorBarrios();
             mostrarToast('✅ Barrio eliminado', 'success');
+            
+            if (tokenAccesoGoogle) subirADrive();
         }
 
         function guardarCanvasActual() {
@@ -750,17 +781,14 @@
         function getFichaKey(idCasa) { return 'catastro_ficha_' + (barrioActual ? barrioActual.id : 'default') + '_' + idCasa; }
         function getEstadoKey(idCasa) { return 'catastro_estado_' + (barrioActual ? barrioActual.id : 'default') + '_' + idCasa; }
 
-        // ==================== EXPORTAR / IMPORTAR ====================
         function exportarDatos() {
             try {
                 const datos = {
-                    version: '1.0',
-                    fecha: new Date().toISOString(),
+                    version: '1.0', fecha: new Date().toISOString(),
                     barrios: cargarBarriosLista(),
                     barrioActivo: barrioActual ? barrioActual.id : null,
                     datos: {}
                 };
-                
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
                     if (key && (key.startsWith('catastro_mapa_') || key.startsWith('catastro_canvas_') || 
@@ -768,7 +796,6 @@
                         datos.datos[key] = localStorage.getItem(key);
                     }
                 }
-                
                 const json = JSON.stringify(datos);
                 const blob = new Blob([json], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
@@ -781,12 +808,9 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                
-                const tamaño = (json.length / 1024).toFixed(1);
-                mostrarToast(`✅ Exportado (${tamaño} KB)`, 'success');
+                mostrarToast(`✅ Exportado (${(json.length / 1024).toFixed(1)} KB)`, 'success');
             } catch(e) {
-                console.error(e);
-                mostrarToast('❌ Error al exportar: ' + e.message, 'error');
+                mostrarToast('❌ Error al exportar', 'error');
             }
         }
 
@@ -794,12 +818,8 @@
             const file = event.target.files[0];
             if (!file) return;
             
-            if (!confirm('⚠️ IMPORTANTE:\n\n' +
-                'La importación REEMPLAZARÁ todos los datos actuales de este dispositivo.\n\n' +
-                'Antes de continuar:\n' +
-                '1. ¿Ya exportaste tus cambios actuales?\n' +
-                '2. ¿El archivo que vas a importar es el más reciente?\n\n' +
-                '¿Continuar con la importación?')) {
+            if (!confirm('⚠️ IMPORTANTE:\n\nLa importación REEMPLAZARÁ todos los datos actuales.\n\n' +
+                'Antes de continuar, asegúrate de haber exportado tus cambios.\n\n¿Continuar?')) {
                 event.target.value = '';
                 return;
             }
@@ -808,11 +828,7 @@
             reader.onload = function(e) {
                 try {
                     const datos = JSON.parse(e.target.result);
-                    
-                    if (!datos.datos || !datos.barrios) {
-                        mostrarToast('❌ Archivo no válido', 'error');
-                        return;
-                    }
+                    if (!datos.datos || !datos.barrios) { mostrarToast('❌ Archivo no válido', 'error'); return; }
                     
                     const keysAEliminar = [];
                     for (let i = 0; i < localStorage.length; i++) {
@@ -828,48 +844,298 @@
                     for (const [key, value] of Object.entries(datos.datos)) {
                         localStorage.setItem(key, value);
                     }
-                    
                     localStorage.setItem('catastro_barrios', JSON.stringify(datos.barrios));
-                    if (datos.barrioActivo) {
-                        localStorage.setItem('catastro_barrio_activo', datos.barrioActivo);
-                    }
+                    if (datos.barrioActivo) localStorage.setItem('catastro_barrio_activo', datos.barrioActivo);
                     
                     mostrarToast('✅ Datos importados. Recargando...', 'success');
                     setTimeout(() => window.location.reload(), 1500);
-                    
                 } catch(err) {
-                    console.error(err);
-                    mostrarToast('❌ Error al leer el archivo: ' + err.message, 'error');
+                    mostrarToast('❌ Error al leer archivo', 'error');
                 }
                 event.target.value = '';
             };
             reader.readAsText(file);
         }
 
-        // ==================== CASAS ====================
+        // ==========================================
+        // ☁️ SINCRONIZACIÓN CON GOOGLE DRIVE
+        // ==========================================
+        
+        function recolectarTodosLosDatos() {
+            const datos = {
+                version: '1.0',
+                fecha: new Date().toISOString(),
+                barrios: cargarBarriosLista(),
+                barrioActivo: barrioActual ? barrioActual.id : null,
+                datos: {}
+            };
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.startsWith('catastro_mapa_') || key.startsWith('catastro_canvas_') || 
+                    key.startsWith('catastro_ficha_') || key.startsWith('catastro_estado_'))) {
+                    datos.datos[key] = localStorage.getItem(key);
+                }
+            }
+            return datos;
+        }
+
+        function restaurarTodosLosDatos(datos) {
+            if (!datos || !datos.datos || !datos.barrios) {
+                throw new Error('Formato de datos inválido');
+            }
+            
+            const keysAEliminar = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.startsWith('catastro_mapa_') || key.startsWith('catastro_canvas_') || 
+                    key.startsWith('catastro_ficha_') || key.startsWith('catastro_estado_') ||
+                    key === 'catastro_barrios' || key === 'catastro_barrio_activo')) {
+                    keysAEliminar.push(key);
+                }
+            }
+            keysAEliminar.forEach(k => localStorage.removeItem(k));
+            
+            for (const [key, value] of Object.entries(datos.datos)) {
+                localStorage.setItem(key, value);
+            }
+            localStorage.setItem('catastro_barrios', JSON.stringify(datos.barrios));
+            if (datos.barrioActivo) localStorage.setItem('catastro_barrio_activo', datos.barrioActivo);
+        }
+
+        function actualizarIndicadorSync(estado, texto) {
+            const ind = document.getElementById('sync-indicador');
+            ind.className = estado;
+            ind.innerText = texto;
+        }
+
+        function verificarSesionGuardada() {
+            const sesionGuardada = localStorage.getItem('google_session_token');
+            const fechaExpiracion = localStorage.getItem('google_session_expira');
+            
+            if (sesionGuardada && fechaExpiracion && Date.now() < parseInt(fechaExpiracion)) {
+                tokenAccesoGoogle = sesionGuardada;
+                actualizarIndicadorSync('sincronizado', '☁️ Conectado');
+                document.getElementById('btn-google').classList.add('conectado');
+                document.getElementById('btn-google-texto').innerText = '✅ Conectado a Drive';
+                document.getElementById('sync-info-texto').innerText = 'Tus datos se sincronizan automáticamente.';
+                
+                setTimeout(() => bajarDeDrive(), 2000);
+            }
+        }
+
+        function conectarConGoogle() {
+            if (tokenAccesoGoogle) {
+                if (confirm('¿Quieres desconectar de Google Drive?\n\nTus datos locales NO se borrarán, solo se dejarán de sincronizar.')) {
+                    desconectarDeGoogle();
+                }
+                return;
+            }
+
+            if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.includes('PEGA_AQUI')) {
+                alert('⚠️ Debes configurar tu CLIENT_ID de Google primero.');
+                return;
+            }
+
+            actualizarIndicadorSync('sincronizando', '🔗 Conectando...');
+            
+            try {
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: GOOGLE_CLIENT_ID,
+                    scope: 'https://www.googleapis.com/auth/drive.appdata',
+                    callback: async (respuesta) => {
+                        if (respuesta.error) {
+                            actualizarIndicadorSync('error', '❌ Error');
+                            mostrarToast('❌ Error al conectar: ' + respuesta.error, 'error');
+                            return;
+                        }
+
+                        tokenAccesoGoogle = respuesta.access_token;
+                        const expira = Date.now() + (respuesta.expires_in * 1000);
+                        
+                        localStorage.setItem('google_session_token', tokenAccesoGoogle);
+                        localStorage.setItem('google_session_expira', expira.toString());
+                        
+                        actualizarIndicadorSync('sincronizado', '☁️ Conectado');
+                        document.getElementById('btn-google').classList.add('conectado');
+                        document.getElementById('btn-google-texto').innerText = '✅ Conectado a Drive';
+                        document.getElementById('sync-info-texto').innerText = 'Tus datos se sincronizan automáticamente.';
+                        
+                        mostrarToast('✅ ¡Conectado con Google Drive!', 'success');
+                        
+                        await sincronizar();
+                    },
+                });
+                tokenClient.requestAccessToken();
+            } catch(e) {
+                console.error(e);
+                actualizarIndicadorSync('error', '❌ Error');
+                mostrarToast('❌ Error al conectar con Google', 'error');
+            }
+        }
+
+        function desconectarDeGoogle() {
+            if (tokenAccesoGoogle) {
+                google.accounts.oauth2.revoke(tokenAccesoGoogle, () => {});
+            }
+            tokenAccesoGoogle = null;
+            localStorage.removeItem('google_session_token');
+            localStorage.removeItem('google_session_expira');
+            
+            actualizarIndicadorSync('desconectado', '☁️ Sin Drive');
+            document.getElementById('btn-google').classList.remove('conectado');
+            document.getElementById('btn-google-texto').innerText = 'Conectar con Google Drive';
+            document.getElementById('sync-info-texto').innerText = 'Sincroniza automáticamente tus datos en tu propio Google Drive.';
+            
+            mostrarToast('🔌 Desconectado de Google Drive', 'info');
+        }
+
+        function gestionarSync() {
+            if (!tokenAccesoGoogle) {
+                conectarConGoogle();
+            } else {
+                if (confirm('¿Sincronizar ahora?\n\nSe subirán tus datos y se bajarán los cambios más recientes.')) {
+                    sincronizar();
+                }
+            }
+        }
+
+        async function sincronizar() {
+            if (!tokenAccesoGoogle) {
+                mostrarToast('⚠️ Primero conecta con Google Drive', 'error');
+                return;
+            }
+            if (syncEnProgreso) return;
+            
+            syncEnProgreso = true;
+            actualizarIndicadorSync('sincronizando', '🔄 Sincronizando...');
+            
+            try {
+                const archivoRemoto = await buscarArchivoEnDrive();
+                const datosLocales = recolectarTodosLosDatos();
+                
+                if (!archivoRemoto) {
+                    await subirADrive();
+                } else {
+                    const datosRemotos = await descargarDeDrive(archivoRemoto.id);
+                    const fechaLocal = new Date(datosLocales.fecha);
+                    const fechaRemota = new Date(datosRemotos.fecha);
+                    
+                    if (fechaRemota > fechaLocal) {
+                        restaurarTodosLosDatos(datosRemotos);
+                        mostrarToast('⬇️ Datos actualizados desde Drive', 'success');
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else if (fechaLocal > fechaRemota) {
+                        await subirADrive();
+                    } else {
+                        mostrarToast('✅ Ya está sincronizado', 'success');
+                    }
+                }
+                
+                ultimaSync = new Date();
+                actualizarIndicadorSync('sincronizado', '☁️ ' + ultimaSync.toTimeString().substring(0,5));
+                
+            } catch(e) {
+                console.error('Error sync:', e);
+                actualizarIndicadorSync('error', '❌ Error sync');
+                mostrarToast('❌ Error al sincronizar: ' + e.message, 'error');
+            }
+            
+            syncEnProgreso = false;
+        }
+
+        async function buscarArchivoEnDrive() {
+            const respuesta = await fetch(
+                "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)",
+                { headers: { 'Authorization': 'Bearer ' + tokenAccesoGoogle } }
+            );
+            if (!respuesta.ok) throw new Error('Error al buscar archivo');
+            const datos = await respuesta.json();
+            return datos.files && datos.files.length > 0 ? datos.files[0] : null;
+        }
+
+        async function subirADrive() {
+            if (!tokenAccesoGoogle) return;
+            
+            const archivoExistente = await buscarArchivoEnDrive();
+            const datos = recolectarTodosLosDatos();
+            const contenido = JSON.stringify(datos);
+            
+            const metadata = {
+                name: 'catastro_datos.json',
+                mimeType: 'application/json'
+            };
+            if (!archivoExistente) {
+                metadata.parents = ['appDataFolder'];
+            }
+            
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([contenido], { type: 'application/json' }));
+            
+            const url = archivoExistente 
+                ? `https://www.googleapis.com/upload/drive/v3/files/${archivoExistente.id}?uploadType=multipart`
+                : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+            
+            const respuesta = await fetch(url, {
+                method: archivoExistente ? 'PATCH' : 'POST',
+                headers: { 'Authorization': 'Bearer ' + tokenAccesoGoogle },
+                body: form
+            });
+            
+            if (!respuesta.ok) {
+                const err = await respuesta.text();
+                throw new Error('Error al subir: ' + err);
+            }
+            
+            return await respuesta.json();
+        }
+
+        async function bajarDeDrive() {
+            if (!tokenAccesoGoogle) return;
+            try {
+                const archivo = await buscarArchivoEnDrive();
+                if (!archivo) return;
+                const datos = await descargarDeDrive(archivo.id);
+                
+                const datosLocales = recolectarTodosLosDatos();
+                const fechaLocal = new Date(datosLocales.fecha);
+                const fechaRemota = new Date(datos.fecha);
+                
+                if (fechaRemota > fechaLocal) {
+                    restaurarTodosLosDatos(datos);
+                    mostrarToast('⬇️ Datos actualizados desde Drive', 'success');
+                    setTimeout(() => window.location.reload(), 1500);
+                }
+            } catch(e) {
+                console.error('Error bajando:', e);
+            }
+        }
+
+        async function descargarDeDrive(fileId) {
+            const respuesta = await fetch(
+                `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+                { headers: { 'Authorization': 'Bearer ' + tokenAccesoGoogle } }
+            );
+            if (!respuesta.ok) throw new Error('Error al descargar');
+            return await respuesta.json();
+        }
+
+        // ==========================================
+        // CASAS Y FICHAS
+        // ==========================================
+        
         function crearCasa() {
             if (!canvas || !barrioActual) { mostrarToast('Primero carga un barrio', 'error'); return; }
-            
-            const rect = new fabric.Rect({
-                width: 60, height: 50, fill: 'rgba(231, 76, 60, 0.4)', stroke: '#c0392b',
-                strokeWidth: 2, rx: 5, ry: 5
-            });
-            const text = new fabric.Textbox('', {
-                fontSize: 12, fontFamily: 'Arial', fill: '#2c3e50',
-                textAlign: 'center', width: 60, top: 15, left: 0,
-                fontWeight: 'bold', splitByGrapheme: true
-            });
-            const grupo = new fabric.Group([rect, text], {
-                left: 100, top: 100, hasControls: true, hasBorders: true,
-                lockScalingFlip: true, selectable: true, evented: true
-            });
+            const rect = new fabric.Rect({ width: 60, height: 50, fill: 'rgba(231, 76, 60, 0.4)', stroke: '#c0392b', strokeWidth: 2, rx: 5, ry: 5 });
+            const text = new fabric.Textbox('', { fontSize: 12, fontFamily: 'Arial', fill: '#2c3e50', textAlign: 'center', width: 60, top: 15, left: 0, fontWeight: 'bold', splitByGrapheme: true });
+            const grupo = new fabric.Group([rect, text], { left: 100, top: 100, hasControls: true, hasBorders: true, lockScalingFlip: true, selectable: true, evented: true });
             grupo.set('idCasa', 'Nueva-' + Date.now());
             grupo.setCoords();
             canvas.add(grupo);
             canvas.setActiveObject(grupo);
             canvas.renderAll();
             guardarMapa();
-            mostrarToast('Casa creada. Arrástrala a su lugar.', 'info');
+            mostrarToast('Casa creada', 'info');
         }
 
         function ponerNomenclatura() {
@@ -905,7 +1171,7 @@
             aplicarFiltros();
             guardarMapa();
             actualizarIndicadorModo('bloqueado');
-            mostrarToast('Casas fijadas. Clic en una para ver su ficha.', 'success');
+            mostrarToast('Casas fijadas', 'success');
         }
 
         function modoEdicion() {
@@ -935,17 +1201,14 @@
             if (!canvas) return;
             const obj = canvas.getActiveObject();
             if (!obj) { mostrarToast('Selecciona un elemento', 'error'); return; }
-            
             let mensaje = "¿Eliminar el elemento?";
             let idCasa = null;
             if (obj.type === 'group' && obj.idCasa) {
                 idCasa = obj.idCasa;
                 const tieneDatos = localStorage.getItem(getFichaKey(idCasa));
-                mensaje = tieneDatos ? "⚠️ La casa '" + idCasa + "' tiene datos. ¿Eliminar casa Y datos?" 
-                                     : "¿Eliminar la casa '" + idCasa + "'?";
+                mensaje = tieneDatos ? "⚠️ La casa '" + idCasa + "' tiene datos. ¿Eliminar todo?" : "¿Eliminar la casa '" + idCasa + "'?";
             }
             if (!confirm(mensaje)) return;
-            
             if (idCasa) {
                 localStorage.removeItem(getFichaKey(idCasa));
                 localStorage.removeItem(getEstadoKey(idCasa));
@@ -980,7 +1243,6 @@
             });
         }
 
-        // ==================== FILTROS ====================
         function aplicarFiltros() {
             if (!canvas) return;
             const activas = [];
@@ -1048,7 +1310,6 @@
             }
         }
 
-        // ==================== PANEL LATERAL ====================
         function abrirResumenFamiliar(idCasa) {
             idCasaActual = idCasa;
             document.getElementById('sidebar-id-casa').innerText = idCasa;
@@ -1089,7 +1350,6 @@
             idCasaActual = null;
         }
 
-        // ==================== MODAL FICHA ====================
         function abrirModalEdicion() {
             if (!idCasaActual) return;
             document.getElementById('modal-id-casa').innerText = idCasaActual;
@@ -1233,9 +1493,10 @@
             cerrarModal();
             const hayFiltros = Array.from(document.querySelectorAll('#seccion-filtro input[type="checkbox"]')).some(cb => cb.checked);
             if (hayFiltros) aplicarFiltros();
+            
+            if (tokenAccesoGoogle) subirADrive().catch(e => console.log('Sync auto:', e));
         }
 
-        // ==================== MATRIZ Y EXCEL ====================
         function obtenerTodosLosPacientes() {
             if (!barrioActual) return [];
             const pacientes = [];
@@ -1317,6 +1578,12 @@
         function guardarMapa() {
             if (aplicandoFiltros || !barrioActual) return;
             guardarCanvasActual();
+            if (tokenAccesoGoogle) {
+                clearTimeout(window._syncTimer);
+                window._syncTimer = setTimeout(() => {
+                    subirADrive().catch(e => console.log('Sync auto:', e));
+                }, 3000);
+            }
         }
     </script>
 </body>
