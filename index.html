@@ -339,6 +339,9 @@
                     <button id="btn-recuperar" class="btn-sync-inner" onclick="recuperarDesdeDrive()" style="background:#3498db; display:none;">
                         ⬇️ Recuperar datos desde Drive
                     </button>
+                    <button id="btn-info-sync" class="btn-sync-inner" onclick="verInfoSync()" style="background:#f39c12; display:none;">
+                        ℹ️ Ver tamaño de mis datos
+                    </button>
                     <p class="sync-info" id="sync-info-texto">
                         Sincroniza automáticamente tus datos en tu propio Google Drive.
                     </p>
@@ -469,7 +472,7 @@
 
     <script>
         // ==========================================
-        // ⚠️ CLIENT ID DE GOOGLE (YA CONFIGURADO)
+        // ⚠️ CLIENT ID DE GOOGLE
         // ==========================================
         const GOOGLE_CLIENT_ID = '925687204970-qac4l3sfqgpubgv9jb9cmvujkrdgn52v.apps.googleusercontent.com';
         // ==========================================
@@ -613,6 +616,9 @@
             if (barrioActual) selector.value = barrioActual.id;
         }
 
+        // ==========================================
+        // CARGAR MAPA CON COMPRESIÓN MEJORADA
+        // ==========================================
         function cargarNuevoMapa() {
             const nombre = document.getElementById('nombre-barrio').value.trim();
             const fileInput = document.getElementById('archivo-mapa');
@@ -624,7 +630,8 @@
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
-                    const maxAncho = 1600;
+                    // === COMPRESIÓN MEJORADA: 1200px ancho, 55% calidad ===
+                    const maxAncho = 1200;
                     let ancho = img.width, alto = img.height;
                     if (ancho > maxAncho) { alto = Math.round((alto * maxAncho) / ancho); ancho = maxAncho; }
                     
@@ -635,11 +642,17 @@
                     ctx.fillRect(0, 0, ancho, alto);
                     ctx.drawImage(img, 0, 0, ancho, alto);
                     
-                    const dataURL = tmp.toDataURL('image/jpeg', 0.65);
+                    const dataURL = tmp.toDataURL('image/jpeg', 0.55);
+                    const tamañoKB = Math.round((dataURL.length * 0.75) / 1024);
+                    console.log('📸 Mapa comprimido:', ancho + 'x' + alto, '| Tamaño:', tamañoKB + ' KB');
+                    
                     const id = 'barrio_' + Date.now();
                     
                     try { localStorage.setItem('catastro_mapa_' + id, dataURL); }
-                    catch (err) { mostrarToast('❌ Imagen muy grande', 'error'); return; }
+                    catch (err) { 
+                        mostrarToast('❌ Imagen muy grande. Prueba con una más pequeña.', 'error'); 
+                        return; 
+                    }
                     
                     const lista = cargarBarriosLista();
                     lista.push({ id, nombre });
@@ -650,9 +663,11 @@
                     
                     cambiarBarrio(id);
                     actualizarSelectorBarrios();
-                    mostrarToast('✅ Barrio "' + nombre + '" cargado', 'success');
+                    mostrarToast('✅ Barrio "' + nombre + '" cargado (' + tamañoKB + ' KB)', 'success');
                     
-                    if (tokenAccesoGoogle) subirADrive();
+                    if (tokenAccesoGoogle) {
+                        subirADrive().catch(e => console.log('Sync auto:', e));
+                    }
                 };
                 img.onerror = () => mostrarToast('❌ Error al leer la imagen', 'error');
                 img.src = e.target.result;
@@ -861,7 +876,7 @@
         }
 
         // ==========================================
-        // ☁️ SINCRONIZACIÓN CON GOOGLE DRIVE (MEJORADA)
+        // ☁️ SINCRONIZACIÓN CON GOOGLE DRIVE
         // ==========================================
         
         function recolectarTodosLosDatos() {
@@ -922,6 +937,7 @@
                 document.getElementById('btn-google-texto').innerText = '✅ Conectado a Drive';
                 document.getElementById('sync-info-texto').innerText = 'Tus datos se sincronizan automáticamente.';
                 document.getElementById('btn-recuperar').style.display = 'flex';
+                document.getElementById('btn-info-sync').style.display = 'flex';
                 
                 setTimeout(() => bajarDeDrive(), 2000);
             }
@@ -964,6 +980,7 @@
                         document.getElementById('btn-google-texto').innerText = '✅ Conectado a Drive';
                         document.getElementById('sync-info-texto').innerText = 'Tus datos se sincronizan automáticamente.';
                         document.getElementById('btn-recuperar').style.display = 'flex';
+                        document.getElementById('btn-info-sync').style.display = 'flex';
                         
                         mostrarToast('✅ ¡Conectado con Google Drive!', 'success');
                         
@@ -991,6 +1008,7 @@
             document.getElementById('btn-google-texto').innerText = 'Conectar con Google Drive';
             document.getElementById('sync-info-texto').innerText = 'Sincroniza automáticamente tus datos en tu propio Google Drive.';
             document.getElementById('btn-recuperar').style.display = 'none';
+            document.getElementById('btn-info-sync').style.display = 'none';
             
             mostrarToast('🔌 Desconectado de Google Drive', 'info');
         }
@@ -1005,7 +1023,6 @@
             }
         }
 
-        // Recuperar forzadamente desde Drive
         async function recuperarDesdeDrive() {
             if (!tokenAccesoGoogle) {
                 mostrarToast('⚠️ Primero conecta con Google Drive', 'error');
@@ -1019,7 +1036,43 @@
             await sincronizar(true);
         }
 
-        // Sincronización mejorada
+        // ==========================================
+        // ℹ️ VER INFO DE SINCRONIZACIÓN
+        // ==========================================
+        function verInfoSync() {
+            const datos = recolectarTodosLosDatos();
+            const json = JSON.stringify(datos);
+            const tamañoMB = (json.length / 1024 / 1024).toFixed(2);
+            const tamañoKB = Math.round(json.length / 1024);
+            
+            const cantidadBarrios = datos.barrios.length;
+            const cantidadFichas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_ficha_')).length;
+            const cantidadMapas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_mapa_')).length;
+            
+            let mensaje = '📊 INFORMACIÓN DE DATOS\n\n';
+            mensaje += 'Tamaño total: ' + tamañoMB + ' MB (' + tamañoKB + ' KB)\n';
+            mensaje += 'Barrios: ' + cantidadBarrios + '\n';
+            mensaje += 'Mapas guardados: ' + cantidadMapas + '\n';
+            mensaje += 'Fichas familiares: ' + cantidadFichas + '\n\n';
+            
+            if (tamañoMB > 4) {
+                mensaje += '⚠️ El paquete es grande.\n';
+                mensaje += 'Si la sincronización falla, intenta:\n';
+                mensaje += '• Eliminar barrios antiguos\n';
+                mensaje += '• Exportar un respaldo y limpiar\n';
+            } else if (tamañoMB > 2) {
+                mensaje += 'ℹ️ Tamaño moderado. Debería funcionar bien.\n';
+            } else {
+                mensaje += '✅ Tamaño óptimo para sincronización.\n';
+            }
+            
+            alert(mensaje);
+            console.log('Datos completos:', datos);
+        }
+
+        // ==========================================
+        // SINCRONIZACIÓN MEJORADA
+        // ==========================================
         async function sincronizar(forzarDescarga = false) {
             if (!tokenAccesoGoogle) {
                 mostrarToast('⚠️ Primero conecta con Google Drive', 'error');
@@ -1035,7 +1088,6 @@
                 const datosLocales = recolectarTodosLosDatos();
                 const hayDatosLocales = Object.keys(datosLocales.datos || {}).length > 0;
                 
-                // CASO 1: No hay archivo en Drive
                 if (!archivoRemoto) {
                     if (hayDatosLocales) {
                         await subirADrive();
@@ -1049,11 +1101,9 @@
                     return;
                 }
                 
-                // CASO 2: Sí hay archivo en Drive
                 const datosRemotos = await descargarDeDrive(archivoRemoto.id);
                 const hayDatosRemotos = datosRemotos.datos && Object.keys(datosRemotos.datos).length > 0;
                 
-                // Si forzó descarga
                 if (forzarDescarga && hayDatosRemotos) {
                     restaurarTodosLosDatos(datosRemotos);
                     mostrarToast('⬇️ Datos cargados desde Drive', 'success');
@@ -1062,7 +1112,6 @@
                     return;
                 }
                 
-                // Si NO hay datos locales pero SÍ en Drive → bajar
                 if (!hayDatosLocales && hayDatosRemotos) {
                     restaurarTodosLosDatos(datosRemotos);
                     mostrarToast('⬇️ Datos cargados desde Drive', 'success');
@@ -1071,7 +1120,6 @@
                     return;
                 }
                 
-                // Si hay locales pero NO en Drive → subir
                 if (hayDatosLocales && !hayDatosRemotos) {
                     await subirADrive();
                     mostrarToast('⬆️ Datos subidos a Drive', 'success');
@@ -1081,7 +1129,6 @@
                     return;
                 }
                 
-                // Si hay en ambos → comparar fechas
                 const fechaLocal = new Date(datosLocales.fecha).getTime();
                 const fechaRemota = new Date(datosRemotos.fecha).getTime();
                 
@@ -1118,12 +1165,31 @@
             return datos.files && datos.files.length > 0 ? datos.files[0] : null;
         }
 
+        // ==========================================
+        // SUBIR A DRIVE CON VERIFICACIÓN DE TAMAÑO
+        // ==========================================
         async function subirADrive() {
             if (!tokenAccesoGoogle) return;
             
             const archivoExistente = await buscarArchivoEnDrive();
             const datos = recolectarTodosLosDatos();
             const contenido = JSON.stringify(datos);
+            
+            const tamañoMB = (contenido.length / 1024 / 1024).toFixed(2);
+            console.log('☁️ Subiendo a Drive:', tamañoMB + ' MB');
+            
+            if (contenido.length > 5 * 1024 * 1024) {
+                const continuar = confirm(
+                    '⚠️ ADVERTENCIA\n\n' +
+                    'El paquete de datos pesa ' + tamañoMB + ' MB.\n\n' +
+                    'Esto puede causar que la subida falle.\n\n' +
+                    'Sugerencia:\n' +
+                    '• Elimina barrios que no uses\n' +
+                    '• Exporta un respaldo local antes de continuar\n\n' +
+                    '¿Continuar de todas formas?'
+                );
+                if (!continuar) return;
+            }
             
             const metadata = {
                 name: 'catastro_datos.json',
@@ -1149,9 +1215,11 @@
             
             if (!respuesta.ok) {
                 const err = await respuesta.text();
-                throw new Error('Error al subir: ' + err);
+                console.error('Error Drive:', err);
+                throw new Error('Error al subir (' + respuesta.status + ')');
             }
             
+            console.log('✅ Subido exitosamente:', tamañoMB + ' MB');
             return await respuesta.json();
         }
 
