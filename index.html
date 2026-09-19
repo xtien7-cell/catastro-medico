@@ -1,1735 +1,1524 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#2c3e50">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Catastro">
-    
-    <title>Catastro Médico</title>
-    <link rel="manifest" id="manifest-placeholder">
-    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgZmlsbD0iIzJjM2U1MCIgcng9IjMwIi8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiI+8J+SjzwvdGV4dD48L3N2Zz4=">
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    
-    <style>
-        * { -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: #2c3e50; overflow: hidden; -webkit-user-select: none; user-select: none; }
-        
-        #toolbar { background: #34495e; color: white; padding: 8px 15px; display: flex; gap: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 100; position: relative; flex-wrap: wrap; align-items: center; }
-        #toolbar button { padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 12px; transition: all 0.2s; display: flex; align-items: center; gap: 4px; font-family: inherit; white-space: nowrap; }
-        .btn-crear { background: #3498db; color: white; }
-        .btn-nomenclatura { background: #f39c12; color: white; }
-        .btn-editar { background: #27ae60; color: white; }
-        .btn-fijar { background: #e74c3c; color: white; }
-        .btn-eliminar-sel { background: #c0392b; color: white; }
-        
-        .zoom-group { display: flex; gap: 3px; background: #0f171e; padding: 3px; border-radius: 6px; border: 2px solid #0a0f13; }
-        .btn-zoom { background: #ffffff !important; color: #0f171e !important; padding: 6px 10px !important; font-size: 14px !important; font-weight: bold !important; border: 2px solid #ffffff !important; min-width: 36px; justify-content: center; }
-        .btn-zoom:hover { background: #f1c40f !important; }
-        #zoom-nivel { color: #ffffff; font-size: 12px; padding: 0 6px; align-self: center; font-weight: bold; min-width: 45px; text-align: center; }
-        
-        #barrio-activo-info { margin-left: auto; font-size: 12px; font-weight: bold; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 5px; }
-        #modo-indicador { font-size: 11px; font-weight: bold; padding: 5px 10px; border-radius: 4px; margin-left: 5px; }
-        #modo-indicador.bloqueado { background: #e74c3c; color: white; }
-        #modo-indicador.editando { background: #27ae60; color: white; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#2c3e50">
+<title>Catastro Médico</title>
+<link rel="manifest" id="manifest-placeholder">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+* { -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; overflow: hidden; user-select: none; }
+#toolbar { background: #34495e; color: white; padding: 8px 15px; display: flex; gap: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 100; position: relative; flex-wrap: wrap; align-items: center; }
+#toolbar button { padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 12px; display: flex; align-items: center; gap: 4px; font-family: inherit; white-space: nowrap; }
+.btn-crear { background: #3498db; color: white; }
+.btn-nomenclatura { background: #f39c12; color: white; }
+.btn-editar { background: #27ae60; color: white; }
+.btn-fijar { background: #e74c3c; color: white; }
+.btn-eliminar-sel { background: #c0392b; color: white; }
+.zoom-group { display: flex; gap: 3px; background: #0f171e; padding: 3px; border-radius: 6px; border: 2px solid #0a0f13; }
+.btn-zoom { background: #fff !important; color: #0f171e !important; padding: 6px 10px !important; font-size: 14px !important; border: 2px solid #fff !important; min-width: 36px; justify-content: center; }
+#zoom-nivel { color: #fff; font-size: 12px; padding: 0 6px; align-self: center; font-weight: bold; min-width: 45px; text-align: center; }
+#barrio-activo-info { margin-left: auto; font-size: 12px; font-weight: bold; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 5px; }
+#modo-indicador { font-size: 11px; font-weight: bold; padding: 5px 10px; border-radius: 4px; margin-left: 5px; }
+#modo-indicador.bloqueado { background: #e74c3c; color: white; }
+#modo-indicador.editando { background: #27ae60; color: white; }
+#sync-indicador { font-size: 11px; font-weight: bold; padding: 5px 10px; border-radius: 4px; margin-left: 5px; cursor: pointer; }
+#sync-indicador.desconectado { background: #7f8c8d; color: white; }
+#sync-indicador.sincronizando { background: #f39c12; color: white; }
+#sync-indicador.sincronizado { background: #27ae60; color: white; }
+#sync-indicador.error { background: #e74c3c; color: white; }
+#btn-hamburguesa { display: none; background: #2c3e50; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 18px; }
+#sidebar-filtros { position: fixed; left: 0; top: 56px; width: 240px; height: calc(100vh - 56px); background: #fff; box-shadow: 3px 0 10px rgba(0,0,0,0.15); z-index: 90; overflow-y: auto; border-right: 2px solid #bdc3c7; transition: left 0.3s; }
 
-        #sync-indicador {
-            font-size: 11px; font-weight: bold; padding: 5px 10px;
-            border-radius: 4px; margin-left: 5px; cursor: pointer;
-            transition: all 0.3s;
-        }
-        #sync-indicador.desconectado { background: #7f8c8d; color: white; }
-        #sync-indicador.sincronizando { background: #f39c12; color: white; animation: pulso-sync 1.5s infinite; }
-        #sync-indicador.sincronizado { background: #27ae60; color: white; }
-        #sync-indicador.error { background: #e74c3c; color: white; }
-        #sync-indicador.offline { background: #34495e; color: white; }
-        @keyframes pulso-sync { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+/* ========== DIVISIONES UNIFICADAS EN #bdc3c7 ========== */
+.sidebar-section-header { background: #2c3e50; color: white; padding: 14px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #bdc3c7; }
+.sidebar-section-header .flecha { transition: transform 0.3s; font-size: 11px; }
+.sidebar-section-header.abierto .flecha { transform: rotate(0deg); }
+.sidebar-section-header:not(.abierto) .flecha { transform: rotate(-90deg); }
+.sidebar-section-content { max-height: 0; overflow: hidden; transition: max-height 0.35s ease-out; background: #fff; border-bottom: 2px solid #bdc3c7; }
+.sidebar-section-content.abierto { max-height: 2500px; overflow-y: auto; }
+.btn-matriz { display: block; width: 100%; background: #2c3e50; color: white; border: none; padding: 14px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid #bdc3c7; font-family: inherit; text-align: left; }
+/* ====================================================== */
 
-        #btn-hamburguesa { display: none; background: #2c3e50; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 18px; }
+.seccion-inner { padding: 12px; }
+.seccion-inner label { display: block; font-size: 12px; font-weight: bold; color: #2c3e50; margin-bottom: 5px; margin-top: 8px; }
+.seccion-inner label:first-child { margin-top: 0; }
+.seccion-inner input[type="text"], .seccion-inner input[type="file"], .seccion-inner select { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 13px; font-family: inherit; background: white; }
+.seccion-inner button { width: 100%; box-sizing: border-box; margin-top: 8px; border: none; padding: 9px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; font-family: inherit; }
+.btn-cargar { background: #27ae60; color: white; }
+.btn-eliminar-barrio { background: #e74c3c; color: white; }
+.btn-limpiar-filtros { background: #95a5a6; color: white; }
+.btn-sync-inner { width: 100%; box-sizing: border-box; margin-top: 6px; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; font-family: inherit; color: white; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.btn-export-inner { background: #16a085; }
+.btn-import-inner { background: #8e44ad; }
+.btn-google { background: #fff; color: #444; border: 2px solid #dadce0 !important; padding: 10px !important; }
+.btn-google.conectado { background: #e8f5e9; border-color: #27ae60 !important; color: #1e7e34; }
+.google-icon { width: 18px; height: 18px; }
+.sync-separador { margin-top: 15px; padding-top: 12px; border-top: 2px dashed #bdc3c7; }
+.sync-titulo { text-align: center; color: #2c3e50; font-size: 12px; margin-bottom: 8px; display: block; }
+.sync-info { font-size: 10px; color: #7f8c8d; text-align: center; margin-top: 6px; line-height: 1.4; }
+.filtro-hint { font-size: 11px; color: #7f8c8d; padding: 0 0 8px 0; margin: 0; font-style: italic; }
+.filtro-item { display: flex; align-items: center; gap: 8px; padding: 8px 6px; margin-bottom: 2px; border-radius: 5px; cursor: pointer; font-size: 13px; }
+.filtro-item:hover { background: #ecf0f1; }
+.color-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; border: 2px solid #fff; box-shadow: 0 0 0 1px #bdc3c7; }
+.btn-matriz:disabled { background: #95a5a6; cursor: not-allowed; }
+#mapa-wrapper { position: relative; margin-left: 240px; width: calc(100vw - 240px); height: calc(100vh - 56px); overflow: auto; background: #bdc3c7; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; padding: 20px; box-sizing: border-box; }
+#mapa-wrapper::-webkit-scrollbar { width: 14px; height: 14px; }
+#mapa-wrapper::-webkit-scrollbar-track { background: #95a5a6; border-radius: 7px; }
+#mapa-wrapper::-webkit-scrollbar-thumb { background: #2c3e50; border-radius: 7px; border: 2px solid #95a5a6; min-height: 40px; }
+#mapa-wrapper::-webkit-scrollbar-corner { background: #95a5a6; }
+#canvas-zoom-container { position: relative; display: inline-block; }
+#canvas-zoom { position: absolute; top: 0; left: 0; transform-origin: top left; box-shadow: 0 0 20px rgba(0,0,0,0.5); background: white; }
+#mapa-imagen { display: block; position: relative; user-select: none; pointer-events: none; z-index: 1; max-width: none; }
+#canvas-fabric { position: absolute; top: 0; left: 0; z-index: 2; }
+#sin-barrio { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #7f8c8d; background: white; padding: 30px; border-radius: 12px; max-width: 90vw; z-index: 10; }
 
-        #sidebar-filtros {
-            position: fixed; left: 0; top: 56px; width: 240px; height: calc(100vh - 56px);
-            background: #ffffff; box-shadow: 3px 0 10px rgba(0,0,0,0.15);
-            z-index: 90; overflow-y: auto; border-right: 2px solid #bdc3c7;
-            transition: left 0.3s;
-        }
-        #sidebar-filtros::-webkit-scrollbar { width: 6px; }
-        #sidebar-filtros::-webkit-scrollbar-thumb { background: #95a5a6; border-radius: 4px; }
+/* ========== INSTRUCCIONES ========== */
+#instrucciones { position: fixed; bottom: 15px; left: 260px; background: rgba(255,255,255,0.98); padding: 15px 18px 15px 18px; border-radius: 10px; font-size: 13px; max-width: 330px; z-index: 50; box-shadow: 0 4px 15px rgba(0,0,0,0.25); border-left: 4px solid #3498db; display: flex; flex-direction: column; gap: 7px; }
+#instrucciones.oculto { display: none; }
+#instrucciones strong { color: #2c3e50; font-size: 14px; padding-right: 20px; }
+#instrucciones .instruccion-item { display: flex; gap: 8px; align-items: flex-start; color: #34495e; font-size: 12.5px; line-height: 1.3; }
+#instrucciones .instruccion-item span { flex: 1; }
+#instrucciones .btn-cerrar-instr { position: absolute; top: 6px; right: 8px; background: none; border: none; color: #95a5a6; font-size: 16px; cursor: pointer; padding: 2px 6px; font-weight: bold; }
+#instrucciones .btn-cerrar-instr:hover { color: #e74c3c; }
+/* =================================== */
 
-        .sidebar-section-header {
-            background: #2c3e50; color: white; padding: 14px;
-            font-size: 14px; font-weight: bold; cursor: pointer;
-            display: flex; justify-content: space-between; align-items: center;
-            user-select: none; border-bottom: 2px solid #1a252f;
-        }
-        .sidebar-section-header:hover { background: #1a252f; }
-        .sidebar-section-header .flecha { transition: transform 0.3s; font-size: 11px; }
-        .sidebar-section-header.abierto .flecha { transform: rotate(0deg); }
-        .sidebar-section-header:not(.abierto) .flecha { transform: rotate(-90deg); }
-
-        .sidebar-section-content { max-height: 0; overflow: hidden; transition: max-height 0.35s ease-out; background: #fff; border-bottom: 2px solid #ecf0f1; }
-        .sidebar-section-content.abierto { max-height: 2500px; overflow-y: auto; }
-
-        .seccion-inner { padding: 12px; }
-        .seccion-inner label { display: block; font-size: 12px; font-weight: bold; color: #2c3e50; margin-bottom: 5px; margin-top: 8px; }
-        .seccion-inner label:first-child { margin-top: 0; }
-        .seccion-inner input[type="text"], .seccion-inner input[type="file"], .seccion-inner select { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 13px; font-family: inherit; background: white; }
-        .seccion-inner input[type="file"] { font-size: 11px; padding: 4px; }
-        .seccion-inner button { width: 100%; box-sizing: border-box; margin-top: 8px; border: none; padding: 9px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; font-family: inherit; }
-        .btn-cargar { background: #27ae60; color: white; }
-        .btn-cargar:hover { background: #219150; }
-        .btn-eliminar-barrio { background: #e74c3c; color: white; }
-        .btn-eliminar-barrio:hover { background: #c0392b; }
-        .btn-limpiar-filtros { background: #95a5a6; color: white; }
-        .btn-limpiar-filtros:hover { background: #7f8c8d; }
-
-        .btn-sync-inner {
-            width: 100%; box-sizing: border-box; margin-top: 6px;
-            border: none; padding: 10px; border-radius: 4px;
-            cursor: pointer; font-weight: bold; font-size: 13px;
-            font-family: inherit; color: white;
-            display: flex; align-items: center; justify-content: center; gap: 6px;
-            transition: background 0.2s;
-        }
-        .btn-export-inner { background: #16a085; }
-        .btn-export-inner:hover { background: #138d75; }
-        .btn-import-inner { background: #8e44ad; }
-        .btn-import-inner:hover { background: #71368a; }
-        
-        .btn-google {
-            background: #ffffff;
-            color: #444;
-            border: 2px solid #dadce0 !important;
-            font-weight: bold;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            padding: 10px !important;
-            transition: all 0.2s;
-        }
-        .btn-google:hover { background: #f8f9fa; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .btn-google.conectado {
-            background: #e8f5e9;
-            border-color: #27ae60 !important;
-            color: #1e7e34;
-        }
-        .google-icon {
-            width: 18px; height: 18px; flex-shrink: 0;
-        }
-
-        .sync-separador {
-            margin-top: 15px; 
-            padding-top: 12px; 
-            border-top: 2px dashed #bdc3c7;
-        }
-        .sync-titulo {
-            text-align: center; 
-            color: #2c3e50; 
-            font-size: 12px;
-            margin-bottom: 8px;
-            display: block;
-        }
-        .sync-info {
-            font-size: 10px;
-            color: #7f8c8d;
-            text-align: center;
-            margin-top: 6px;
-            line-height: 1.4;
-        }
-
-        .filtro-hint { font-size: 11px; color: #7f8c8d; padding: 0 0 8px 0; margin: 0; font-style: italic; }
-        .filtro-item { display: flex; align-items: center; gap: 8px; padding: 8px 6px; margin-bottom: 2px; border-radius: 5px; cursor: pointer; font-size: 13px; user-select: none; }
-        .filtro-item:hover { background: #ecf0f1; }
-        .filtro-item input { margin: 0; cursor: pointer; }
-        .color-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; border: 2px solid #fff; box-shadow: 0 0 0 1px #bdc3c7; }
-
-        .btn-matriz { display: block; width: 100%; background: #2c3e50; color: white; border: none; padding: 14px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid #1a252f; font-family: inherit; text-align: left; }
-        .btn-matriz:hover { background: #1a252f; }
-        .btn-matriz:disabled { background: #95a5a6; cursor: not-allowed; }
-
-        #mapa-wrapper { position: relative; margin-left: 240px; width: calc(100vw - 240px); height: calc(100vh - 56px); overflow: auto; background: #ecf0f1; -webkit-overflow-scrolling: touch; }
-        #canvas-zoom { position: relative; transform-origin: top left; display: inline-block; margin: 20px; box-shadow: 0 0 20px rgba(0,0,0,0.5); background: white; }
-        #mapa-imagen { display: block; position: relative; user-select: none; pointer-events: none; z-index: 1; max-width: none; }
-        #canvas-fabric { position: absolute; top: 0; left: 0; z-index: 2; }
-        #canvas-fabric canvas { display: block; }
-        
-        #sin-barrio { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #7f8c8d; font-size: 15px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); max-width: 90vw; z-index: 10; }
-        #sin-barrio h2 { color: #2c3e50; margin-top: 0; font-size: 20px; }
-        #sin-barrio .flecha-izq { font-size: 35px; margin-bottom: 10px; display: block; }
-
-        #instrucciones { position: fixed; bottom: 15px; left: 260px; background: rgba(255,255,255,0.95); padding: 12px; border-radius: 8px; font-size: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-width: 260px; z-index: 50; }
-
-        #sidebar-resumen { position: fixed; right: -400px; top: 56px; width: 350px; height: calc(100vh - 56px); background: white; box-shadow: -5px 0 15px rgba(0,0,0,0.2); transition: right 0.3s ease-in-out; z-index: 500; display: flex; flex-direction: column; }
-        #sidebar-resumen.abierto { right: 0; }
-        .sidebar-header { background: #2c3e50; color: white; padding: 14px; display: flex; justify-content: space-between; align-items: center; }
-        .sidebar-header h3 { margin: 0; font-size: 16px; }
-        .btn-cerrar-sidebar { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-        .sidebar-content { padding: 15px; overflow-y: auto; flex: 1; }
-        
-        .estado-visita-badge { text-align: center; font-weight: bold; padding: 10px; border-radius: 5px; margin-bottom: 15px; color: white; font-size: 14px; }
-        .estado-Pendiente { background: #e74c3c; }
-        .estado-Visitada { background: #27ae60; }
-        .estado-Fallida { background: #f1c40f; color: #333; }
-        .estado-Cerrada { background: #95a5a6; }
-        .estado-Abandonada { background: #34495e; }
-
-        .btn-agregar-ficha { background: #3498db; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
-        .resumen-integrante { background: #f8f9fa; border-left: 6px solid #bdc3c7; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
-        .resumen-integrante h4 { margin: 0 0 5px 0; color: #2c3e50; font-size: 14px; }
-        .resumen-integrante p { margin: 2px 0; font-size: 12px; color: #555; }
-        .tag-condicion { display: inline-block; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-right: 4px; margin-top: 4px; }
-        .sin-datos { text-align: center; color: #7f8c8d; font-style: italic; margin-top: 20px; font-size: 13px; }
-
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); overflow-y: auto; }
-        .modal-content { background-color: #fefefe; margin: 20px auto; padding: 18px; border-radius: 10px; width: 90%; max-width: 800px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); position: relative; }
-        .close { color: #aaa; position: absolute; right: 15px; top: 10px; font-size: 28px; font-weight: bold; cursor: pointer; z-index: 20; }
-        .close:hover { color: #e74c3c; }
-        
-        .modal-content.matriz { max-width: 98%; width: 98%; }
-        .tabla-matriz { width: 100%; border-collapse: collapse; font-size: 12px; }
-        .tabla-matriz th { background: #2c3e50; color: white; padding: 6px; text-align: left; position: sticky; top: 0; z-index: 10; }
-        .tabla-matriz td { padding: 5px 6px; border-bottom: 1px solid #ecf0f1; }
-        .tabla-matriz tr:nth-child(even) { background: #f8f9fa; }
-        .tabla-matriz .estado-tag { padding: 2px 5px; border-radius: 4px; font-size: 10px; color: white; font-weight: bold; }
-        
-        .matriz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; padding-right: 50px; border-bottom: 2px solid #ecf0f1; flex-wrap: wrap; gap: 10px; }
-        .matriz-info { font-size: 12px; color: #7f8c8d; }
-        .btn-excel { background: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
-        .tabla-scroll { max-height: 65vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-
-        .estado-visita-section { background: #ecf0f1; padding: 12px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #34495e; }
-        .estado-visita-section label { font-weight: bold; display: block; margin-bottom: 8px; color: #2c3e50; font-size: 13px; }
-        .btn-estado { padding: 7px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-right: 6px; margin-bottom: 5px; font-size: 12px; }
-        .btn-estado.activo { box-shadow: inset 0 3px 5px rgba(0,0,0,0.3); transform: scale(0.98); border: 2px solid #2c3e50; }
-        .btn-pendiente { background: #e74c3c; color: white; }
-        .btn-visitada { background: #27ae60; color: white; }
-        .btn-fallida { background: #f1c40f; color: #333; }
-        .btn-cerrada { background: #95a5a6; color: white; }
-        .btn-abandonada { background: #34495e; color: white; }
-
-        .integrante-card { background: #f8f9fa; border: 1px solid #dee2e6; border-left: 6px solid #bdc3c7; border-radius: 8px; padding: 12px; margin-bottom: 12px; position: relative; }
-        .integrante-card h4 { margin-top: 0; color: #2980b9; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px; font-size: 14px; }
-        .grupo-1 { border-left-color: #2ecc71; }
-        .grupo-2 { border-left-color: #f1c40f; }
-        .grupo-3 { border-left-color: #e74c3c; }
-        .grupo-4 { border-left-color: #3498db; }
-
-        .form-row { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
-        .form-group { flex: 1; min-width: 130px; display: flex; flex-direction: column; }
-        .form-group label { font-size: 11px; font-weight: bold; color: #7f8c8d; margin-bottom: 3px; }
-        .form-group input, .form-group select, .form-group textarea { padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; font-family: inherit; font-size: 13px; }
-        .form-group textarea { resize: vertical; height: 50px; }
-        
-        .condiciones-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; margin-top: 5px; }
-        .condicion-item { display: flex; align-items: center; gap: 5px; font-size: 12px; background: #e8f4f8; padding: 5px; border-radius: 4px; }
-        
-        .btn-eliminar-integrante { position: absolute; top: 8px; right: 8px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; padding: 4px 8px; font-size: 11px; }
-        
-        .modal-footer { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 12px; border-top: 2px solid #ecf0f1; gap: 10px; flex-wrap: wrap; }
-        .btn-guardar { background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; flex: 1; min-width: 130px; }
-        .btn-agregar { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; flex: 1; min-width: 130px; }
-
-        @media (max-width: 768px) {
-            #toolbar { padding: 6px 8px; gap: 4px; }
-            #toolbar button { padding: 6px 8px; font-size: 11px; }
-            #toolbar button span.texto-largo { display: none; }
-            #btn-hamburguesa { display: block; }
-            #barrio-activo-info { font-size: 11px; padding: 5px 8px; }
-            #modo-indicador { display: none; }
-            #sync-indicador { font-size: 10px; padding: 4px 6px; }
-            
-            #sidebar-filtros { left: -260px; width: 260px; top: 56px; height: calc(100vh - 56px); z-index: 200; }
-            #sidebar-filtros.abierto { left: 0; }
-            
-            #mapa-wrapper { margin-left: 0; width: 100vw; height: calc(100vh - 56px); }
-            #canvas-zoom { margin: 10px; }
-            
-            #sidebar-resumen { width: 100vw; right: -100vw; }
-            
-            .modal-content { width: 95%; margin: 10px auto; padding: 14px; }
-            .modal-content.matriz { width: 100%; margin: 0; border-radius: 0; max-width: 100%; }
-            
-            #instrucciones { display: none; }
-            
-            .form-group { min-width: 100%; }
-            .condiciones-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
-        }
-
-        @media (max-width: 480px) {
-            #toolbar button { padding: 5px 7px; font-size: 10px; }
-            .btn-zoom { padding: 5px 8px !important; min-width: 32px; font-size: 12px !important; }
-            #zoom-nivel { font-size: 11px; min-width: 40px; padding: 0 4px; }
-        }
-
-        #overlay-sidebar { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 199; }
-        #overlay-sidebar.visible { display: block; }
-        
-        #toast {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
-            background: #2c3e50; color: white; padding: 12px 24px; border-radius: 8px;
-            font-size: 14px; font-weight: bold; z-index: 3000; opacity: 0;
-            transition: all 0.3s; box-shadow: 0 5px 20px rgba(0,0,0,0.3); max-width: 90vw; text-align: center;
-        }
-        #toast.visible { transform: translateX(-50%) translateY(0); opacity: 1; }
-        #toast.success { background: #27ae60; }
-        #toast.error { background: #e74c3c; }
-        #toast.info { background: #3498db; }
-    </style>
+#sidebar-resumen { position: fixed; right: -400px; top: 56px; width: 350px; height: calc(100vh - 56px); background: white; box-shadow: -5px 0 15px rgba(0,0,0,0.2); transition: right 0.3s; z-index: 500; display: flex; flex-direction: column; }
+#sidebar-resumen.abierto { right: 0; }
+.sidebar-header { background: #2c3e50; color: white; padding: 14px; display: flex; justify-content: space-between; align-items: center; }
+.sidebar-header h3 { margin: 0; font-size: 16px; }
+.btn-cerrar-sidebar { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+.sidebar-content { padding: 15px; overflow-y: auto; flex: 1; }
+.estado-visita-badge { text-align: center; font-weight: bold; padding: 10px; border-radius: 5px; margin-bottom: 15px; color: white; font-size: 14px; }
+.estado-Pendiente { background: #e74c3c; }
+.estado-Visitada { background: #27ae60; }
+.estado-Fallida { background: #f1c40f; color: #333; }
+.estado-Cerrada { background: #95a5a6; }
+.estado-Abandonada { background: #34495e; }
+.btn-agregar-ficha { background: #3498db; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
+.resumen-integrante { background: #f8f9fa; border-left: 6px solid #bdc3c7; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+.resumen-integrante h4 { margin: 0 0 5px 0; color: #2c3e50; font-size: 14px; }
+.resumen-integrante p { margin: 2px 0; font-size: 12px; color: #555; }
+.tag-condicion { display: inline-block; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-right: 4px; margin-top: 4px; }
+.sin-datos { text-align: center; color: #7f8c8d; font-style: italic; margin-top: 20px; font-size: 13px; }
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); overflow-y: auto; }
+.modal-content { background: #fefefe; margin: 20px auto; padding: 18px; border-radius: 10px; width: 90%; max-width: 800px; position: relative; }
+.close { color: #aaa; position: absolute; right: 15px; top: 10px; font-size: 28px; font-weight: bold; cursor: pointer; }
+.modal-content.matriz { max-width: 98%; width: 98%; }
+.tabla-matriz { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tabla-matriz th { background: #2c3e50; color: white; padding: 6px; text-align: left; position: sticky; top: 0; }
+.tabla-matriz td { padding: 5px 6px; border-bottom: 1px solid #ecf0f1; }
+.tabla-matriz tr:nth-child(even) { background: #f8f9fa; }
+.estado-tag { padding: 2px 5px; border-radius: 4px; font-size: 10px; color: white; font-weight: bold; }
+.matriz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; padding-right: 50px; border-bottom: 2px solid #ecf0f1; flex-wrap: wrap; gap: 10px; }
+.matriz-info { font-size: 12px; color: #7f8c8d; }
+.btn-excel { background: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
+.tabla-scroll { max-height: 65vh; overflow-y: auto; }
+.estado-visita-section { background: #ecf0f1; padding: 12px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #34495e; }
+.estado-visita-section label { font-weight: bold; display: block; margin-bottom: 8px; color: #2c3e50; font-size: 13px; }
+.btn-estado { padding: 7px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-right: 6px; margin-bottom: 5px; font-size: 12px; }
+.btn-estado.activo { box-shadow: inset 0 3px 5px rgba(0,0,0,0.3); border: 2px solid #2c3e50; }
+.btn-pendiente { background: #e74c3c; color: white; }
+.btn-visitada { background: #27ae60; color: white; }
+.btn-fallida { background: #f1c40f; color: #333; }
+.btn-cerrada { background: #95a5a6; color: white; }
+.btn-abandonada { background: #34495e; color: white; }
+.integrante-card { background: #f8f9fa; border: 1px solid #dee2e6; border-left: 6px solid #bdc3c7; border-radius: 8px; padding: 12px; margin-bottom: 12px; position: relative; }
+.integrante-card h4 { margin-top: 0; color: #2980b9; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px; font-size: 14px; }
+.grupo-1 { border-left-color: #2ecc71; }
+.grupo-2 { border-left-color: #f1c40f; }
+.grupo-3 { border-left-color: #e74c3c; }
+.grupo-4 { border-left-color: #3498db; }
+.form-row { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.form-group { flex: 1; min-width: 130px; display: flex; flex-direction: column; }
+.form-group label { font-size: 11px; font-weight: bold; color: #7f8c8d; margin-bottom: 3px; }
+.form-group input, .form-group select, .form-group textarea { padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; font-family: inherit; font-size: 13px; }
+.form-group textarea { resize: vertical; height: 50px; }
+.condiciones-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; margin-top: 5px; }
+.condicion-item { display: flex; align-items: center; gap: 5px; font-size: 12px; background: #e8f4f8; padding: 5px; border-radius: 4px; }
+.btn-eliminar-integrante { position: absolute; top: 8px; right: 8px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; padding: 4px 8px; font-size: 11px; }
+.modal-footer { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 12px; border-top: 2px solid #ecf0f1; gap: 10px; flex-wrap: wrap; }
+.btn-guardar { background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; flex: 1; min-width: 130px; }
+.btn-agregar { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; flex: 1; min-width: 130px; }
+@media (max-width: 768px) {
+  #toolbar button { padding: 6px 8px; font-size: 11px; }
+  #toolbar button span.texto-largo { display: none; }
+  #btn-hamburguesa { display: block; }
+  #modo-indicador { display: none; }
+  #sidebar-filtros { left: -260px; width: 260px; z-index: 200; }
+  #sidebar-filtros.abierto { left: 0; }
+  #mapa-wrapper { margin-left: 0; width: 100vw; padding: 10px; }
+  #sidebar-resumen { width: 100vw; right: -100vw; }
+  #instrucciones { display: none; }
+  .form-group { min-width: 100%; }
+}
+#overlay-sidebar { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 199; }
+#overlay-sidebar.visible { display: block; }
+#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: #2c3e50; color: white; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: bold; z-index: 3000; opacity: 0; transition: all 0.3s; max-width: 90vw; text-align: center; }
+#toast.visible { transform: translateX(-50%) translateY(0); opacity: 1; }
+#toast.success { background: #27ae60; }
+#toast.error { background: #e74c3c; }
+#toast.info { background: #3498db; }
+</style>
 </head>
 <body>
 
-    <div id="toolbar">
-        <button id="btn-hamburguesa" onclick="toggleSidebarMovil()">☰</button>
-        <button class="btn-crear" onclick="crearCasa()">➕ <span class="texto-largo">Casa</span></button>
-        <button class="btn-nomenclatura" onclick="ponerNomenclatura()">✍️ <span class="texto-largo">Nomen.</span></button>
-        <button class="btn-editar" onclick="modoEdicion()">🖱️ <span class="texto-largo">Editar</span></button>
-        <button class="btn-fijar" onclick="fijarCasas()">📌 <span class="texto-largo">Fijar</span></button>
-        <button class="btn-eliminar-sel" onclick="eliminarSeleccionado()">🗑️</button>
-        
-        <div class="zoom-group">
-            <button class="btn-zoom" onclick="cambiarZoom(-0.2)">➖</button>
-            <span id="zoom-nivel">100%</span>
-            <button class="btn-zoom" onclick="cambiarZoom(0.2)">➕</button>
-            <button class="btn-zoom" onclick="resetZoom()">🔄</button>
-        </div>
-        
-        <span id="modo-indicador" class="bloqueado">📌 Bloqueado</span>
-        <span id="sync-indicador" class="desconectado" onclick="gestionarSync()">☁️ Sin Drive</span>
-        <span id="barrio-activo-info">📍 Sin barrio</span>
+<div id="toolbar">
+  <button id="btn-hamburguesa" onclick="toggleSidebarMovil()">☰</button>
+  <button class="btn-crear" onclick="crearCasa()">➕ <span class="texto-largo">Casa</span></button>
+  <button class="btn-nomenclatura" onclick="ponerNomenclatura()">✍️ <span class="texto-largo">Nomen.</span></button>
+  <button class="btn-editar" onclick="modoEdicion()">🖱️ <span class="texto-largo">Editar</span></button>
+  <button class="btn-fijar" onclick="fijarCasas()">📌 <span class="texto-largo">Fijar</span></button>
+  <button class="btn-eliminar-sel" onclick="eliminarSeleccionado()">🗑️</button>
+  <div class="zoom-group">
+    <button class="btn-zoom" onclick="cambiarZoom(-0.2)">➖</button>
+    <span id="zoom-nivel">100%</span>
+    <button class="btn-zoom" onclick="cambiarZoom(0.2)">➕</button>
+    <button class="btn-zoom" onclick="resetZoom()">🔄</button>
+  </div>
+  <span id="modo-indicador" class="bloqueado">📌 Bloqueado</span>
+  <span id="sync-indicador" class="desconectado" onclick="gestionarSync()">☁️ Sin Drive</span>
+  <span id="barrio-activo-info">📍 Sin barrio</span>
+</div>
+
+<div id="overlay-sidebar" onclick="toggleSidebarMovil()"></div>
+
+<div id="sidebar-filtros">
+  <div class="sidebar-section-header" onclick="toggleSeccion('seccion-cargar-mapa', this)">
+    <span>📁 Cargar Nuevo Mapa</span><span class="flecha">▼</span>
+  </div>
+  <div class="sidebar-section-content" id="seccion-cargar-mapa">
+    <div class="seccion-inner">
+      <label>Nombre del Barrio:</label>
+      <input type="text" id="nombre-barrio" placeholder="Ej. Chorlavi...">
+      <label>Imagen del Mapa:</label>
+      <input type="file" id="archivo-mapa" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,image/*">
+      <button class="btn-cargar" onclick="cargarNuevoMapa()">✅ Cargar Mapa</button>
+      <div class="sync-separador">
+        <span class="sync-titulo">💾 Respaldo Local</span>
+        <button class="btn-sync-inner btn-export-inner" onclick="exportarDatos()">📤 Exportar datos</button>
+        <button class="btn-sync-inner btn-import-inner" onclick="document.getElementById('input-importar').click()">📥 Importar datos</button>
+        <input type="file" id="input-importar" accept=".json" style="display:none" onchange="importarDatos(event)">
+      </div>
+      <div class="sync-separador">
+        <span class="sync-titulo">☁️ Sincronización en la Nube</span>
+        <button id="btn-google" class="btn-sync-inner btn-google" onclick="conectarConGoogle()">
+          <svg class="google-icon" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          <span id="btn-google-texto">Conectar con Google Drive</span>
+        </button>
+        <button id="btn-recuperar" class="btn-sync-inner" onclick="recuperarDesdeDrive()" style="background:#3498db; display:none;">⬇️ Recuperar datos desde Drive</button>
+        <button id="btn-info-sync" class="btn-sync-inner" onclick="verInfoSync()" style="background:#f39c12; display:none;">ℹ️ Ver tamaño de mis datos</button>
+        <p class="sync-info" id="sync-info-texto">Sincroniza automáticamente tus datos en tu propio Google Drive.</p>
+      </div>
     </div>
-
-    <div id="overlay-sidebar" onclick="toggleSidebarMovil()"></div>
-
-    <div id="sidebar-filtros">
-        
-        <div class="sidebar-section-header" onclick="toggleSeccion('seccion-cargar-mapa', this)">
-            <span>📁 Cargar Nuevo Mapa</span>
-            <span class="flecha">▼</span>
-        </div>
-        <div class="sidebar-section-content" id="seccion-cargar-mapa">
-            <div class="seccion-inner">
-                <label>Nombre del Barrio:</label>
-                <input type="text" id="nombre-barrio" placeholder="Ej. Chorlavi...">
-                <label>Imagen del Mapa:</label>
-                <input type="file" id="archivo-mapa" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,image/jpeg,image/png,image/gif,image/webp,image/*">
-                <button class="btn-cargar" onclick="cargarNuevoMapa()">✅ Cargar Mapa</button>
-                
-                <div class="sync-separador">
-                    <span class="sync-titulo">💾 Respaldo Local</span>
-                    <button class="btn-sync-inner btn-export-inner" onclick="exportarDatos()">📤 Exportar datos</button>
-                    <button class="btn-sync-inner btn-import-inner" onclick="document.getElementById('input-importar').click()">📥 Importar datos</button>
-                    <input type="file" id="input-importar" accept=".json,application/json" style="display:none" onchange="importarDatos(event)">
-                </div>
-
-                <div class="sync-separador">
-                    <span class="sync-titulo">☁️ Sincronización en la Nube</span>
-                    <button id="btn-google" class="btn-sync-inner btn-google" onclick="conectarConGoogle()">
-                        <svg class="google-icon" viewBox="0 0 48 48">
-                            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                        </svg>
-                        <span id="btn-google-texto">Conectar con Google Drive</span>
-                    </button>
-                    <button id="btn-recuperar" class="btn-sync-inner" onclick="recuperarDesdeDrive()" style="background:#3498db; display:none;">
-                        ⬇️ Recuperar datos desde Drive
-                    </button>
-                    <button id="btn-info-sync" class="btn-sync-inner" onclick="verInfoSync()" style="background:#f39c12; display:none;">
-                        ℹ️ Ver tamaño de mis datos
-                    </button>
-                    <p class="sync-info" id="sync-info-texto">
-                        Sincroniza automáticamente tus datos en tu propio Google Drive.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <div class="sidebar-section-header" onclick="toggleSeccion('seccion-selector-barrio', this)">
-            <span>📍 Barrio</span>
-            <span class="flecha">▼</span>
-        </div>
-        <div class="sidebar-section-content" id="seccion-selector-barrio">
-            <div class="seccion-inner">
-                <label>Seleccionar Barrio:</label>
-                <select id="selector-barrio" onchange="cambiarBarrio(this.value)">
-                    <option value="">-- Sin barrios cargados --</option>
-                </select>
-                <button class="btn-eliminar-barrio" onclick="eliminarBarrioActual()">🗑️ Eliminar Barrio</button>
-            </div>
-        </div>
-
-        <button class="btn-matriz" onclick="abrirMatriz()" id="btn-matriz">📊 Pacientes</button>
-
-        <div class="sidebar-section-header" onclick="toggleSeccion('seccion-filtro', this)">
-            <span>🔍 Filtrar por Condición</span>
-            <span class="flecha">▼</span>
-        </div>
-        <div class="sidebar-section-content" id="seccion-filtro">
-            <div class="seccion-inner">
-                <p class="filtro-hint">Selecciona condiciones para resaltar.</p>
-                <label class="filtro-item"><input type="checkbox" value="Embarazada" onchange="aplicarFiltros()"><span class="color-dot" style="background: #e91e63;"></span> Embarazada</label>
-                <label class="filtro-item"><input type="checkbox" value="Niños menores de 2 años" onchange="aplicarFiltros()"><span class="color-dot" style="background: #ff9800;"></span> Niños &lt; 2 años</label>
-                <label class="filtro-item"><input type="checkbox" value="Discapacidad" onchange="aplicarFiltros()"><span class="color-dot" style="background: #9c27b0;"></span> Discapacidad</label>
-                <label class="filtro-item"><input type="checkbox" value="Hipertensión" onchange="aplicarFiltros()"><span class="color-dot" style="background: #f44336;"></span> Hipertensión</label>
-                <label class="filtro-item"><input type="checkbox" value="Diabetes" onchange="aplicarFiltros()"><span class="color-dot" style="background: #795548;"></span> Diabetes</label>
-                <label class="filtro-item"><input type="checkbox" value="Salud mental" onchange="aplicarFiltros()"><span class="color-dot" style="background: #00bcd4;"></span> Salud mental</label>
-                <label class="filtro-item"><input type="checkbox" value="VIH" onchange="aplicarFiltros()"><span class="color-dot" style="background: #212121;"></span> VIH</label>
-                <label class="filtro-item"><input type="checkbox" value="Tuberculosis" onchange="aplicarFiltros()"><span class="color-dot" style="background: #4caf50;"></span> Tuberculosis</label>
-                <label class="filtro-item"><input type="checkbox" value="Desnutrición" onchange="aplicarFiltros()"><span class="color-dot" style="background: #009688;"></span> Desnutrición</label>
-                <label class="filtro-item"><input type="checkbox" value="Vacunas incompletas" onchange="aplicarFiltros()"><span class="color-dot" style="background: #06b6d4;"></span> Vacunas incompletas</label>
-                <label class="filtro-item"><input type="checkbox" value="Evento de salud" onchange="aplicarFiltros()"><span class="color-dot" style="background: #dc2626;"></span> Evento de salud</label>
-                <button class="btn-limpiar-filtros" onclick="limpiarFiltros()">🗑️ Limpiar Filtros</button>
-            </div>
-        </div>
+  </div>
+  <div class="sidebar-section-header" onclick="toggleSeccion('seccion-selector-barrio', this)">
+    <span>📍 Barrio</span><span class="flecha">▼</span>
+  </div>
+  <div class="sidebar-section-content" id="seccion-selector-barrio">
+    <div class="seccion-inner">
+      <label>Seleccionar Barrio:</label>
+      <select id="selector-barrio" onchange="cambiarBarrio(this.value)">
+        <option value="">-- Sin barrios cargados --</option>
+      </select>
+      <button class="btn-eliminar-barrio" onclick="eliminarBarrioActual()">🗑️ Eliminar Barrio</button>
     </div>
-
-    <div id="mapa-wrapper">
-        <div id="canvas-zoom" style="display:none;">
-            <img id="mapa-imagen" src="" alt="">
-            <div id="canvas-fabric"><canvas id="c"></canvas></div>
-        </div>
-        <div id="sin-barrio">
-            <span class="flecha-izq">⬅️</span>
-            <h2>Bienvenido</h2>
-            <p>Abre el menú <strong>☰</strong> y carga tu primer mapa.</p>
-            <p style="font-size: 12px; color: #e67e22;"><strong>Tip:</strong> Conecta con Google Drive para respaldar automáticamente.</p>
-        </div>
+  </div>
+  <button class="btn-matriz" onclick="abrirMatriz()" id="btn-matriz">📊 Pacientes</button>
+  <div class="sidebar-section-header" onclick="toggleSeccion('seccion-filtro', this)">
+    <span>🔍 Filtrar por Condición</span><span class="flecha">▼</span>
+  </div>
+  <div class="sidebar-section-content" id="seccion-filtro">
+    <div class="seccion-inner">
+      <p class="filtro-hint">Selecciona condiciones para resaltar.</p>
+      <label class="filtro-item"><input type="checkbox" value="Embarazada" onchange="aplicarFiltros()"><span class="color-dot" style="background:#e91e63;"></span> Embarazada</label>
+      <label class="filtro-item"><input type="checkbox" value="Niños menores de 2 años" onchange="aplicarFiltros()"><span class="color-dot" style="background:#ff9800;"></span> Niños &lt; 2 años</label>
+      <label class="filtro-item"><input type="checkbox" value="Discapacidad" onchange="aplicarFiltros()"><span class="color-dot" style="background:#9c27b0;"></span> Discapacidad</label>
+      <label class="filtro-item"><input type="checkbox" value="Hipertensión" onchange="aplicarFiltros()"><span class="color-dot" style="background:#f44336;"></span> Hipertensión</label>
+      <label class="filtro-item"><input type="checkbox" value="Diabetes" onchange="aplicarFiltros()"><span class="color-dot" style="background:#795548;"></span> Diabetes</label>
+      <label class="filtro-item"><input type="checkbox" value="Salud mental" onchange="aplicarFiltros()"><span class="color-dot" style="background:#00bcd4;"></span> Salud mental</label>
+      <label class="filtro-item"><input type="checkbox" value="VIH" onchange="aplicarFiltros()"><span class="color-dot" style="background:#212121;"></span> VIH</label>
+      <label class="filtro-item"><input type="checkbox" value="Tuberculosis" onchange="aplicarFiltros()"><span class="color-dot" style="background:#4caf50;"></span> Tuberculosis</label>
+      <label class="filtro-item"><input type="checkbox" value="Desnutrición" onchange="aplicarFiltros()"><span class="color-dot" style="background:#009688;"></span> Desnutrición</label>
+      <label class="filtro-item"><input type="checkbox" value="Vacunas incompletas" onchange="aplicarFiltros()"><span class="color-dot" style="background:#06b6d4;"></span> Vacunas incompletas</label>
+      <label class="filtro-item"><input type="checkbox" value="Evento de salud" onchange="aplicarFiltros()"><span class="color-dot" style="background:#dc2626;"></span> Evento de salud</label>
+      <label class="filtro-item"><input type="checkbox" value="Cuidados paliativos" onchange="aplicarFiltros()"><span class="color-dot" style="background:#636e72;"></span> Cuidados paliativos</label>
+      <button class="btn-limpiar-filtros" onclick="limpiarFiltros()">🗑️ Limpiar Filtros</button>
     </div>
+  </div>
+</div>
 
-    <div id="instrucciones">
-        <strong>Flujo:</strong> Crear Casa → Nomenclatura → Fijar → Clic para ficha.
+<div id="mapa-wrapper">
+  <div id="canvas-zoom-container" style="display:none;">
+    <div id="canvas-zoom">
+      <img id="mapa-imagen" src="" alt="">
+      <div id="canvas-fabric"><canvas id="c"></canvas></div>
     </div>
+  </div>
+  <div id="sin-barrio">
+    <h2>Bienvenido</h2>
+    <p>Carga tu primer mapa desde el menú <strong>☰</strong>.</p>
+    <p style="font-size:12px;color:#e67e22;">Arrastra con 1 dedo, zoom con 2 dedos.</p>
+  </div>
+</div>
 
-    <div id="sidebar-resumen">
-        <div class="sidebar-header">
-            <h3>Casa: <span id="sidebar-id-casa">---</span></h3>
-            <button class="btn-cerrar-sidebar" onclick="cerrarSidebar()">&times;</button>
-        </div>
-        <div class="sidebar-content">
-            <div id="sidebar-estado-visita" class="estado-visita-badge estado-Pendiente">Estado: Pendiente</div>
-            <button class="btn-agregar-ficha" onclick="abrirModalEdicion()">➕ Agregar / Editar Ficha</button>
-            <div id="sidebar-lista-integrantes"></div>
-        </div>
+<div id="instrucciones">
+    <button class="btn-cerrar-instr" onclick="cerrarInstrucciones()">✕</button>
+    <strong>📖 Cómo usar la app</strong>
+    <div class="instruccion-item">➕ <span>Crea casas y arrástralas al mapa</span></div>
+    <div class="instruccion-item">✍️ <span>Ponles nomenclatura (ej. MZ14-C15)</span></div>
+    <div class="instruccion-item">📌 <span>Fija las casas cuando termines</span></div>
+    <div class="instruccion-item">👆 <span>Haz clic en una casa para ver su ficha</span></div>
+    <div class="instruccion-item">🔍 <span>Filtra por condiciones especiales</span></div>
+    <div class="instruccion-item">🖐️ <span>1 dedo mueve · 2 dedos zoom</span></div>
+</div>
+
+<div id="sidebar-resumen">
+  <div class="sidebar-header">
+    <h3>Casa: <span id="sidebar-id-casa">---</span></h3>
+    <button class="btn-cerrar-sidebar" onclick="cerrarSidebar()">&times;</button>
+  </div>
+  <div class="sidebar-content">
+    <div id="sidebar-estado-visita" class="estado-visita-badge estado-Pendiente">Estado: Pendiente</div>
+    <button class="btn-agregar-ficha" onclick="abrirModalEdicion()">➕ Agregar / Editar Ficha</button>
+    <div id="sidebar-lista-integrantes"></div>
+  </div>
+</div>
+
+<div id="modal-ficha" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="cerrarModal()">&times;</span>
+    <h2 style="font-size:18px;">Ficha: <span id="modal-id-casa" style="color:#e74c3c;"></span></h2>
+    <div class="estado-visita-section">
+      <label>Estado de la Visita:</label>
+      <div>
+        <button class="btn-estado btn-pendiente" onclick="cambiarEstadoVisita('Pendiente')">Pendiente</button>
+        <button class="btn-estado btn-visitada" onclick="cambiarEstadoVisita('Visitada')">Visitada</button>
+        <button class="btn-estado btn-fallida" onclick="cambiarEstadoVisita('Fallida')">Fallida</button>
+        <button class="btn-estado btn-cerrada" onclick="cambiarEstadoVisita('Cerrada')">Cerrada</button>
+        <button class="btn-estado btn-abandonada" onclick="cambiarEstadoVisita('Abandonada')">Abandonada</button>
+      </div>
     </div>
-
-    <div id="modal-ficha" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="cerrarModal()">&times;</span>
-            <h2 style="font-size: 18px;">Ficha: <span id="modal-id-casa" style="color: #e74c3c;"></span></h2>
-            
-            <div class="estado-visita-section">
-                <label>Estado de la Visita:</label>
-                <div>
-                    <button class="btn-estado btn-pendiente" onclick="cambiarEstadoVisita('Pendiente')">Pendiente</button>
-                    <button class="btn-estado btn-visitada" onclick="cambiarEstadoVisita('Visitada')">Visitada</button>
-                    <button class="btn-estado btn-fallida" onclick="cambiarEstadoVisita('Fallida')">Fallida</button>
-                    <button class="btn-estado btn-cerrada" onclick="cambiarEstadoVisita('Cerrada')">Cerrada</button>
-                    <button class="btn-estado btn-abandonada" onclick="cambiarEstadoVisita('Abandonada')">Abandonada</button>
-                </div>
-            </div>
-
-            <div id="contenedor-integrantes"></div>
-
-            <div class="modal-footer">
-                <button class="btn-agregar" onclick="agregarIntegranteForm()">+ Integrante</button>
-                <button class="btn-guardar" onclick="guardarFicha()">💾 Guardar Ficha</button>
-            </div>
-        </div>
+    <div id="contenedor-integrantes"></div>
+    <div class="modal-footer">
+      <button class="btn-agregar" onclick="agregarIntegranteForm()">+ Integrante</button>
+      <button class="btn-guardar" onclick="guardarFicha()">💾 Guardar Ficha</button>
     </div>
+  </div>
+</div>
 
-    <div id="modal-matriz" class="modal">
-        <div class="modal-content matriz">
-            <span class="close" onclick="cerrarMatriz()">&times;</span>
-            <div class="matriz-header">
-                <div>
-                    <h2 style="margin: 0; font-size: 16px;">📊 Matriz de Pacientes</h2>
-                    <div class="matriz-info" id="matriz-info">Cargando...</div>
-                </div>
-                <button class="btn-excel" onclick="exportarExcel()">📥 Excel</button>
-            </div>
-            <div class="tabla-scroll">
-                <table class="tabla-matriz">
-                    <thead>
-                        <tr>
-                            <th>Casa</th><th>Estado</th><th>Nombre</th><th>Cédula</th>
-                            <th>Edad</th><th>Sexo</th><th>Contacto</th><th>Escolaridad</th>
-                            <th>Grupo</th><th>Vacunas</th><th>Enfermedades</th>
-                            <th>Medicamentos</th><th>Evento</th><th>Condiciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbody-matriz"></tbody>
-                </table>
-            </div>
-        </div>
+<div id="modal-matriz" class="modal">
+  <div class="modal-content matriz">
+    <span class="close" onclick="cerrarMatriz()">&times;</span>
+    <div class="matriz-header">
+      <div>
+        <h2 style="margin:0;font-size:16px;">📊 Matriz de Pacientes</h2>
+        <div class="matriz-info" id="matriz-info">Cargando...</div>
+      </div>
+      <button class="btn-excel" onclick="exportarExcel()">📥 Excel</button>
     </div>
+    <div class="tabla-scroll">
+      <table class="tabla-matriz">
+        <thead>
+          <tr>
+            <th>Casa</th><th>Estado</th><th>Nombre</th><th>Cédula</th><th>Edad</th><th>Sexo</th>
+            <th>Contacto</th><th>Escolaridad</th><th>Grupo</th><th>Vacunas</th><th>Enfermedades</th>
+            <th>Medicamentos</th><th>Evento</th><th>Condiciones</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-matriz"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
-    <div id="toast"></div>
+<div id="toast"></div>
 
-    <script>
-        // ==========================================
-        // ⚠️ CLIENT ID DE GOOGLE
-        // ==========================================
-        const GOOGLE_CLIENT_ID = '925687204970-qac4l3sfqgpubgv9jb9cmvujkrdgn52v.apps.googleusercontent.com';
-        // ==========================================
+<script>
+// ==========================================
+// ⚠️ CLIENT ID DE GOOGLE
+// ==========================================
+const GOOGLE_CLIENT_ID = '925687204970-qac4l3sfqgpubgv9jb9cmvujkrdgn52v.apps.googleusercontent.com';
 
-        // ==================== VARIABLES ====================
-        let canvas = null;
-        let barrioActual = null;
-        let idCasaActual = null;
-        let estadoVisitaActual = 'Pendiente';
-        let aplicandoFiltros = false;
-        let zoomActual = 1;
-        let modoActivo = 'bloqueado';
-        
-        let tokenAccesoGoogle = null;
-        let tokenClient = null;
-        let syncEnProgreso = false;
-        let ultimaSync = null;
+// ==================== VARIABLES ====================
+let canvas = null;
+let barrioActual = null;
+let idCasaActual = null;
+let estadoVisitaActual = 'Pendiente';
+let aplicandoFiltros = false;
+let zoomActual = 1;
+let modoActivo = 'bloqueado';
+let tokenAccesoGoogle = null;
+let tokenClient = null;
+let syncEnProgreso = false;
+let ultimaSync = null;
 
-        const coloresCondiciones = {
-            'Embarazada': { fill: 'rgba(233, 30, 99, 0.7)', stroke: '#e91e63' },
-            'Niños menores de 2 años': { fill: 'rgba(255, 152, 0, 0.7)', stroke: '#ff9800' },
-            'Discapacidad': { fill: 'rgba(156, 39, 176, 0.7)', stroke: '#9c27b0' },
-            'Hipertensión': { fill: 'rgba(244, 67, 54, 0.7)', stroke: '#f44336' },
-            'Diabetes': { fill: 'rgba(121, 85, 72, 0.8)', stroke: '#795548' },
-            'Salud mental': { fill: 'rgba(0, 188, 212, 0.7)', stroke: '#00bcd4' },
-            'VIH': { fill: 'rgba(33, 33, 33, 0.8)', stroke: '#212121' },
-            'Tuberculosis': { fill: 'rgba(76, 175, 80, 0.7)', stroke: '#4caf50' },
-            'Desnutrición': { fill: 'rgba(0, 150, 136, 0.7)', stroke: '#009688' },
-            'Vacunas incompletas': { fill: 'rgba(6, 182, 212, 0.7)', stroke: '#06b6d4' },
-            'Evento de salud': { fill: 'rgba(220, 38, 38, 0.7)', stroke: '#dc2626' }
-        };
-        const estadosColoresHex = {
-            'Pendiente': '#e74c3c', 'Visitada': '#27ae60', 'Fallida': '#f1c40f',
-            'Cerrada': '#95a5a6', 'Abandonada': '#34495e'
-        };
+const coloresCondiciones = {
+  'Embarazada': { fill: 'rgba(233, 30, 99, 0.7)', stroke: '#e91e63' },
+  'Niños menores de 2 años': { fill: 'rgba(255, 152, 0, 0.7)', stroke: '#ff9800' },
+  'Discapacidad': { fill: 'rgba(156, 39, 176, 0.7)', stroke: '#9c27b0' },
+  'Hipertensión': { fill: 'rgba(244, 67, 54, 0.7)', stroke: '#f44336' },
+  'Diabetes': { fill: 'rgba(121, 85, 72, 0.8)', stroke: '#795548' },
+  'Salud mental': { fill: 'rgba(0, 188, 212, 0.7)', stroke: '#00bcd4' },
+  'VIH': { fill: 'rgba(33, 33, 33, 0.8)', stroke: '#212121' },
+  'Tuberculosis': { fill: 'rgba(76, 175, 80, 0.7)', stroke: '#4caf50' },
+  'Desnutrición': { fill: 'rgba(0, 150, 136, 0.7)', stroke: '#009688' },
+  'Vacunas incompletas': { fill: 'rgba(6, 182, 212, 0.7)', stroke: '#06b6d4' },
+  'Evento de salud': { fill: 'rgba(220, 38, 38, 0.7)', stroke: '#dc2626' },
+  'Cuidados paliativos': { fill: 'rgba(99, 110, 114, 0.7)', stroke: '#636e72' }
+};
+const estadosColoresHex = {
+  'Pendiente': '#e74c3c', 'Visitada': '#27ae60', 'Fallida': '#f1c40f',
+  'Cerrada': '#95a5a6', 'Abandonada': '#34495e'
+};
 
-        function mostrarToast(mensaje, tipo) {
-            const toast = document.getElementById('toast');
-            toast.innerText = mensaje;
-            toast.className = 'visible ' + (tipo || 'info');
-            setTimeout(() => { toast.className = ''; }, 3000);
-        }
+function mostrarToast(mensaje, tipo) {
+  const toast = document.getElementById('toast');
+  toast.innerText = mensaje;
+  toast.className = 'visible ' + (tipo || 'info');
+  setTimeout(() => { toast.className = ''; }, 3000);
+}
 
-        function toggleSidebarMovil() {
-            const sidebar = document.getElementById('sidebar-filtros');
-            const overlay = document.getElementById('overlay-sidebar');
-            sidebar.classList.toggle('abierto');
-            overlay.classList.toggle('visible');
-        }
+function toggleSidebarMovil() {
+  document.getElementById('sidebar-filtros').classList.toggle('abierto');
+  document.getElementById('overlay-sidebar').classList.toggle('visible');
+}
 
-        window.addEventListener('load', function() {
-            const manifest = {
-                name: "Catastro Médico", short_name: "Catastro", start_url: ".", display: "standalone",
-                background_color: "#2c3e50", theme_color: "#2c3e50", orientation: "any",
-                icons: [{ src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgZmlsbD0iIzJjM2U1MCIgcng9IjMwIi8+PHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1zaXplPSI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiI+8J+SjzwvdGV4dD48L3N2Zz4=", sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" }]
-            };
-            const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
-            document.getElementById('manifest-placeholder').href = URL.createObjectURL(manifestBlob);
+// ==================== INSTRUCCIONES ====================
+function cerrarInstrucciones() {
+  document.getElementById('instrucciones').classList.add('oculto');
+  localStorage.setItem('instrucciones_cerradas', '1');
+}
 
-            if ('serviceWorker' in navigator) {
-                const swCode = `
-                    const CACHE = 'catastro-v2';
-                    self.addEventListener('install', e => self.skipWaiting());
-                    self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
-                    self.addEventListener('fetch', e => {
-                        if (e.request.method !== 'GET') return;
-                        e.respondWith(
-                            caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
-                                if (res.status === 200) {
-                                    const clone = res.clone();
-                                    caches.open(CACHE).then(c => c.put(e.request, clone));
-                                }
-                                return res;
-                            }).catch(() => cached))
-                        );
-                    });
-                `;
-                const swBlob = new Blob([swCode], {type: 'application/javascript'});
-                navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(err => console.log('SW:', err));
-            }
+// ==================== INICIALIZACIÓN ====================
+window.addEventListener('load', function() {
+  const manifest = {
+    name: "Catastro Médico", short_name: "Catastro", start_url: ".", display: "standalone",
+    background_color: "#2c3e50", theme_color: "#2c3e50",
+    icons: [{ src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgZmlsbD0iIzJjM2U1MCIgcng9IjMwIi8+PC9zdmc+", sizes: "192x192", type: "image/svg+xml" }]
+  };
+  const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+  document.getElementById('manifest-placeholder').href = URL.createObjectURL(manifestBlob);
 
-            try {
-                canvas = new fabric.Canvas('c', {
-                    selection: true, preserveObjectStacking: true,
-                    backgroundColor: 'transparent', width: 800, height: 600,
-                    allowTouchScrolling: false
-                });
-                configurarEventosCanvas();
-            } catch(e) { console.error('Error canvas:', e); }
-            
-            actualizarSelectorBarrios();
-            document.getElementById('btn-matriz').disabled = true;
-            
-            verificarSesionGuardada();
-            
-            const activeId = localStorage.getItem('catastro_barrio_activo');
-            const lista = cargarBarriosLista();
-            if (activeId && lista.find(b => b.id === activeId)) {
-                cambiarBarrio(activeId);
-            }
+  if ('serviceWorker' in navigator) {
+    const swCode = `self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));`;
+    navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode],{type:'application/javascript'}))).catch(e=>console.log(e));
+  }
+
+  try {
+    canvas = new fabric.Canvas('c', {
+      selection: true, preserveObjectStacking: true,
+      backgroundColor: 'transparent', width: 800, height: 600,
+      allowTouchScrolling: true
+    });
+    configurarEventosCanvas();
+  } catch(e) { console.error('Error canvas:', e); }
+
+  inicializarGestosTactiles();
+  actualizarSelectorBarrios();
+  document.getElementById('btn-matriz').disabled = true;
+  verificarSesionGuardada();
+
+  // Verificar si el usuario ya cerró las instrucciones
+  if (localStorage.getItem('instrucciones_cerradas') === '1') {
+    document.getElementById('instrucciones').classList.add('oculto');
+  }
+
+  const activeId = localStorage.getItem('catastro_barrio_activo');
+  const lista = cargarBarriosLista();
+  if (activeId && lista.find(b => b.id === activeId)) {
+    cambiarBarrio(activeId);
+  }
+});
+
+// ==================== GESTOS TÁCTILES ====================
+function inicializarGestosTactiles() {
+  const wrapper = document.getElementById('mapa-wrapper');
+  let pinchState = { activo: false, distIni: 0, zoomIni: 1, centroX: 0, centroY: 0, scrollLeftIni: 0, scrollTopIni: 0 };
+  
+  wrapper.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      pinchState = {
+        activo: true,
+        distIni: Math.hypot(dx, dy),
+        zoomIni: zoomActual,
+        centroX: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        centroY: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+        scrollLeftIni: wrapper.scrollLeft,
+        scrollTopIni: wrapper.scrollTop
+      };
+    }
+  }, { passive: true });
+  
+  wrapper.addEventListener('touchmove', function(e) {
+    if (e.touches.length === 2 && pinchState.activo) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const distAct = Math.hypot(dx, dy);
+      const factor = distAct / pinchState.distIni;
+      const nuevoZoom = Math.max(0.2, Math.min(3, pinchState.zoomIni * factor));
+      
+      if (Math.abs(nuevoZoom - zoomActual) > 0.01) {
+        zoomActual = nuevoZoom;
+        aplicarZoom();
+        requestAnimationFrame(function() {
+          const ratio = zoomActual / pinchState.zoomIni;
+          wrapper.scrollLeft = (pinchState.scrollLeftIni + pinchState.centroX) * ratio - pinchState.centroX;
+          wrapper.scrollTop = (pinchState.scrollTopIni + pinchState.centroY) * ratio - pinchState.centroY;
         });
+      }
+    }
+  }, { passive: false });
+  
+  wrapper.addEventListener('touchend', function(e) {
+    if (e.touches.length < 2) pinchState.activo = false;
+  });
+  
+  wrapper.addEventListener('wheel', function(e) {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      cambiarZoom(e.deltaY < 0 ? 0.1 : -0.1);
+    }
+  }, { passive: false });
+}
 
-        function cambiarZoom(delta) { zoomActual = Math.max(0.2, Math.min(3, zoomActual + delta)); aplicarZoom(); }
-        function resetZoom() { zoomActual = 1; aplicarZoom(); }
-        function aplicarZoom() {
-            document.getElementById('canvas-zoom').style.transform = 'scale(' + zoomActual + ')';
-            document.getElementById('zoom-nivel').innerText = Math.round(zoomActual * 100) + '%';
-        }
+// ==================== ZOOM ====================
+function cambiarZoom(delta) {
+  zoomActual = Math.max(0.2, Math.min(3, zoomActual + delta));
+  aplicarZoom();
+}
+function resetZoom() { zoomActual = 1; aplicarZoom(); }
+function aplicarZoom() {
+  const zoomDiv = document.getElementById('canvas-zoom');
+  const container = document.getElementById('canvas-zoom-container');
+  const mapaImg = document.getElementById('mapa-imagen');
+  zoomDiv.style.transform = 'scale(' + zoomActual + ')';
+  if (mapaImg && mapaImg.width && mapaImg.height) {
+    container.style.width = (mapaImg.width * zoomActual) + 'px';
+    container.style.height = (mapaImg.height * zoomActual) + 'px';
+  }
+  document.getElementById('zoom-nivel').innerText = Math.round(zoomActual * 100) + '%';
+}
 
-        function actualizarIndicadorModo(modo) {
-            modoActivo = modo;
-            const ind = document.getElementById('modo-indicador');
-            if (modo === 'editando') { ind.className = 'editando'; ind.innerText = '✏️ Editando'; }
-            else { ind.className = 'bloqueado'; ind.innerText = '📌 Bloqueado'; }
-        }
+function actualizarIndicadorModo(modo) {
+  modoActivo = modo;
+  const ind = document.getElementById('modo-indicador');
+  if (modo === 'editando') { ind.className = 'editando'; ind.innerText = '✏️ Editando'; }
+  else { ind.className = 'bloqueado'; ind.innerText = '📌 Bloqueado'; }
+}
 
-        function toggleSeccion(id, header) {
-            document.getElementById(id).classList.toggle('abierto');
-            header.classList.toggle('abierto');
-        }
+function toggleSeccion(id, header) {
+  document.getElementById(id).classList.toggle('abierto');
+  header.classList.toggle('abierto');
+}
 
-        function cargarBarriosLista() {
-            try { return JSON.parse(localStorage.getItem('catastro_barrios') || '[]'); } catch(e) { return []; }
-        }
-        function guardarBarriosLista(lista) { localStorage.setItem('catastro_barrios', JSON.stringify(lista)); }
+// ==================== BARRIOS ====================
+function cargarBarriosLista() {
+  try { return JSON.parse(localStorage.getItem('catastro_barrios') || '[]'); } catch(e) { return []; }
+}
+function guardarBarriosLista(lista) { localStorage.setItem('catastro_barrios', JSON.stringify(lista)); }
 
-        function actualizarSelectorBarrios() {
-            const selector = document.getElementById('selector-barrio');
-            const lista = cargarBarriosLista();
-            selector.innerHTML = '';
-            if (lista.length === 0) {
-                selector.innerHTML = '<option value="">-- Sin barrios --</option>';
-                return;
-            }
-            lista.forEach(b => {
-                const opt = document.createElement('option');
-                opt.value = b.id;
-                opt.textContent = b.nombre;
-                selector.appendChild(opt);
-            });
-            if (barrioActual) selector.value = barrioActual.id;
-        }
+function actualizarSelectorBarrios() {
+  const selector = document.getElementById('selector-barrio');
+  const lista = cargarBarriosLista();
+  selector.innerHTML = '';
+  if (lista.length === 0) {
+    selector.innerHTML = '<option value="">-- Sin barrios --</option>';
+    return;
+  }
+  lista.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.id;
+    opt.textContent = b.nombre;
+    selector.appendChild(opt);
+  });
+  if (barrioActual) selector.value = barrioActual.id;
+}
 
-        // ==========================================
-        // CARGAR MAPA CON COMPRESIÓN MEJORADA
-        // ==========================================
-        function cargarNuevoMapa() {
-            const nombre = document.getElementById('nombre-barrio').value.trim();
-            const fileInput = document.getElementById('archivo-mapa');
-            if (!nombre) { mostrarToast('⚠️ Ponle un nombre al barrio', 'error'); return; }
-            if (!fileInput.files || !fileInput.files[0]) { mostrarToast('⚠️ Selecciona una imagen', 'error'); return; }
-            
-            const file = fileInput.files[0];
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    // === COMPRESIÓN MEJORADA: 1200px ancho, 55% calidad ===
-                    const maxAncho = 1200;
-                    let ancho = img.width, alto = img.height;
-                    if (ancho > maxAncho) { alto = Math.round((alto * maxAncho) / ancho); ancho = maxAncho; }
-                    
-                    const tmp = document.createElement('canvas');
-                    tmp.width = ancho; tmp.height = alto;
-                    const ctx = tmp.getContext('2d');
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(0, 0, ancho, alto);
-                    ctx.drawImage(img, 0, 0, ancho, alto);
-                    
-                    const dataURL = tmp.toDataURL('image/jpeg', 0.55);
-                    const tamañoKB = Math.round((dataURL.length * 0.75) / 1024);
-                    console.log('📸 Mapa comprimido:', ancho + 'x' + alto, '| Tamaño:', tamañoKB + ' KB');
-                    
-                    const id = 'barrio_' + Date.now();
-                    
-                    try { localStorage.setItem('catastro_mapa_' + id, dataURL); }
-                    catch (err) { 
-                        mostrarToast('❌ Imagen muy grande. Prueba con una más pequeña.', 'error'); 
-                        return; 
-                    }
-                    
-                    const lista = cargarBarriosLista();
-                    lista.push({ id, nombre });
-                    guardarBarriosLista(lista);
-                    
-                    document.getElementById('nombre-barrio').value = '';
-                    document.getElementById('archivo-mapa').value = '';
-                    
-                    cambiarBarrio(id);
-                    actualizarSelectorBarrios();
-                    mostrarToast('✅ Barrio "' + nombre + '" cargado (' + tamañoKB + ' KB)', 'success');
-                    
-                    if (tokenAccesoGoogle) {
-                        subirADrive().catch(e => console.log('Sync auto:', e));
-                    }
-                };
-                img.onerror = () => mostrarToast('❌ Error al leer la imagen', 'error');
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
+function cargarNuevoMapa() {
+  const nombre = document.getElementById('nombre-barrio').value.trim();
+  const fileInput = document.getElementById('archivo-mapa');
+  if (!nombre) { mostrarToast('⚠️ Ponle un nombre al barrio', 'error'); return; }
+  if (!fileInput.files || !fileInput.files[0]) { mostrarToast('⚠️ Selecciona una imagen', 'error'); return; }
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const maxAncho = 1200;
+      let ancho = img.width, alto = img.height;
+      if (ancho > maxAncho) { alto = Math.round((alto * maxAncho) / ancho); ancho = maxAncho; }
+      
+      const tmp = document.createElement('canvas');
+      tmp.width = ancho; tmp.height = alto;
+      const ctx = tmp.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, ancho, alto);
+      ctx.drawImage(img, 0, 0, ancho, alto);
+      
+      const dataURL = tmp.toDataURL('image/jpeg', 0.55);
+      const tamañoKB = Math.round((dataURL.length * 0.75) / 1024);
+      const id = 'barrio_' + Date.now();
+      
+      try { localStorage.setItem('catastro_mapa_' + id, dataURL); }
+      catch (err) { mostrarToast('❌ Imagen muy grande', 'error'); return; }
+      
+      const lista = cargarBarriosLista();
+      lista.push({ id, nombre });
+      guardarBarriosLista(lista);
+      
+      document.getElementById('nombre-barrio').value = '';
+      document.getElementById('archivo-mapa').value = '';
+      
+      cambiarBarrio(id);
+      actualizarSelectorBarrios();
+      mostrarToast('✅ Barrio "' + nombre + '" (' + tamañoKB + ' KB)', 'success');
+      
+      if (tokenAccesoGoogle) subirADrive().catch(e => console.log(e));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(fileInput.files[0]);
+}
 
-        function cambiarBarrio(id) {
-            if (!id) return;
-            if (barrioActual) guardarCanvasActual();
-            
-            const lista = cargarBarriosLista();
-            const barrio = lista.find(b => b.id === id);
-            if (!barrio) { mostrarToast('Barrio no encontrado', 'error'); return; }
-            
-            barrioActual = barrio;
-            localStorage.setItem('catastro_barrio_activo', id);
-            document.getElementById('barrio-activo-info').innerText = '📍 ' + barrio.nombre;
-            document.getElementById('btn-matriz').disabled = false;
-            
-            zoomActual = 1;
-            document.getElementById('zoom-nivel').innerText = '100%';
-            document.getElementById('canvas-zoom').style.transform = 'scale(1)';
-            
-            const dataURL = localStorage.getItem('catastro_mapa_' + id);
-            const canvasJSON = localStorage.getItem('catastro_canvas_' + id);
-            if (!dataURL) { mostrarToast('No se encontró la imagen', 'error'); return; }
-            
-            document.getElementById('sin-barrio').style.display = 'none';
-            document.getElementById('canvas-zoom').style.display = 'inline-block';
-            
-            const nuevoImg = new Image();
-            nuevoImg.onload = function() {
-                const mapaImg = document.getElementById('mapa-imagen');
-                mapaImg.src = dataURL;
-                mapaImg.width = nuevoImg.width;
-                mapaImg.height = nuevoImg.height;
-                
-                canvas.setWidth(nuevoImg.width);
-                canvas.setHeight(nuevoImg.height);
-                canvas.backgroundColor = 'transparent';
-                canvas.setZoom(1);
-                canvas.calcOffset();
-                
-                if (canvasJSON) {
-                    canvas.clear();
-                    canvas.setWidth(nuevoImg.width);
-                    canvas.setHeight(nuevoImg.height);
-                    canvas.backgroundColor = 'transparent';
-                    try {
-                        canvas.loadFromJSON(canvasJSON, function() {
-                            restaurarEstadosObjetos();
-                            canvas.renderAll();
-                            canvas.calcOffset();
-                        });
-                    } catch(e) { canvas.renderAll(); }
-                } else {
-                    canvas.clear();
-                    canvas.setWidth(nuevoImg.width);
-                    canvas.setHeight(nuevoImg.height);
-                    canvas.backgroundColor = 'transparent';
-                    canvas.renderAll();
-                }
-                setTimeout(() => { canvas.calcOffset(); canvas.renderAll(); }, 100);
-            };
-            nuevoImg.onerror = () => mostrarToast('❌ Error al cargar imagen', 'error');
-            nuevoImg.src = dataURL;
-            
-            document.getElementById('selector-barrio').value = id;
-            actualizarIndicadorModo('bloqueado');
-        }
-
-        function restaurarEstadosObjetos() {
-            if (!canvas) return;
-            canvas.forEachObject(function(obj) {
-                if (obj.type !== 'group') return;
-                obj.evented = true;
-                if (modoActivo === 'editando') {
-                    obj.selectable = true; obj.hasControls = true; obj.hasBorders = true;
-                    obj.lockMovementX = false; obj.lockMovementY = false;
-                } else {
-                    obj.selectable = false; obj.hasControls = false; obj.hasBorders = false;
-                    obj.lockMovementX = true; obj.lockMovementY = true;
-                }
-                obj.setCoords();
-                if (obj.idCasa) aplicarColorEstado(obj);
-            });
-        }
-
-        function eliminarBarrioActual() {
-            if (!barrioActual) { mostrarToast('No hay barrio activo', 'error'); return; }
-            if (!confirm('¿Eliminar "' + barrioActual.nombre + '" y todos sus datos?')) return;
-            
-            const id = barrioActual.id;
-            localStorage.removeItem('catastro_mapa_' + id);
-            localStorage.removeItem('catastro_canvas_' + id);
-            
-            const keysAEliminar = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith('catastro_ficha_' + id + '_') || key.startsWith('catastro_estado_' + id + '_')) {
-                    keysAEliminar.push(key);
-                }
-            }
-            keysAEliminar.forEach(k => localStorage.removeItem(k));
-            guardarBarriosLista(cargarBarriosLista().filter(b => b.id !== id));
-            
-            barrioActual = null;
-            localStorage.removeItem('catastro_barrio_activo');
-            if (canvas) canvas.clear();
-            document.getElementById('canvas-zoom').style.display = 'none';
-            document.getElementById('sin-barrio').style.display = 'block';
-            document.getElementById('barrio-activo-info').innerText = '📍 Sin barrio';
-            document.getElementById('btn-matriz').disabled = true;
-            actualizarSelectorBarrios();
-            mostrarToast('✅ Barrio eliminado', 'success');
-            
-            if (tokenAccesoGoogle) subirADrive();
-        }
-
-        function guardarCanvasActual() {
-            if (!barrioActual || !canvas) return;
-            try {
-                const json = JSON.stringify(canvas.toJSON(['idCasa']));
-                localStorage.setItem('catastro_canvas_' + barrioActual.id, json);
-            } catch(e) { console.error('Error:', e); }
-        }
-
-        function getFichaKey(idCasa) { return 'catastro_ficha_' + (barrioActual ? barrioActual.id : 'default') + '_' + idCasa; }
-        function getEstadoKey(idCasa) { return 'catastro_estado_' + (barrioActual ? barrioActual.id : 'default') + '_' + idCasa; }
-
-        function exportarDatos() {
-            try {
-                const datos = {
-                    version: '1.0', fecha: new Date().toISOString(),
-                    barrios: cargarBarriosLista(),
-                    barrioActivo: barrioActual ? barrioActual.id : null,
-                    datos: {}
-                };
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (key && (key.startsWith('catastro_mapa_') || key.startsWith('catastro_canvas_') || 
-                        key.startsWith('catastro_ficha_') || key.startsWith('catastro_estado_'))) {
-                        datos.datos[key] = localStorage.getItem(key);
-                    }
-                }
-                const json = JSON.stringify(datos);
-                const blob = new Blob([json], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                const fecha = new Date().toISOString().split('T')[0];
-                const hora = new Date().toTimeString().split(' ')[0].replace(/:/g, '');
-                a.href = url;
-                a.download = `catastro_backup_${fecha}_${hora}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                mostrarToast(`✅ Exportado (${(json.length / 1024).toFixed(1)} KB)`, 'success');
-            } catch(e) {
-                mostrarToast('❌ Error al exportar', 'error');
-            }
-        }
-
-        function importarDatos(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            if (!confirm('⚠️ IMPORTANTE:\n\nLa importación REEMPLAZARÁ todos los datos actuales.\n\n' +
-                'Antes de continuar, asegúrate de haber exportado tus cambios.\n\n¿Continuar?')) {
-                event.target.value = '';
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const datos = JSON.parse(e.target.result);
-                    if (!datos.datos || !datos.barrios) { mostrarToast('❌ Archivo no válido', 'error'); return; }
-                    
-                    const keysAEliminar = [];
-                    for (let i = 0; i < localStorage.length; i++) {
-                        const key = localStorage.key(i);
-                        if (key && (key.startsWith('catastro_mapa_') || key.startsWith('catastro_canvas_') || 
-                            key.startsWith('catastro_ficha_') || key.startsWith('catastro_estado_') ||
-                            key === 'catastro_barrios' || key === 'catastro_barrio_activo')) {
-                            keysAEliminar.push(key);
-                        }
-                    }
-                    keysAEliminar.forEach(k => localStorage.removeItem(k));
-                    
-                    for (const [key, value] of Object.entries(datos.datos)) {
-                        localStorage.setItem(key, value);
-                    }
-                    localStorage.setItem('catastro_barrios', JSON.stringify(datos.barrios));
-                    if (datos.barrioActivo) localStorage.setItem('catastro_barrio_activo', datos.barrioActivo);
-                    
-                    mostrarToast('✅ Datos importados. Recargando...', 'success');
-                    setTimeout(() => window.location.reload(), 1500);
-                } catch(err) {
-                    mostrarToast('❌ Error al leer archivo', 'error');
-                }
-                event.target.value = '';
-            };
-            reader.readAsText(file);
-        }
-
-        // ==========================================
-        // ☁️ SINCRONIZACIÓN CON GOOGLE DRIVE
-        // ==========================================
-        
-        function recolectarTodosLosDatos() {
-            const datos = {
-                version: '1.0',
-                fecha: new Date().toISOString(),
-                barrios: cargarBarriosLista(),
-                barrioActivo: barrioActual ? barrioActual.id : null,
-                datos: {}
-            };
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && (key.startsWith('catastro_mapa_') || key.startsWith('catastro_canvas_') || 
-                    key.startsWith('catastro_ficha_') || key.startsWith('catastro_estado_'))) {
-                    datos.datos[key] = localStorage.getItem(key);
-                }
-            }
-            return datos;
-        }
-
-        function restaurarTodosLosDatos(datos) {
-            if (!datos || !datos.datos || !datos.barrios) {
-                throw new Error('Formato de datos inválido');
-            }
-            
-            const keysAEliminar = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && (key.startsWith('catastro_mapa_') || key.startsWith('catastro_canvas_') || 
-                    key.startsWith('catastro_ficha_') || key.startsWith('catastro_estado_') ||
-                    key === 'catastro_barrios' || key === 'catastro_barrio_activo')) {
-                    keysAEliminar.push(key);
-                }
-            }
-            keysAEliminar.forEach(k => localStorage.removeItem(k));
-            
-            for (const [key, value] of Object.entries(datos.datos)) {
-                localStorage.setItem(key, value);
-            }
-            localStorage.setItem('catastro_barrios', JSON.stringify(datos.barrios));
-            if (datos.barrioActivo) localStorage.setItem('catastro_barrio_activo', datos.barrioActivo);
-        }
-
-        function actualizarIndicadorSync(estado, texto) {
-            const ind = document.getElementById('sync-indicador');
-            ind.className = estado;
-            ind.innerText = texto;
-        }
-
-        function verificarSesionGuardada() {
-            const sesionGuardada = localStorage.getItem('google_session_token');
-            const fechaExpiracion = localStorage.getItem('google_session_expira');
-            
-            if (sesionGuardada && fechaExpiracion && Date.now() < parseInt(fechaExpiracion)) {
-                tokenAccesoGoogle = sesionGuardada;
-                actualizarIndicadorSync('sincronizado', '☁️ Conectado');
-                document.getElementById('btn-google').classList.add('conectado');
-                document.getElementById('btn-google-texto').innerText = '✅ Conectado a Drive';
-                document.getElementById('sync-info-texto').innerText = 'Tus datos se sincronizan automáticamente.';
-                document.getElementById('btn-recuperar').style.display = 'flex';
-                document.getElementById('btn-info-sync').style.display = 'flex';
-                
-                setTimeout(() => bajarDeDrive(), 2000);
-            }
-        }
-
-        function conectarConGoogle() {
-            if (tokenAccesoGoogle) {
-                if (confirm('¿Quieres desconectar de Google Drive?\n\nTus datos locales NO se borrarán, solo se dejarán de sincronizar.')) {
-                    desconectarDeGoogle();
-                }
-                return;
-            }
-
-            if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.includes('PEGA_AQUI')) {
-                alert('⚠️ Debes configurar tu CLIENT_ID de Google primero.');
-                return;
-            }
-
-            actualizarIndicadorSync('sincronizando', '🔗 Conectando...');
-            
-            try {
-                tokenClient = google.accounts.oauth2.initTokenClient({
-                    client_id: GOOGLE_CLIENT_ID,
-                    scope: 'https://www.googleapis.com/auth/drive.appdata',
-                    callback: async (respuesta) => {
-                        if (respuesta.error) {
-                            actualizarIndicadorSync('error', '❌ Error');
-                            mostrarToast('❌ Error al conectar: ' + respuesta.error, 'error');
-                            return;
-                        }
-
-                        tokenAccesoGoogle = respuesta.access_token;
-                        const expira = Date.now() + (respuesta.expires_in * 1000);
-                        
-                        localStorage.setItem('google_session_token', tokenAccesoGoogle);
-                        localStorage.setItem('google_session_expira', expira.toString());
-                        
-                        actualizarIndicadorSync('sincronizado', '☁️ Conectado');
-                        document.getElementById('btn-google').classList.add('conectado');
-                        document.getElementById('btn-google-texto').innerText = '✅ Conectado a Drive';
-                        document.getElementById('sync-info-texto').innerText = 'Tus datos se sincronizan automáticamente.';
-                        document.getElementById('btn-recuperar').style.display = 'flex';
-                        document.getElementById('btn-info-sync').style.display = 'flex';
-                        
-                        mostrarToast('✅ ¡Conectado con Google Drive!', 'success');
-                        
-                        await sincronizar();
-                    },
-                });
-                tokenClient.requestAccessToken();
-            } catch(e) {
-                console.error(e);
-                actualizarIndicadorSync('error', '❌ Error');
-                mostrarToast('❌ Error al conectar con Google', 'error');
-            }
-        }
-
-        function desconectarDeGoogle() {
-            if (tokenAccesoGoogle) {
-                google.accounts.oauth2.revoke(tokenAccesoGoogle, () => {});
-            }
-            tokenAccesoGoogle = null;
-            localStorage.removeItem('google_session_token');
-            localStorage.removeItem('google_session_expira');
-            
-            actualizarIndicadorSync('desconectado', '☁️ Sin Drive');
-            document.getElementById('btn-google').classList.remove('conectado');
-            document.getElementById('btn-google-texto').innerText = 'Conectar con Google Drive';
-            document.getElementById('sync-info-texto').innerText = 'Sincroniza automáticamente tus datos en tu propio Google Drive.';
-            document.getElementById('btn-recuperar').style.display = 'none';
-            document.getElementById('btn-info-sync').style.display = 'none';
-            
-            mostrarToast('🔌 Desconectado de Google Drive', 'info');
-        }
-
-        function gestionarSync() {
-            if (!tokenAccesoGoogle) {
-                conectarConGoogle();
-            } else {
-                if (confirm('¿Sincronizar ahora?\n\nSe subirán tus datos y se bajarán los cambios más recientes.')) {
-                    sincronizar();
-                }
-            }
-        }
-
-        async function recuperarDesdeDrive() {
-            if (!tokenAccesoGoogle) {
-                mostrarToast('⚠️ Primero conecta con Google Drive', 'error');
-                return;
-            }
-            
-            if (!confirm('⚠️ Esto reemplazará los datos locales con los del Drive.\n\n¿Continuar?')) {
-                return;
-            }
-            
-            await sincronizar(true);
-        }
-
-        // ==========================================
-        // ℹ️ VER INFO DE SINCRONIZACIÓN
-        // ==========================================
-        function verInfoSync() {
-            const datos = recolectarTodosLosDatos();
-            const json = JSON.stringify(datos);
-            const tamañoMB = (json.length / 1024 / 1024).toFixed(2);
-            const tamañoKB = Math.round(json.length / 1024);
-            
-            const cantidadBarrios = datos.barrios.length;
-            const cantidadFichas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_ficha_')).length;
-            const cantidadMapas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_mapa_')).length;
-            
-            let mensaje = '📊 INFORMACIÓN DE DATOS\n\n';
-            mensaje += 'Tamaño total: ' + tamañoMB + ' MB (' + tamañoKB + ' KB)\n';
-            mensaje += 'Barrios: ' + cantidadBarrios + '\n';
-            mensaje += 'Mapas guardados: ' + cantidadMapas + '\n';
-            mensaje += 'Fichas familiares: ' + cantidadFichas + '\n\n';
-            
-            if (tamañoMB > 4) {
-                mensaje += '⚠️ El paquete es grande.\n';
-                mensaje += 'Si la sincronización falla, intenta:\n';
-                mensaje += '• Eliminar barrios antiguos\n';
-                mensaje += '• Exportar un respaldo y limpiar\n';
-            } else if (tamañoMB > 2) {
-                mensaje += 'ℹ️ Tamaño moderado. Debería funcionar bien.\n';
-            } else {
-                mensaje += '✅ Tamaño óptimo para sincronización.\n';
-            }
-            
-            alert(mensaje);
-            console.log('Datos completos:', datos);
-        }
-
-        // ==========================================
-        // SINCRONIZACIÓN MEJORADA
-        // ==========================================
-        async function sincronizar(forzarDescarga = false) {
-            if (!tokenAccesoGoogle) {
-                mostrarToast('⚠️ Primero conecta con Google Drive', 'error');
-                return;
-            }
-            if (syncEnProgreso) return;
-            
-            syncEnProgreso = true;
-            actualizarIndicadorSync('sincronizando', '🔄 Sincronizando...');
-            
-            try {
-                const archivoRemoto = await buscarArchivoEnDrive();
-                const datosLocales = recolectarTodosLosDatos();
-                const hayDatosLocales = Object.keys(datosLocales.datos || {}).length > 0;
-                
-                if (!archivoRemoto) {
-                    if (hayDatosLocales) {
-                        await subirADrive();
-                        mostrarToast('⬆️ Datos subidos a Drive', 'success');
-                    } else {
-                        mostrarToast('ℹ️ Sin datos para sincronizar', 'info');
-                    }
-                    ultimaSync = new Date();
-                    actualizarIndicadorSync('sincronizado', '☁️ ' + ultimaSync.toTimeString().substring(0,5));
-                    syncEnProgreso = false;
-                    return;
-                }
-                
-                const datosRemotos = await descargarDeDrive(archivoRemoto.id);
-                const hayDatosRemotos = datosRemotos.datos && Object.keys(datosRemotos.datos).length > 0;
-                
-                if (forzarDescarga && hayDatosRemotos) {
-                    restaurarTodosLosDatos(datosRemotos);
-                    mostrarToast('⬇️ Datos cargados desde Drive', 'success');
-                    setTimeout(() => window.location.reload(), 1500);
-                    syncEnProgreso = false;
-                    return;
-                }
-                
-                if (!hayDatosLocales && hayDatosRemotos) {
-                    restaurarTodosLosDatos(datosRemotos);
-                    mostrarToast('⬇️ Datos cargados desde Drive', 'success');
-                    setTimeout(() => window.location.reload(), 1500);
-                    syncEnProgreso = false;
-                    return;
-                }
-                
-                if (hayDatosLocales && !hayDatosRemotos) {
-                    await subirADrive();
-                    mostrarToast('⬆️ Datos subidos a Drive', 'success');
-                    ultimaSync = new Date();
-                    actualizarIndicadorSync('sincronizado', '☁️ ' + ultimaSync.toTimeString().substring(0,5));
-                    syncEnProgreso = false;
-                    return;
-                }
-                
-                const fechaLocal = new Date(datosLocales.fecha).getTime();
-                const fechaRemota = new Date(datosRemotos.fecha).getTime();
-                
-                if (fechaRemota > fechaLocal) {
-                    restaurarTodosLosDatos(datosRemotos);
-                    mostrarToast('⬇️ Datos actualizados desde Drive', 'success');
-                    setTimeout(() => window.location.reload(), 1500);
-                } else if (fechaLocal > fechaRemota) {
-                    await subirADrive();
-                    mostrarToast('⬆️ Datos subidos a Drive', 'success');
-                } else {
-                    mostrarToast('✅ Ya está sincronizado', 'success');
-                }
-                
-                ultimaSync = new Date();
-                actualizarIndicadorSync('sincronizado', '☁️ ' + ultimaSync.toTimeString().substring(0,5));
-                
-            } catch(e) {
-                console.error('Error sync:', e);
-                actualizarIndicadorSync('error', '❌ Error sync');
-                mostrarToast('❌ Error al sincronizar: ' + e.message, 'error');
-            }
-            
-            syncEnProgreso = false;
-        }
-
-        async function buscarArchivoEnDrive() {
-            const respuesta = await fetch(
-                "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)",
-                { headers: { 'Authorization': 'Bearer ' + tokenAccesoGoogle } }
-            );
-            if (!respuesta.ok) throw new Error('Error al buscar archivo');
-            const datos = await respuesta.json();
-            return datos.files && datos.files.length > 0 ? datos.files[0] : null;
-        }
-
-        // ==========================================
-        // SUBIR A DRIVE CON VERIFICACIÓN DE TAMAÑO
-        // ==========================================
-        async function subirADrive() {
-            if (!tokenAccesoGoogle) return;
-            
-            const archivoExistente = await buscarArchivoEnDrive();
-            const datos = recolectarTodosLosDatos();
-            const contenido = JSON.stringify(datos);
-            
-            const tamañoMB = (contenido.length / 1024 / 1024).toFixed(2);
-            console.log('☁️ Subiendo a Drive:', tamañoMB + ' MB');
-            
-            if (contenido.length > 5 * 1024 * 1024) {
-                const continuar = confirm(
-                    '⚠️ ADVERTENCIA\n\n' +
-                    'El paquete de datos pesa ' + tamañoMB + ' MB.\n\n' +
-                    'Esto puede causar que la subida falle.\n\n' +
-                    'Sugerencia:\n' +
-                    '• Elimina barrios que no uses\n' +
-                    '• Exporta un respaldo local antes de continuar\n\n' +
-                    '¿Continuar de todas formas?'
-                );
-                if (!continuar) return;
-            }
-            
-            const metadata = {
-                name: 'catastro_datos.json',
-                mimeType: 'application/json'
-            };
-            if (!archivoExistente) {
-                metadata.parents = ['appDataFolder'];
-            }
-            
-            const form = new FormData();
-            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-            form.append('file', new Blob([contenido], { type: 'application/json' }));
-            
-            const url = archivoExistente 
-                ? `https://www.googleapis.com/upload/drive/v3/files/${archivoExistente.id}?uploadType=multipart`
-                : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
-            
-            const respuesta = await fetch(url, {
-                method: archivoExistente ? 'PATCH' : 'POST',
-                headers: { 'Authorization': 'Bearer ' + tokenAccesoGoogle },
-                body: form
-            });
-            
-            if (!respuesta.ok) {
-                const err = await respuesta.text();
-                console.error('Error Drive:', err);
-                throw new Error('Error al subir (' + respuesta.status + ')');
-            }
-            
-            console.log('✅ Subido exitosamente:', tamañoMB + ' MB');
-            return await respuesta.json();
-        }
-
-        async function bajarDeDrive() {
-            if (!tokenAccesoGoogle) return;
-            try {
-                const archivo = await buscarArchivoEnDrive();
-                if (!archivo) return;
-                
-                const datos = await descargarDeDrive(archivo.id);
-                const datosLocales = recolectarTodosLosDatos();
-                const hayDatosLocales = Object.keys(datosLocales.datos || {}).length > 0;
-                const hayDatosRemotos = datos.datos && Object.keys(datos.datos).length > 0;
-                
-                if (!hayDatosLocales && hayDatosRemotos) {
-                    restaurarTodosLosDatos(datos);
-                    mostrarToast('⬇️ Datos cargados desde Drive', 'success');
-                    setTimeout(() => window.location.reload(), 1500);
-                    return;
-                }
-                
-                if (hayDatosRemotos) {
-                    const fechaLocal = new Date(datosLocales.fecha).getTime();
-                    const fechaRemota = new Date(datos.fecha).getTime();
-                    
-                    if (fechaRemota > fechaLocal) {
-                        restaurarTodosLosDatos(datos);
-                        mostrarToast('⬇️ Datos actualizados desde Drive', 'success');
-                        setTimeout(() => window.location.reload(), 1500);
-                    }
-                }
-            } catch(e) {
-                console.error('Error bajando:', e);
-            }
-        }
-
-        async function descargarDeDrive(fileId) {
-            const respuesta = await fetch(
-                `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-                { headers: { 'Authorization': 'Bearer ' + tokenAccesoGoogle } }
-            );
-            if (!respuesta.ok) throw new Error('Error al descargar');
-            return await respuesta.json();
-        }
-
-        // ==========================================
-        // CASAS Y FICHAS
-        // ==========================================
-        
-        function crearCasa() {
-            if (!canvas || !barrioActual) { mostrarToast('Primero carga un barrio', 'error'); return; }
-            const rect = new fabric.Rect({ width: 60, height: 50, fill: 'rgba(231, 76, 60, 0.4)', stroke: '#c0392b', strokeWidth: 2, rx: 5, ry: 5 });
-            const text = new fabric.Textbox('', { fontSize: 12, fontFamily: 'Arial', fill: '#2c3e50', textAlign: 'center', width: 60, top: 15, left: 0, fontWeight: 'bold', splitByGrapheme: true });
-            const grupo = new fabric.Group([rect, text], { left: 100, top: 100, hasControls: true, hasBorders: true, lockScalingFlip: true, selectable: true, evented: true });
-            grupo.set('idCasa', 'Nueva-' + Date.now());
-            grupo.setCoords();
-            canvas.add(grupo);
-            canvas.setActiveObject(grupo);
-            canvas.renderAll();
-            guardarMapa();
-            mostrarToast('Casa creada', 'info');
-        }
-
-        function ponerNomenclatura() {
-            if (!canvas) return;
-            const obj = canvas.getActiveObject();
-            if (!obj || obj.type !== 'group') { mostrarToast('Selecciona una casa primero', 'error'); return; }
-            const nombre = prompt("Nomenclatura (ej. MZ14-C15):");
-            if (nombre && nombre.trim() !== "") {
-                const textoObj = obj._objects.find(o => o.type === 'textbox' || o.type === 'text');
-                if (textoObj) textoObj.set('text', nombre);
-                obj.set('idCasa', nombre);
-                obj.setCoords();
-                canvas.renderAll();
-                guardarMapa();
-            }
-        }
-
-        function fijarCasas() {
-            if (!canvas) return;
-            canvas.discardActiveObject();
-            canvas.selection = false;
-            canvas.forEachObject(function(obj) {
-                if (obj.type === 'group') {
-                    obj.selectable = false; obj.evented = true;
-                    obj.hasControls = false; obj.hasBorders = false;
-                    obj.lockMovementX = true; obj.lockMovementY = true;
-                    obj.hoverCursor = 'pointer';
-                    obj.setCoords();
-                    if (obj.idCasa) aplicarColorEstado(obj);
-                }
-            });
-            canvas.renderAll();
-            aplicarFiltros();
-            guardarMapa();
-            actualizarIndicadorModo('bloqueado');
-            mostrarToast('Casas fijadas', 'success');
-        }
-
-        function modoEdicion() {
-            if (!canvas) return;
-            canvas.discardActiveObject();
-            canvas.selection = true;
-            canvas.skipTargetFind = false;
-            canvas.forEachObject(function(obj) {
-                if (obj.type === 'group') {
-                    obj.selectable = true; obj.evented = true;
-                    obj.hasControls = true; obj.hasBorders = true;
-                    obj.lockMovementX = false; obj.lockMovementY = false;
-                    obj.lockScalingX = false; obj.lockScalingY = false;
-                    obj.lockRotation = false;
-                    obj.hoverCursor = 'move';
-                    obj.setCoords();
-                    obj.set('opacity', 1);
-                    if (obj.idCasa) aplicarColorEstado(obj);
-                }
-            });
-            canvas.renderAll();
-            guardarMapa();
-            actualizarIndicadorModo('editando');
-        }
-
-        function eliminarSeleccionado() {
-            if (!canvas) return;
-            const obj = canvas.getActiveObject();
-            if (!obj) { mostrarToast('Selecciona un elemento', 'error'); return; }
-            let mensaje = "¿Eliminar el elemento?";
-            let idCasa = null;
-            if (obj.type === 'group' && obj.idCasa) {
-                idCasa = obj.idCasa;
-                const tieneDatos = localStorage.getItem(getFichaKey(idCasa));
-                mensaje = tieneDatos ? "⚠️ La casa '" + idCasa + "' tiene datos. ¿Eliminar todo?" : "¿Eliminar la casa '" + idCasa + "'?";
-            }
-            if (!confirm(mensaje)) return;
-            if (idCasa) {
-                localStorage.removeItem(getFichaKey(idCasa));
-                localStorage.removeItem(getEstadoKey(idCasa));
-            }
-            canvas.remove(obj);
-            canvas.discardActiveObject();
-            canvas.renderAll();
-            guardarMapa();
-        }
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Delete' || e.key === 'Supr') {
-                if (!canvas) return;
-                const obj = canvas.getActiveObject();
-                const tag = document.activeElement.tagName;
-                if (obj && obj.selectable && tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
-                    e.preventDefault();
-                    eliminarSeleccionado();
-                }
-            }
+function cambiarBarrio(id) {
+  if (!id) return;
+  if (barrioActual) guardarCanvasActual();
+  
+  const lista = cargarBarriosLista();
+  const barrio = lista.find(b => b.id === id);
+  if (!barrio) { mostrarToast('Barrio no encontrado', 'error'); return; }
+  
+  barrioActual = barrio;
+  localStorage.setItem('catastro_barrio_activo', id);
+  document.getElementById('barrio-activo-info').innerText = '📍 ' + barrio.nombre;
+  document.getElementById('btn-matriz').disabled = false;
+  
+  zoomActual = 1;
+  document.getElementById('zoom-nivel').innerText = '100%';
+  
+  const dataURL = localStorage.getItem('catastro_mapa_' + id);
+  const canvasJSON = localStorage.getItem('catastro_canvas_' + id);
+  if (!dataURL) { mostrarToast('No se encontró la imagen', 'error'); return; }
+  
+  document.getElementById('sin-barrio').style.display = 'none';
+  document.getElementById('canvas-zoom-container').style.display = 'inline-block';
+  
+  const nuevoImg = new Image();
+  nuevoImg.onload = function() {
+    const mapaImg = document.getElementById('mapa-imagen');
+    mapaImg.src = dataURL;
+    mapaImg.width = nuevoImg.width;
+    mapaImg.height = nuevoImg.height;
+    
+    canvas.setWidth(nuevoImg.width);
+    canvas.setHeight(nuevoImg.height);
+    canvas.backgroundColor = 'transparent';
+    canvas.setZoom(1);
+    canvas.calcOffset();
+    
+    document.getElementById('canvas-zoom-container').style.width = nuevoImg.width + 'px';
+    document.getElementById('canvas-zoom-container').style.height = nuevoImg.height + 'px';
+    document.getElementById('canvas-zoom').style.transform = 'scale(1)';
+    
+    if (canvasJSON) {
+      canvas.clear();
+      canvas.setWidth(nuevoImg.width);
+      canvas.setHeight(nuevoImg.height);
+      canvas.backgroundColor = 'transparent';
+      try {
+        canvas.loadFromJSON(canvasJSON, function() {
+          restaurarEstadosObjetos();
+          canvas.renderAll();
+          canvas.calcOffset();
         });
+      } catch(e) { canvas.renderAll(); }
+    } else {
+      canvas.clear();
+      canvas.setWidth(nuevoImg.width);
+      canvas.setHeight(nuevoImg.height);
+      canvas.backgroundColor = 'transparent';
+      canvas.renderAll();
+    }
+    setTimeout(() => { canvas.calcOffset(); canvas.renderAll(); }, 100);
+  };
+  nuevoImg.src = dataURL;
+  
+  document.getElementById('selector-barrio').value = id;
+  actualizarIndicadorModo('bloqueado');
+}
 
-        function configurarEventosCanvas() {
-            canvas.on('object:modified', guardarMapa);
-            canvas.on('object:added', function() { if (!aplicandoFiltros) guardarMapa(); });
-            canvas.on('object:removed', function() { if (!aplicandoFiltros) guardarMapa(); });
-            canvas.on('mouse:down', function(options) {
-                const target = options.target;
-                if (target && target.type === 'group' && target.selectable === false && target.idCasa) {
-                    abrirResumenFamiliar(target.idCasa);
-                }
-            });
+function restaurarEstadosObjetos() {
+  if (!canvas) return;
+  canvas.forEachObject(function(obj) {
+    if (obj.type !== 'group') return;
+    obj.evented = true;
+    if (modoActivo === 'editando') {
+      obj.selectable = true; obj.hasControls = true; obj.hasBorders = true;
+      obj.lockMovementX = false; obj.lockMovementY = false;
+    } else {
+      obj.selectable = false; obj.hasControls = false; obj.hasBorders = false;
+      obj.lockMovementX = true; obj.lockMovementY = true;
+    }
+    obj.setCoords();
+    if (obj.idCasa) aplicarColorEstado(obj);
+  });
+}
+
+function eliminarBarrioActual() {
+  if (!barrioActual) { mostrarToast('No hay barrio activo', 'error'); return; }
+  if (!confirm('¿Eliminar "' + barrioActual.nombre + '" y todos sus datos?')) return;
+  
+  const id = barrioActual.id;
+  localStorage.removeItem('catastro_mapa_' + id);
+  localStorage.removeItem('catastro_canvas_' + id);
+  
+  const keysAEliminar = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith('catastro_ficha_' + id + '_') || key.startsWith('catastro_estado_' + id + '_')) {
+      keysAEliminar.push(key);
+    }
+  }
+  keysAEliminar.forEach(k => localStorage.removeItem(k));
+  guardarBarriosLista(cargarBarriosLista().filter(b => b.id !== id));
+  
+  barrioActual = null;
+  localStorage.removeItem('catastro_barrio_activo');
+  if (canvas) canvas.clear();
+  document.getElementById('canvas-zoom-container').style.display = 'none';
+  document.getElementById('sin-barrio').style.display = 'block';
+  document.getElementById('barrio-activo-info').innerText = '📍 Sin barrio';
+  document.getElementById('btn-matriz').disabled = true;
+  actualizarSelectorBarrios();
+  mostrarToast('✅ Barrio eliminado', 'success');
+  if (tokenAccesoGoogle) subirADrive();
+}
+
+function guardarCanvasActual() {
+  if (!barrioActual || !canvas) return;
+  try {
+    localStorage.setItem('catastro_canvas_' + barrioActual.id, JSON.stringify(canvas.toJSON(['idCasa'])));
+  } catch(e) { console.error(e); }
+}
+
+function getFichaKey(idCasa) { return 'catastro_ficha_' + (barrioActual ? barrioActual.id : 'default') + '_' + idCasa; }
+function getEstadoKey(idCasa) { return 'catastro_estado_' + (barrioActual ? barrioActual.id : 'default') + '_' + idCasa; }
+
+// ==================== EXPORTAR / IMPORTAR ====================
+function exportarDatos() {
+  try {
+    const datos = {
+      version: '1.0', fecha: new Date().toISOString(),
+      barrios: cargarBarriosLista(),
+      barrioActivo: barrioActual ? barrioActual.id : null,
+      datos: {}
+    };
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('catastro_mapa_') || key.startsWith('catastro_canvas_') || 
+          key.startsWith('catastro_ficha_') || key.startsWith('catastro_estado_'))) {
+        datos.datos[key] = localStorage.getItem(key);
+      }
+    }
+    const json = JSON.stringify(datos);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const fecha = new Date().toISOString().split('T')[0];
+    const hora = new Date().toTimeString().split(' ')[0].replace(/:/g, '');
+    a.href = url;
+    a.download = 'catastro_backup_' + fecha + '_' + hora + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    mostrarToast('✅ Exportado (' + (json.length / 1024).toFixed(1) + ' KB)', 'success');
+  } catch(e) { mostrarToast('❌ Error al exportar', 'error'); }
+}
+
+function importarDatos(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!confirm('⚠️ La importación REEMPLAZARÁ todos los datos actuales.\n\n¿Continuar?')) {
+    event.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const datos = JSON.parse(e.target.result);
+      if (!datos.datos || !datos.barrios) { mostrarToast('❌ Archivo no válido', 'error'); return; }
+      
+      const keysAEliminar = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('catastro_mapa_') || key.startsWith('catastro_canvas_') || 
+            key.startsWith('catastro_ficha_') || key.startsWith('catastro_estado_') ||
+            key === 'catastro_barrios' || key === 'catastro_barrio_activo')) {
+          keysAEliminar.push(key);
         }
+      }
+      keysAEliminar.forEach(k => localStorage.removeItem(k));
+      
+      for (const [key, value] of Object.entries(datos.datos)) {
+        localStorage.setItem(key, value);
+      }
+      localStorage.setItem('catastro_barrios', JSON.stringify(datos.barrios));
+      if (datos.barrioActivo) localStorage.setItem('catastro_barrio_activo', datos.barrioActivo);
+      
+      mostrarToast('✅ Datos importados. Recargando...', 'success');
+      setTimeout(() => window.location.reload(), 1500);
+    } catch(err) { mostrarToast('❌ Error al leer archivo', 'error'); }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
 
-        function aplicarFiltros() {
-            if (!canvas) return;
-            const activas = [];
-            document.querySelectorAll('#seccion-filtro input[type="checkbox"]:checked').forEach(cb => activas.push(cb.value));
-            aplicandoFiltros = true;
-            if (activas.length === 0) { limpiarFiltros(); return; }
+// ==================== GOOGLE DRIVE ====================
+function recolectarTodosLosDatos() {
+  const datos = {
+    version: '1.0', fecha: new Date().toISOString(),
+    barrios: cargarBarriosLista(),
+    barrioActivo: barrioActual ? barrioActual.id : null,
+    datos: {}
+  };
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && (key.startsWith('catastro_mapa_') || key.startsWith('catastro_canvas_') || 
+        key.startsWith('catastro_ficha_') || key.startsWith('catastro_estado_'))) {
+      datos.datos[key] = localStorage.getItem(key);
+    }
+  }
+  return datos;
+}
 
-            canvas.forEachObject(function(obj) {
-                if (obj.type !== 'group' || !obj.idCasa) return;
-                const datos = localStorage.getItem(getFichaKey(obj.idCasa));
-                let encontrada = null;
-                if (datos) {
-                    const integrantes = JSON.parse(datos);
-                    for (let int of integrantes) {
-                        if (int.condiciones) {
-                            for (let c of int.condiciones) {
-                                if (activas.includes(c)) { encontrada = c; break; }
-                            }
-                        }
-                        if (!encontrada && activas.includes('Vacunas incompletas') && int.vacunasCompletas === 'No') encontrada = 'Vacunas incompletas';
-                        if (!encontrada && activas.includes('Evento de salud') && int.eventoSalud && int.eventoSalud.trim() !== '') encontrada = 'Evento de salud';
-                        if (encontrada) break;
-                    }
-                }
-                const rect = obj._objects.find(o => o.type === 'rect');
-                if (encontrada) {
-                    const color = coloresCondiciones[encontrada];
-                    obj.set('opacity', 1);
-                    if (rect) { rect.set('fill', color.fill); rect.set('stroke', color.stroke); rect.set('strokeWidth', 4); }
-                } else {
-                    obj.set('opacity', 0.12);
-                    if (rect) rect.set('strokeWidth', 2);
-                }
-            });
-            canvas.renderAll();
-            aplicandoFiltros = false;
+function restaurarTodosLosDatos(datos) {
+  if (!datos || !datos.datos || !datos.barrios) throw new Error('Formato inválido');
+  const keysAEliminar = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && (key.startsWith('catastro_mapa_') || key.startsWith('catastro_canvas_') || 
+        key.startsWith('catastro_ficha_') || key.startsWith('catastro_estado_') ||
+        key === 'catastro_barrios' || key === 'catastro_barrio_activo')) {
+      keysAEliminar.push(key);
+    }
+  }
+  keysAEliminar.forEach(k => localStorage.removeItem(k));
+  for (const [key, value] of Object.entries(datos.datos)) localStorage.setItem(key, value);
+  localStorage.setItem('catastro_barrios', JSON.stringify(datos.barrios));
+  if (datos.barrioActivo) localStorage.setItem('catastro_barrio_activo', datos.barrioActivo);
+}
+
+function actualizarIndicadorSync(estado, texto) {
+  const ind = document.getElementById('sync-indicador');
+  ind.className = estado;
+  ind.innerText = texto;
+}
+
+function verificarSesionGuardada() {
+  const sesion = localStorage.getItem('google_session_token');
+  const expira = localStorage.getItem('google_session_expira');
+  if (sesion && expira && Date.now() < parseInt(expira)) {
+    tokenAccesoGoogle = sesion;
+    actualizarIndicadorSync('sincronizado', '☁️ Conectado');
+    document.getElementById('btn-google').classList.add('conectado');
+    document.getElementById('btn-google-texto').innerText = '✅ Conectado a Drive';
+    document.getElementById('sync-info-texto').innerText = 'Tus datos se sincronizan automáticamente.';
+    document.getElementById('btn-recuperar').style.display = 'flex';
+    document.getElementById('btn-info-sync').style.display = 'flex';
+    setTimeout(() => bajarDeDrive(), 2000);
+  }
+}
+
+function conectarConGoogle() {
+  if (tokenAccesoGoogle) {
+    if (confirm('¿Desconectar de Google Drive? Los datos locales NO se borrarán.')) desconectarDeGoogle();
+    return;
+  }
+  if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.includes('PEGA_AQUI')) {
+    alert('⚠️ Configura tu CLIENT_ID de Google primero.');
+    return;
+  }
+  actualizarIndicadorSync('sincronizando', '🔗 Conectando...');
+  try {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/drive.appdata',
+      callback: async (respuesta) => {
+        if (respuesta.error) {
+          actualizarIndicadorSync('error', '❌ Error');
+          mostrarToast('❌ Error: ' + respuesta.error, 'error');
+          return;
         }
+        tokenAccesoGoogle = respuesta.access_token;
+        localStorage.setItem('google_session_token', tokenAccesoGoogle);
+        localStorage.setItem('google_session_expira', (Date.now() + respuesta.expires_in * 1000).toString());
+        
+        actualizarIndicadorSync('sincronizado', '☁️ Conectado');
+        document.getElementById('btn-google').classList.add('conectado');
+        document.getElementById('btn-google-texto').innerText = '✅ Conectado a Drive';
+        document.getElementById('sync-info-texto').innerText = 'Tus datos se sincronizan automáticamente.';
+        document.getElementById('btn-recuperar').style.display = 'flex';
+        document.getElementById('btn-info-sync').style.display = 'flex';
+        mostrarToast('✅ ¡Conectado con Google Drive!', 'success');
+        await sincronizar();
+      },
+    });
+    tokenClient.requestAccessToken();
+  } catch(e) {
+    actualizarIndicadorSync('error', '❌ Error');
+    mostrarToast('❌ Error al conectar', 'error');
+  }
+}
 
-        function limpiarFiltros() {
-            if (!canvas) return;
-            document.querySelectorAll('#seccion-filtro input[type="checkbox"]').forEach(cb => cb.checked = false);
-            aplicandoFiltros = true;
-            canvas.forEachObject(function(obj) {
-                if (obj.type === 'group' && obj.idCasa) {
-                    obj.set('opacity', 1);
-                    aplicarColorEstado(obj);
-                }
-            });
-            canvas.renderAll();
-            aplicandoFiltros = false;
+function desconectarDeGoogle() {
+  if (tokenAccesoGoogle) google.accounts.oauth2.revoke(tokenAccesoGoogle, () => {});
+  tokenAccesoGoogle = null;
+  localStorage.removeItem('google_session_token');
+  localStorage.removeItem('google_session_expira');
+  actualizarIndicadorSync('desconectado', '☁️ Sin Drive');
+  document.getElementById('btn-google').classList.remove('conectado');
+  document.getElementById('btn-google-texto').innerText = 'Conectar con Google Drive';
+  document.getElementById('sync-info-texto').innerText = 'Sincroniza automáticamente tus datos en tu propio Google Drive.';
+  document.getElementById('btn-recuperar').style.display = 'none';
+  document.getElementById('btn-info-sync').style.display = 'none';
+  mostrarToast('🔌 Desconectado', 'info');
+}
+
+function gestionarSync() {
+  if (!tokenAccesoGoogle) conectarConGoogle();
+  else if (confirm('¿Sincronizar ahora?')) sincronizar();
+}
+
+async function recuperarDesdeDrive() {
+  if (!tokenAccesoGoogle) { mostrarToast('⚠️ Conecta con Google Drive primero', 'error'); return; }
+  if (!confirm('⚠️ Esto reemplazará los datos locales con los del Drive.\n\n¿Continuar?')) return;
+  await sincronizar(true);
+}
+
+function verInfoSync() {
+  const datos = recolectarTodosLosDatos();
+  const json = JSON.stringify(datos);
+  const tamañoMB = (json.length / 1024 / 1024).toFixed(2);
+  const tamañoKB = Math.round(json.length / 1024);
+  const cantidadBarrios = datos.barrios.length;
+  const cantidadFichas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_ficha_')).length;
+  const cantidadMapas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_mapa_')).length;
+  
+  let mensaje = '📊 INFORMACIÓN\n\n';
+  mensaje += 'Tamaño: ' + tamañoMB + ' MB (' + tamañoKB + ' KB)\n';
+  mensaje += 'Barrios: ' + cantidadBarrios + '\n';
+  mensaje += 'Mapas: ' + cantidadMapas + '\n';
+  mensaje += 'Fichas: ' + cantidadFichas + '\n\n';
+  if (tamañoMB > 4) mensaje += '⚠️ Paquete grande. Si falla, elimina barrios antiguos.';
+  else mensaje += '✅ Tamaño óptimo.';
+  alert(mensaje);
+}
+
+async function sincronizar(forzarDescarga = false) {
+  if (!tokenAccesoGoogle) { mostrarToast('⚠️ Conecta con Drive primero', 'error'); return; }
+  if (syncEnProgreso) return;
+  syncEnProgreso = true;
+  actualizarIndicadorSync('sincronizando', '🔄 Sincronizando...');
+  try {
+    const archivoRemoto = await buscarArchivoEnDrive();
+    const datosLocales = recolectarTodosLosDatos();
+    const hayDatosLocales = Object.keys(datosLocales.datos || {}).length > 0;
+    
+    if (!archivoRemoto) {
+      if (hayDatosLocales) { await subirADrive(); mostrarToast('⬆️ Datos subidos', 'success'); }
+      ultimaSync = new Date();
+      actualizarIndicadorSync('sincronizado', '☁️ ' + ultimaSync.toTimeString().substring(0,5));
+      syncEnProgreso = false;
+      return;
+    }
+    
+    const datosRemotos = await descargarDeDrive(archivoRemoto.id);
+    const hayDatosRemotos = datosRemotos.datos && Object.keys(datosRemotos.datos).length > 0;
+    
+    if (forzarDescarga && hayDatosRemotos) {
+      restaurarTodosLosDatos(datosRemotos);
+      mostrarToast('⬇️ Datos cargados desde Drive', 'success');
+      setTimeout(() => window.location.reload(), 1500);
+      syncEnProgreso = false;
+      return;
+    }
+    
+    if (!hayDatosLocales && hayDatosRemotos) {
+      restaurarTodosLosDatos(datosRemotos);
+      mostrarToast('⬇️ Datos cargados desde Drive', 'success');
+      setTimeout(() => window.location.reload(), 1500);
+      syncEnProgreso = false;
+      return;
+    }
+    
+    if (hayDatosLocales && !hayDatosRemotos) {
+      await subirADrive();
+      mostrarToast('⬆️ Datos subidos', 'success');
+      ultimaSync = new Date();
+      actualizarIndicadorSync('sincronizado', '☁️ ' + ultimaSync.toTimeString().substring(0,5));
+      syncEnProgreso = false;
+      return;
+    }
+    
+    const fechaLocal = new Date(datosLocales.fecha).getTime();
+    const fechaRemota = new Date(datosRemotos.fecha).getTime();
+    
+    if (fechaRemota > fechaLocal) {
+      restaurarTodosLosDatos(datosRemotos);
+      mostrarToast('⬇️ Datos actualizados desde Drive', 'success');
+      setTimeout(() => window.location.reload(), 1500);
+    } else if (fechaLocal > fechaRemota) {
+      await subirADrive();
+      mostrarToast('⬆️ Datos subidos', 'success');
+    } else {
+      mostrarToast('✅ Ya está sincronizado', 'success');
+    }
+    
+    ultimaSync = new Date();
+    actualizarIndicadorSync('sincronizado', '☁️ ' + ultimaSync.toTimeString().substring(0,5));
+  } catch(e) {
+    console.error('Error sync:', e);
+    actualizarIndicadorSync('error', '❌ Error');
+    mostrarToast('❌ Error al sincronizar', 'error');
+  }
+  syncEnProgreso = false;
+}
+
+async function buscarArchivoEnDrive() {
+  const r = await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)",
+    { headers: { 'Authorization': 'Bearer ' + tokenAccesoGoogle } });
+  if (!r.ok) throw new Error('Error al buscar archivo');
+  const d = await r.json();
+  return d.files && d.files.length > 0 ? d.files[0] : null;
+}
+
+async function subirADrive() {
+  if (!tokenAccesoGoogle) return;
+  const archivoExistente = await buscarArchivoEnDrive();
+  const datos = recolectarTodosLosDatos();
+  const contenido = JSON.stringify(datos);
+  const tamañoMB = (contenido.length / 1024 / 1024).toFixed(2);
+  console.log('☁️ Subiendo:', tamañoMB + ' MB');
+  
+  if (contenido.length > 5 * 1024 * 1024) {
+    if (!confirm('⚠️ Paquete de ' + tamañoMB + ' MB. Puede fallar. ¿Continuar?')) return;
+  }
+  
+  const metadata = { name: 'catastro_datos.json', mimeType: 'application/json' };
+  if (!archivoExistente) metadata.parents = ['appDataFolder'];
+  
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  form.append('file', new Blob([contenido], { type: 'application/json' }));
+  
+  const url = archivoExistente 
+    ? 'https://www.googleapis.com/upload/drive/v3/files/' + archivoExistente.id + '?uploadType=multipart'
+    : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+  
+  const r = await fetch(url, {
+    method: archivoExistente ? 'PATCH' : 'POST',
+    headers: { 'Authorization': 'Bearer ' + tokenAccesoGoogle },
+    body: form
+  });
+  if (!r.ok) throw new Error('Error al subir');
+  console.log('✅ Subido');
+  return await r.json();
+}
+
+async function bajarDeDrive() {
+  if (!tokenAccesoGoogle) return;
+  try {
+    const archivo = await buscarArchivoEnDrive();
+    if (!archivo) return;
+    const datos = await descargarDeDrive(archivo.id);
+    const datosLocales = recolectarTodosLosDatos();
+    const hayDatosLocales = Object.keys(datosLocales.datos || {}).length > 0;
+    const hayDatosRemotos = datos.datos && Object.keys(datos.datos).length > 0;
+    
+    if (!hayDatosLocales && hayDatosRemotos) {
+      restaurarTodosLosDatos(datos);
+      mostrarToast('⬇️ Datos cargados desde Drive', 'success');
+      setTimeout(() => window.location.reload(), 1500);
+      return;
+    }
+    if (hayDatosRemotos) {
+      const fl = new Date(datosLocales.fecha).getTime();
+      const fr = new Date(datos.fecha).getTime();
+      if (fr > fl) {
+        restaurarTodosLosDatos(datos);
+        mostrarToast('⬇️ Datos actualizados', 'success');
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function descargarDeDrive(fileId) {
+  const r = await fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media',
+    { headers: { 'Authorization': 'Bearer ' + tokenAccesoGoogle } });
+  if (!r.ok) throw new Error('Error al descargar');
+  return await r.json();
+}
+
+// ==================== CASAS ====================
+function crearCasa() {
+  if (!canvas || !barrioActual) { mostrarToast('Carga un barrio primero', 'error'); return; }
+  const rect = new fabric.Rect({ width: 60, height: 50, fill: 'rgba(231, 76, 60, 0.4)', stroke: '#c0392b', strokeWidth: 2, rx: 5, ry: 5 });
+  const text = new fabric.Textbox('', { fontSize: 12, fontFamily: 'Arial', fill: '#2c3e50', textAlign: 'center', width: 60, top: 15, left: 0, fontWeight: 'bold', splitByGrapheme: true });
+  const grupo = new fabric.Group([rect, text], { left: 100, top: 100, hasControls: true, hasBorders: true, selectable: true, evented: true });
+  grupo.set('idCasa', 'Nueva-' + Date.now());
+  grupo.setCoords();
+  canvas.add(grupo);
+  canvas.setActiveObject(grupo);
+  canvas.renderAll();
+  guardarMapa();
+  mostrarToast('Casa creada', 'info');
+}
+
+function ponerNomenclatura() {
+  if (!canvas) return;
+  const obj = canvas.getActiveObject();
+  if (!obj || obj.type !== 'group') { mostrarToast('Selecciona una casa', 'error'); return; }
+  const nombre = prompt("Nomenclatura (ej. MZ14-C15):");
+  if (nombre && nombre.trim()) {
+    const t = obj._objects.find(o => o.type === 'textbox' || o.type === 'text');
+    if (t) t.set('text', nombre);
+    obj.set('idCasa', nombre);
+    obj.setCoords();
+    canvas.renderAll();
+    guardarMapa();
+  }
+}
+
+function fijarCasas() {
+  if (!canvas) return;
+  canvas.discardActiveObject();
+  canvas.selection = false;
+  canvas.forEachObject(function(obj) {
+    if (obj.type === 'group') {
+      obj.selectable = false; obj.evented = true;
+      obj.hasControls = false; obj.hasBorders = false;
+      obj.lockMovementX = true; obj.lockMovementY = true;
+      obj.hoverCursor = 'pointer';
+      obj.setCoords();
+      if (obj.idCasa) aplicarColorEstado(obj);
+    }
+  });
+  canvas.renderAll();
+  aplicarFiltros();
+  guardarMapa();
+  actualizarIndicadorModo('bloqueado');
+  mostrarToast('Casas fijadas', 'success');
+}
+
+function modoEdicion() {
+  if (!canvas) return;
+  canvas.discardActiveObject();
+  canvas.selection = true;
+  canvas.skipTargetFind = false;
+  canvas.forEachObject(function(obj) {
+    if (obj.type === 'group') {
+      obj.selectable = true; obj.evented = true;
+      obj.hasControls = true; obj.hasBorders = true;
+      obj.lockMovementX = false; obj.lockMovementY = false;
+      obj.lockScalingX = false; obj.lockScalingY = false;
+      obj.lockRotation = false;
+      obj.hoverCursor = 'move';
+      obj.setCoords();
+      obj.set('opacity', 1);
+      if (obj.idCasa) aplicarColorEstado(obj);
+    }
+  });
+  canvas.renderAll();
+  guardarMapa();
+  actualizarIndicadorModo('editando');
+}
+
+function eliminarSeleccionado() {
+  if (!canvas) return;
+  const obj = canvas.getActiveObject();
+  if (!obj) { mostrarToast('Selecciona un elemento', 'error'); return; }
+  let mensaje = "¿Eliminar el elemento?";
+  let idCasa = null;
+  if (obj.type === 'group' && obj.idCasa) {
+    idCasa = obj.idCasa;
+    mensaje = localStorage.getItem(getFichaKey(idCasa))
+      ? "⚠️ La casa '" + idCasa + "' tiene datos. ¿Eliminar todo?"
+      : "¿Eliminar la casa '" + idCasa + "'?";
+  }
+  if (!confirm(mensaje)) return;
+  if (idCasa) {
+    localStorage.removeItem(getFichaKey(idCasa));
+    localStorage.removeItem(getEstadoKey(idCasa));
+  }
+  canvas.remove(obj);
+  canvas.discardActiveObject();
+  canvas.renderAll();
+  guardarMapa();
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Delete' || e.key === 'Supr') {
+    if (!canvas) return;
+    const obj = canvas.getActiveObject();
+    const tag = document.activeElement.tagName;
+    if (obj && obj.selectable && tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+      e.preventDefault();
+      eliminarSeleccionado();
+    }
+  }
+});
+
+function configurarEventosCanvas() {
+  canvas.on('object:modified', guardarMapa);
+  canvas.on('object:added', function() { if (!aplicandoFiltros) guardarMapa(); });
+  canvas.on('object:removed', function() { if (!aplicandoFiltros) guardarMapa(); });
+  canvas.on('mouse:down', function(options) {
+    const target = options.target;
+    if (target && target.type === 'group' && target.selectable === false && target.idCasa) {
+      abrirResumenFamiliar(target.idCasa);
+    }
+  });
+}
+
+function aplicarFiltros() {
+  if (!canvas) return;
+  const activas = [];
+  document.querySelectorAll('#seccion-filtro input[type="checkbox"]:checked').forEach(cb => activas.push(cb.value));
+  aplicandoFiltros = true;
+  if (activas.length === 0) { limpiarFiltros(); return; }
+  canvas.forEachObject(function(obj) {
+    if (obj.type !== 'group' || !obj.idCasa) return;
+    const datos = localStorage.getItem(getFichaKey(obj.idCasa));
+    let encontrada = null;
+    if (datos) {
+      const integrantes = JSON.parse(datos);
+      for (let int of integrantes) {
+        if (int.condiciones) {
+          for (let c of int.condiciones) {
+            if (activas.includes(c)) { encontrada = c; break; }
+          }
         }
+        if (!encontrada && activas.includes('Vacunas incompletas') && int.vacunasCompletas === 'No') encontrada = 'Vacunas incompletas';
+        if (!encontrada && activas.includes('Evento de salud') && int.eventoSalud && int.eventoSalud.trim()) encontrada = 'Evento de salud';
+        if (encontrada) break;
+      }
+    }
+    const rect = obj._objects.find(o => o.type === 'rect');
+    if (encontrada) {
+      const color = coloresCondiciones[encontrada];
+      obj.set('opacity', 1);
+      if (rect) { rect.set('fill', color.fill); rect.set('stroke', color.stroke); rect.set('strokeWidth', 4); }
+    } else {
+      obj.set('opacity', 0.12);
+      if (rect) rect.set('strokeWidth', 2);
+    }
+  });
+  canvas.renderAll();
+  aplicandoFiltros = false;
+}
 
-        function aplicarColorEstado(obj) {
-            if (!obj.idCasa) return;
-            const estado = localStorage.getItem(getEstadoKey(obj.idCasa)) || 'Pendiente';
-            const rect = obj._objects.find(o => o.type === 'rect');
-            if (!rect) return;
-            rect.set('strokeWidth', 2);
-            switch(estado) {
-                case 'Visitada': rect.set('fill', 'rgba(46, 204, 113, 0.4)'); rect.set('stroke', '#27ae60'); break;
-                case 'Fallida': rect.set('fill', 'rgba(241, 196, 15, 0.4)'); rect.set('stroke', '#f1c40f'); break;
-                case 'Cerrada': rect.set('fill', 'rgba(149, 165, 166, 0.4)'); rect.set('stroke', '#95a5a6'); break;
-                case 'Abandonada': rect.set('fill', 'rgba(52, 73, 94, 0.4)'); rect.set('stroke', '#34495e'); break;
-                default: rect.set('fill', 'rgba(231, 76, 60, 0.4)'); rect.set('stroke', '#c0392b'); break;
-            }
-        }
+function limpiarFiltros() {
+  if (!canvas) return;
+  document.querySelectorAll('#seccion-filtro input[type="checkbox"]').forEach(cb => cb.checked = false);
+  aplicandoFiltros = true;
+  canvas.forEachObject(function(obj) {
+    if (obj.type === 'group' && obj.idCasa) {
+      obj.set('opacity', 1);
+      aplicarColorEstado(obj);
+    }
+  });
+  canvas.renderAll();
+  aplicandoFiltros = false;
+}
 
-        function abrirResumenFamiliar(idCasa) {
-            idCasaActual = idCasa;
-            document.getElementById('sidebar-id-casa').innerText = idCasa;
-            estadoVisitaActual = localStorage.getItem(getEstadoKey(idCasa)) || 'Pendiente';
-            const badge = document.getElementById('sidebar-estado-visita');
-            badge.className = 'estado-visita-badge estado-' + estadoVisitaActual;
-            badge.innerText = 'Estado: ' + estadoVisitaActual;
-            
-            const lista = document.getElementById('sidebar-lista-integrantes');
-            const datos = localStorage.getItem(getFichaKey(idCasa));
-            if (datos) {
-                const integrantes = JSON.parse(datos);
-                if (integrantes.length > 0) {
-                    let html = '';
-                    integrantes.forEach(int => {
-                        const grupo = int.grupoDispensarial || '1';
-                        const colores = { '1': '#2ecc71', '2': '#f1c40f', '3': '#e74c3c', '4': '#3498db' };
-                        const colorBorde = colores[grupo] || '#bdc3c7';
-                        html += `<div class="resumen-integrante" style="border-left-color: ${colorBorde};">
-                            <h4>${int.nombre || 'Sin nombre'}</h4>
-                            <p><strong>Edad:</strong> ${int.edad || 'N/A'} | <strong>Sexo:</strong> ${int.sexo || 'N/A'}</p>
-                            <p><strong>📞</strong> ${int.contacto || 'No registrado'}</p>
-                            <p><strong>Grupo:</strong> ${grupo} | <strong>Vacunas:</strong> ${int.vacunasCompletas || 'N/A'}</p>
-                            <p><strong>Enf:</strong> ${int.enfermedades || 'Ninguna'}</p>
-                            ${int.eventoSalud && int.eventoSalud.trim() !== '' ? `<p><strong>🚨 ${int.eventoSalud}</strong></p>` : ''}
-                            ${int.condiciones && int.condiciones.length > 0 ? 
-                                `<div>${int.condiciones.map(c => `<span class="tag-condicion" style="background:${(coloresCondiciones[c]||{}).stroke||'#e74c3c'}">${c}</span>`).join('')}</div>` : ''}
-                        </div>`;
-                    });
-                    lista.innerHTML = html;
-                } else { lista.innerHTML = '<p class="sin-datos">Sin integrantes.</p>'; }
-            } else { lista.innerHTML = '<p class="sin-datos">Sin datos. Agrega una ficha.</p>'; }
-            document.getElementById('sidebar-resumen').classList.add('abierto');
-        }
+function aplicarColorEstado(obj) {
+  if (!obj.idCasa) return;
+  const estado = localStorage.getItem(getEstadoKey(obj.idCasa)) || 'Pendiente';
+  const rect = obj._objects.find(o => o.type === 'rect');
+  if (!rect) return;
+  rect.set('strokeWidth', 2);
+  switch(estado) {
+    case 'Visitada': rect.set('fill', 'rgba(46, 204, 113, 0.4)'); rect.set('stroke', '#27ae60'); break;
+    case 'Fallida': rect.set('fill', 'rgba(241, 196, 15, 0.4)'); rect.set('stroke', '#f1c40f'); break;
+    case 'Cerrada': rect.set('fill', 'rgba(149, 165, 166, 0.4)'); rect.set('stroke', '#95a5a6'); break;
+    case 'Abandonada': rect.set('fill', 'rgba(52, 73, 94, 0.4)'); rect.set('stroke', '#34495e'); break;
+    default: rect.set('fill', 'rgba(231, 76, 60, 0.4)'); rect.set('stroke', '#c0392b'); break;
+  }
+}
 
-        function cerrarSidebar() {
-            document.getElementById('sidebar-resumen').classList.remove('abierto');
-            idCasaActual = null;
-        }
+function abrirResumenFamiliar(idCasa) {
+  idCasaActual = idCasa;
+  document.getElementById('sidebar-id-casa').innerText = idCasa;
+  estadoVisitaActual = localStorage.getItem(getEstadoKey(idCasa)) || 'Pendiente';
+  const badge = document.getElementById('sidebar-estado-visita');
+  badge.className = 'estado-visita-badge estado-' + estadoVisitaActual;
+  badge.innerText = 'Estado: ' + estadoVisitaActual;
+  const lista = document.getElementById('sidebar-lista-integrantes');
+  const datos = localStorage.getItem(getFichaKey(idCasa));
+  if (datos) {
+    const integrantes = JSON.parse(datos);
+    if (integrantes.length > 0) {
+      let html = '';
+      integrantes.forEach(int => {
+        const grupo = int.grupoDispensarial || '1';
+        const colores = { '1': '#2ecc71', '2': '#f1c40f', '3': '#e74c3c', '4': '#3498db' };
+        html += '<div class="resumen-integrante" style="border-left-color:' + (colores[grupo] || '#bdc3c7') + ';">' +
+          '<h4>' + (int.nombre || 'Sin nombre') + '</h4>' +
+          '<p><strong>Edad:</strong> ' + (int.edad || 'N/A') + ' | <strong>Sexo:</strong> ' + (int.sexo || 'N/A') + '</p>' +
+          '<p><strong>📞</strong> ' + (int.contacto || 'No registrado') + '</p>' +
+          '<p><strong>Grupo:</strong> ' + grupo + ' | <strong>Vacunas:</strong> ' + (int.vacunasCompletas || 'N/A') + '</p>' +
+          '<p><strong>Enf:</strong> ' + (int.enfermedades || 'Ninguna') + '</p>' +
+          (int.eventoSalud && int.eventoSalud.trim() ? '<p><strong>🚨 ' + int.eventoSalud + '</strong></p>' : '') +
+          (int.condiciones && int.condiciones.length > 0 ? '<div>' + int.condiciones.map(c => '<span class="tag-condicion" style="background:' + ((coloresCondiciones[c]||{}).stroke||'#e74c3c') + '">' + c + '</span>').join('') + '</div>' : '') +
+          '</div>';
+      });
+      lista.innerHTML = html;
+    } else lista.innerHTML = '<p class="sin-datos">Sin integrantes.</p>';
+  } else lista.innerHTML = '<p class="sin-datos">Sin datos. Agrega una ficha.</p>';
+  document.getElementById('sidebar-resumen').classList.add('abierto');
+}
 
-        function abrirModalEdicion() {
-            if (!idCasaActual) return;
-            document.getElementById('modal-id-casa').innerText = idCasaActual;
-            document.getElementById('contenedor-integrantes').innerHTML = '';
-            estadoVisitaActual = localStorage.getItem(getEstadoKey(idCasaActual)) || 'Pendiente';
-            actualizarBotonesEstado(estadoVisitaActual);
-            
-            const datos = localStorage.getItem(getFichaKey(idCasaActual));
-            if (datos) {
-                const integrantes = JSON.parse(datos);
-                if (integrantes.length > 0) integrantes.forEach(i => agregarIntegranteForm(i));
-                else agregarIntegranteForm();
-            } else agregarIntegranteForm();
-            document.getElementById('modal-ficha').style.display = 'block';
-        }
+function cerrarSidebar() {
+  document.getElementById('sidebar-resumen').classList.remove('abierto');
+  idCasaActual = null;
+}
 
-        function cerrarModal() {
-            document.getElementById('modal-ficha').style.display = 'none';
-            if (idCasaActual) abrirResumenFamiliar(idCasaActual);
-        }
+function abrirModalEdicion() {
+  if (!idCasaActual) return;
+  document.getElementById('modal-id-casa').innerText = idCasaActual;
+  document.getElementById('contenedor-integrantes').innerHTML = '';
+  estadoVisitaActual = localStorage.getItem(getEstadoKey(idCasaActual)) || 'Pendiente';
+  actualizarBotonesEstado(estadoVisitaActual);
+  const datos = localStorage.getItem(getFichaKey(idCasaActual));
+  if (datos) {
+    const integrantes = JSON.parse(datos);
+    if (integrantes.length > 0) integrantes.forEach(i => agregarIntegranteForm(i));
+    else agregarIntegranteForm();
+  } else agregarIntegranteForm();
+  document.getElementById('modal-ficha').style.display = 'block';
+}
 
-        function cambiarEstadoVisita(nuevoEstado) {
-            estadoVisitaActual = nuevoEstado;
-            actualizarBotonesEstado(nuevoEstado);
-            localStorage.setItem(getEstadoKey(idCasaActual), nuevoEstado);
-            if (canvas) {
-                const obj = canvas.getObjects().find(o => o.idCasa === idCasaActual);
-                if (obj) { aplicarColorEstado(obj); canvas.renderAll(); }
-            }
-        }
+function cerrarModal() {
+  document.getElementById('modal-ficha').style.display = 'none';
+  if (idCasaActual) abrirResumenFamiliar(idCasaActual);
+}
 
-        function actualizarBotonesEstado(estado) {
-            document.querySelectorAll('.btn-estado').forEach(btn => {
-                btn.classList.remove('activo');
-                if (btn.innerText.includes(estado)) btn.classList.add('activo');
-            });
-        }
+function cambiarEstadoVisita(nuevoEstado) {
+  estadoVisitaActual = nuevoEstado;
+  actualizarBotonesEstado(nuevoEstado);
+  localStorage.setItem(getEstadoKey(idCasaActual), nuevoEstado);
+  if (canvas) {
+    const obj = canvas.getObjects().find(o => o.idCasa === idCasaActual);
+    if (obj) { aplicarColorEstado(obj); canvas.renderAll(); }
+  }
+}
 
-        function agregarIntegranteForm(datos = {}) {
-            const contenedor = document.getElementById('contenedor-integrantes');
-            const index = contenedor.children.length;
-            const grupo = datos.grupoDispensarial || '1';
-            const div = document.createElement('div');
-            div.className = `integrante-card grupo-${grupo}`;
-            div.innerHTML = `
-                <button class="btn-eliminar-integrante" onclick="this.parentElement.remove()">✕</button>
-                <h4>Integrante ${index + 1}</h4>
-                <div class="form-row">
-                    <div class="form-group"><label>Nombre Completo</label><input type="text" class="int-nombre" value="${datos.nombre || ''}" placeholder="Juan Pérez"></div>
-                    <div class="form-group"><label>Cédula</label><input type="text" class="int-cedula" value="${datos.cedula || ''}" placeholder="1234567890"></div>
-                    <div class="form-group" style="max-width: 70px;"><label>Edad</label><input type="number" class="int-edad" value="${datos.edad || ''}" placeholder="45"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Sexo</label>
-                        <select class="int-sexo">
-                            <option value="">--</option>
-                            <option value="Masculino" ${datos.sexo === 'Masculino' ? 'selected' : ''}>M</option>
-                            <option value="Femenino" ${datos.sexo === 'Femenino' ? 'selected' : ''}>F</option>
-                            <option value="Otro" ${datos.sexo === 'Otro' ? 'selected' : ''}>Otro</option>
-                        </select>
-                    </div>
-                    <div class="form-group"><label>Contacto</label><input type="tel" class="int-contacto" value="${datos.contacto || ''}" placeholder="0991234567"></div>
-                    <div class="form-group"><label>Escolaridad</label>
-                        <select class="int-escolaridad">
-                            <option value="">--</option>
-                            <option value="Ninguna" ${datos.escolaridad === 'Ninguna' ? 'selected' : ''}>Ninguna</option>
-                            <option value="Primaria" ${datos.escolaridad === 'Primaria' ? 'selected' : ''}>Primaria</option>
-                            <option value="Secundaria" ${datos.escolaridad === 'Secundaria' ? 'selected' : ''}>Secundaria</option>
-                            <option value="Superior" ${datos.escolaridad === 'Superior' ? 'selected' : ''}>Superior</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Grupo Dispensarial</label>
-                        <select class="int-grupo" onchange="cambiarColorGrupo(this)">
-                            <option value="1" ${grupo == '1' ? 'selected' : ''}>1 - Sano</option>
-                            <option value="2" ${grupo == '2' ? 'selected' : ''}>2 - Riesgo</option>
-                            <option value="3" ${grupo == '3' ? 'selected' : ''}>3 - Crónico</option>
-                            <option value="4" ${grupo == '4' ? 'selected' : ''}>4 - Discapacidad</option>
-                        </select>
-                    </div>
-                    <div class="form-group"><label>Vacunas</label>
-                        <select class="int-vacunas">
-                            <option value="">--</option>
-                            <option value="Si" ${datos.vacunasCompletas === 'Si' ? 'selected' : ''}>Completas</option>
-                            <option value="No" ${datos.vacunasCompletas === 'No' ? 'selected' : ''}>Incompletas</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Enfermedades</label><textarea class="int-enfermedades" placeholder="Hipertensión...">${datos.enfermedades || ''}</textarea></div>
-                    <div class="form-group"><label>Medicamentos</label><textarea class="int-medicamentos" placeholder="Losartán...">${datos.medicamentos || ''}</textarea></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>🚨 Evento de Salud</label><input type="text" class="int-evento" value="${datos.eventoSalud || ''}" placeholder="Brote..."></div>
-                </div>
-                <div class="form-group">
-                    <label>Condiciones Especiales</label>
-                    <div class="condiciones-grid">
-                        ${['Embarazada', 'Niños menores de 2 años', 'Discapacidad', 'Hipertensión', 'Diabetes', 'Salud mental', 'VIH', 'Tuberculosis', 'Desnutrición'].map(cond => {
-                            const checked = datos.condiciones && datos.condiciones.includes(cond) ? 'checked' : '';
-                            return `<label class="condicion-item"><input type="checkbox" class="int-condicion" value="${cond}" ${checked}> ${cond}</label>`;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
-            contenedor.appendChild(div);
-        }
+function actualizarBotonesEstado(estado) {
+  document.querySelectorAll('.btn-estado').forEach(btn => {
+    btn.classList.remove('activo');
+    if (btn.innerText.includes(estado)) btn.classList.add('activo');
+  });
+}
 
-        function cambiarColorGrupo(sel) {
-            const card = sel.closest('.integrante-card');
-            card.classList.remove('grupo-1', 'grupo-2', 'grupo-3', 'grupo-4');
-            card.classList.add('grupo-' + sel.value);
-        }
+function agregarIntegranteForm(datos = {}) {
+  const contenedor = document.getElementById('contenedor-integrantes');
+  const index = contenedor.children.length;
+  const grupo = datos.grupoDispensarial || '1';
+  const div = document.createElement('div');
+  div.className = 'integrante-card grupo-' + grupo;
+  div.innerHTML = 
+    '<button class="btn-eliminar-integrante" onclick="this.parentElement.remove()">✕</button>' +
+    '<h4>Integrante ' + (index + 1) + '</h4>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label>Nombre Completo</label><input type="text" class="int-nombre" value="' + (datos.nombre || '') + '"></div>' +
+      '<div class="form-group"><label>Cédula</label><input type="text" class="int-cedula" value="' + (datos.cedula || '') + '"></div>' +
+      '<div class="form-group" style="max-width:70px;"><label>Edad</label><input type="number" class="int-edad" value="' + (datos.edad || '') + '"></div>' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label>Sexo</label><select class="int-sexo">' +
+        '<option value="">--</option>' +
+        '<option value="Masculino"' + (datos.sexo === 'Masculino' ? ' selected' : '') + '>M</option>' +
+        '<option value="Femenino"' + (datos.sexo === 'Femenino' ? ' selected' : '') + '>F</option>' +
+        '<option value="Otro"' + (datos.sexo === 'Otro' ? ' selected' : '') + '>Otro</option>' +
+      '</select></div>' +
+      '<div class="form-group"><label>Contacto</label><input type="tel" class="int-contacto" value="' + (datos.contacto || '') + '"></div>' +
+      '<div class="form-group"><label>Escolaridad</label><select class="int-escolaridad">' +
+        '<option value="">--</option>' +
+        '<option value="Ninguna"' + (datos.escolaridad === 'Ninguna' ? ' selected' : '') + '>Ninguna</option>' +
+        '<option value="Primaria"' + (datos.escolaridad === 'Primaria' ? ' selected' : '') + '>Primaria</option>' +
+        '<option value="Secundaria"' + (datos.escolaridad === 'Secundaria' ? ' selected' : '') + '>Secundaria</option>' +
+        '<option value="Superior"' + (datos.escolaridad === 'Superior' ? ' selected' : '') + '>Superior</option>' +
+      '</select></div>' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label>Grupo</label><select class="int-grupo" onchange="cambiarColorGrupo(this)">' +
+        '<option value="1"' + (grupo == '1' ? ' selected' : '') + '>1 - Sano</option>' +
+        '<option value="2"' + (grupo == '2' ? ' selected' : '') + '>2 - Riesgo</option>' +
+        '<option value="3"' + (grupo == '3' ? ' selected' : '') + '>3 - Crónico</option>' +
+        '<option value="4"' + (grupo == '4' ? ' selected' : '') + '>4 - Discapacidad</option>' +
+      '</select></div>' +
+      '<div class="form-group"><label>Vacunas</label><select class="int-vacunas">' +
+        '<option value="">--</option>' +
+        '<option value="Si"' + (datos.vacunasCompletas === 'Si' ? ' selected' : '') + '>Completas</option>' +
+        '<option value="No"' + (datos.vacunasCompletas === 'No' ? ' selected' : '') + '>Incompletas</option>' +
+      '</select></div>' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label>Enfermedades</label><textarea class="int-enfermedades">' + (datos.enfermedades || '') + '</textarea></div>' +
+      '<div class="form-group"><label>Medicamentos</label><textarea class="int-medicamentos">' + (datos.medicamentos || '') + '</textarea></div>' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label>🚨 Evento de Salud</label><input type="text" class="int-evento" value="' + (datos.eventoSalud || '') + '"></div>' +
+    '</div>' +
+    '<div class="form-group"><label>Condiciones Especiales</label><div class="condiciones-grid">' +
+      ['Embarazada', 'Niños menores de 2 años', 'Discapacidad', 'Hipertensión', 'Diabetes', 'Salud mental', 'VIH', 'Tuberculosis', 'Desnutrición', 'Cuidados paliativos'].map(cond => {
+        const checked = datos.condiciones && datos.condiciones.includes(cond) ? 'checked' : '';
+        return '<label class="condicion-item"><input type="checkbox" class="int-condicion" value="' + cond + '" ' + checked + '> ' + cond + '</label>';
+      }).join('') +
+    '</div></div>';
+  contenedor.appendChild(div);
+}
 
-        function guardarFicha() {
-            if (!idCasaActual || !barrioActual) return;
-            const integrantes = [];
-            document.querySelectorAll('.integrante-card').forEach(t => {
-                const nombre = t.querySelector('.int-nombre').value.trim();
-                if (nombre !== '') {
-                    const condiciones = [];
-                    t.querySelectorAll('.int-condicion:checked').forEach(cb => condiciones.push(cb.value));
-                    integrantes.push({
-                        nombre, cedula: t.querySelector('.int-cedula').value.trim(),
-                        edad: t.querySelector('.int-edad').value.trim(),
-                        sexo: t.querySelector('.int-sexo').value,
-                        contacto: t.querySelector('.int-contacto').value.trim(),
-                        escolaridad: t.querySelector('.int-escolaridad').value,
-                        grupoDispensarial: t.querySelector('.int-grupo').value,
-                        vacunasCompletas: t.querySelector('.int-vacunas').value,
-                        enfermedades: t.querySelector('.int-enfermedades').value.trim(),
-                        medicamentos: t.querySelector('.int-medicamentos').value.trim(),
-                        eventoSalud: t.querySelector('.int-evento').value.trim(),
-                        condiciones
-                    });
-                }
-            });
-            localStorage.setItem(getFichaKey(idCasaActual), JSON.stringify(integrantes));
-            mostrarToast('✅ Ficha guardada', 'success');
-            cerrarModal();
-            const hayFiltros = Array.from(document.querySelectorAll('#seccion-filtro input[type="checkbox"]')).some(cb => cb.checked);
-            if (hayFiltros) aplicarFiltros();
-            
-            if (tokenAccesoGoogle) subirADrive().catch(e => console.log('Sync auto:', e));
-        }
+function cambiarColorGrupo(sel) {
+  const card = sel.closest('.integrante-card');
+  card.classList.remove('grupo-1', 'grupo-2', 'grupo-3', 'grupo-4');
+  card.classList.add('grupo-' + sel.value);
+}
 
-        function obtenerTodosLosPacientes() {
-            if (!barrioActual) return [];
-            const pacientes = [];
-            const prefijo = 'catastro_ficha_' + barrioActual.id + '_';
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith(prefijo)) {
-                    const idCasa = key.substring(prefijo.length);
-                    const estado = localStorage.getItem('catastro_estado_' + barrioActual.id + '_' + idCasa) || 'Pendiente';
-                    const integrantes = JSON.parse(localStorage.getItem(key) || '[]');
-                    integrantes.forEach(int => {
-                        pacientes.push({
-                            casa: idCasa, estado,
-                            nombre: int.nombre || '', cedula: int.cedula || '',
-                            edad: int.edad || '', sexo: int.sexo || '',
-                            contacto: int.contacto || '', escolaridad: int.escolaridad || '',
-                            grupo: int.grupoDispensarial || '', vacunas: int.vacunasCompletas || '',
-                            enfermedades: int.enfermedades || '', medicamentos: int.medicamentos || '',
-                            eventoSalud: int.eventoSalud || '',
-                            condiciones: (int.condiciones || []).join(', ')
-                        });
-                    });
-                }
-            }
-            pacientes.sort((a, b) => a.casa.localeCompare(b.casa));
-            return pacientes;
-        }
+function guardarFicha() {
+  if (!idCasaActual || !barrioActual) return;
+  const integrantes = [];
+  document.querySelectorAll('.integrante-card').forEach(t => {
+    const nombre = t.querySelector('.int-nombre').value.trim();
+    if (nombre !== '') {
+      const condiciones = [];
+      t.querySelectorAll('.int-condicion:checked').forEach(cb => condiciones.push(cb.value));
+      integrantes.push({
+        nombre: nombre,
+        cedula: t.querySelector('.int-cedula').value.trim(),
+        edad: t.querySelector('.int-edad').value.trim(),
+        sexo: t.querySelector('.int-sexo').value,
+        contacto: t.querySelector('.int-contacto').value.trim(),
+        escolaridad: t.querySelector('.int-escolaridad').value,
+        grupoDispensarial: t.querySelector('.int-grupo').value,
+        vacunasCompletas: t.querySelector('.int-vacunas').value,
+        enfermedades: t.querySelector('.int-enfermedades').value.trim(),
+        medicamentos: t.querySelector('.int-medicamentos').value.trim(),
+        eventoSalud: t.querySelector('.int-evento').value.trim(),
+        condiciones: condiciones
+      });
+    }
+  });
+  localStorage.setItem(getFichaKey(idCasaActual), JSON.stringify(integrantes));
+  mostrarToast('✅ Ficha guardada', 'success');
+  cerrarModal();
+  const hayFiltros = Array.from(document.querySelectorAll('#seccion-filtro input[type="checkbox"]')).some(cb => cb.checked);
+  if (hayFiltros) aplicarFiltros();
+  if (tokenAccesoGoogle) subirADrive().catch(e => console.log(e));
+}
 
-        function abrirMatriz() {
-            if (!barrioActual) { mostrarToast('Carga un barrio primero', 'error'); return; }
-            const pacientes = obtenerTodosLosPacientes();
-            const tbody = document.getElementById('tbody-matriz');
-            const info = document.getElementById('matriz-info');
-            tbody.innerHTML = '';
-            if (pacientes.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; padding: 20px; color: #7f8c8d;">Sin pacientes.</td></tr>';
-                info.innerText = barrioActual.nombre + ' | 0 pacientes';
-            } else {
-                let html = '';
-                pacientes.forEach(p => {
-                    const color = estadosColoresHex[p.estado] || '#95a5a6';
-                    html += `<tr>
-                        <td><strong>${p.casa}</strong></td>
-                        <td><span class="estado-tag" style="background:${color};">${p.estado}</span></td>
-                        <td>${p.nombre}</td><td>${p.cedula}</td><td>${p.edad}</td><td>${p.sexo}</td>
-                        <td>${p.contacto}</td><td>${p.escolaridad}</td><td>${p.grupo}</td>
-                        <td>${p.vacunas}</td><td>${p.enfermedades}</td><td>${p.medicamentos}</td>
-                        <td>${p.eventoSalud}</td><td>${p.condiciones}</td>
-                    </tr>`;
-                });
-                tbody.innerHTML = html;
-                info.innerText = `${barrioActual.nombre} | ${pacientes.length} pacientes en ${new Set(pacientes.map(p => p.casa)).size} casas`;
-            }
-            document.getElementById('modal-matriz').style.display = 'block';
-        }
+function obtenerTodosLosPacientes() {
+  if (!barrioActual) return [];
+  const pacientes = [];
+  const prefijo = 'catastro_ficha_' + barrioActual.id + '_';
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith(prefijo)) {
+      const idCasa = key.substring(prefijo.length);
+      const estado = localStorage.getItem('catastro_estado_' + barrioActual.id + '_' + idCasa) || 'Pendiente';
+      const integrantes = JSON.parse(localStorage.getItem(key) || '[]');
+      integrantes.forEach(int => {
+        pacientes.push({
+          casa: idCasa, estado: estado,
+          nombre: int.nombre || '', cedula: int.cedula || '',
+          edad: int.edad || '', sexo: int.sexo || '',
+          contacto: int.contacto || '', escolaridad: int.escolaridad || '',
+          grupo: int.grupoDispensarial || '', vacunas: int.vacunasCompletas || '',
+          enfermedades: int.enfermedades || '', medicamentos: int.medicamentos || '',
+          eventoSalud: int.eventoSalud || '',
+          condiciones: (int.condiciones || []).join(', ')
+        });
+      });
+    }
+  }
+  pacientes.sort((a, b) => a.casa.localeCompare(b.casa));
+  return pacientes;
+}
 
-        function cerrarMatriz() { document.getElementById('modal-matriz').style.display = 'none'; }
+function abrirMatriz() {
+  if (!barrioActual) { mostrarToast('Carga un barrio primero', 'error'); return; }
+  const pacientes = obtenerTodosLosPacientes();
+  const tbody = document.getElementById('tbody-matriz');
+  const info = document.getElementById('matriz-info');
+  tbody.innerHTML = '';
+  if (pacientes.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:20px;color:#7f8c8d;">Sin pacientes.</td></tr>';
+    info.innerText = barrioActual.nombre + ' | 0 pacientes';
+  } else {
+    let html = '';
+    pacientes.forEach(p => {
+      const color = estadosColoresHex[p.estado] || '#95a5a6';
+      html += '<tr>' +
+        '<td><strong>' + p.casa + '</strong></td>' +
+        '<td><span class="estado-tag" style="background:' + color + ';">' + p.estado + '</span></td>' +
+        '<td>' + p.nombre + '</td><td>' + p.cedula + '</td><td>' + p.edad + '</td><td>' + p.sexo + '</td>' +
+        '<td>' + p.contacto + '</td><td>' + p.escolaridad + '</td><td>' + p.grupo + '</td>' +
+        '<td>' + p.vacunas + '</td><td>' + p.enfermedades + '</td><td>' + p.medicamentos + '</td>' +
+        '<td>' + p.eventoSalud + '</td><td>' + p.condiciones + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+    info.innerText = barrioActual.nombre + ' | ' + pacientes.length + ' pacientes en ' + new Set(pacientes.map(p => p.casa)).size + ' casas';
+  }
+  document.getElementById('modal-matriz').style.display = 'block';
+}
 
-        function exportarExcel() {
-            const pacientes = obtenerTodosLosPacientes();
-            if (pacientes.length === 0) { mostrarToast('No hay datos', 'error'); return; }
-            const datos = pacientes.map(p => ({
-                'Casa': p.casa, 'Estado': p.estado, 'Nombre': p.nombre,
-                'Cédula': p.cedula, 'Edad': p.edad, 'Sexo': p.sexo,
-                'Contacto': p.contacto, 'Escolaridad': p.escolaridad,
-                'Grupo': p.grupo, 'Vacunas': p.vacunas, 'Enfermedades': p.enfermedades,
-                'Medicamentos': p.medicamentos, 'Evento': p.eventoSalud,
-                'Condiciones': p.condiciones
-            }));
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.json_to_sheet(datos);
-            ws['!cols'] = [{ wch: 15 },{ wch: 12 },{ wch: 25 },{ wch: 15 },{ wch: 6 },{ wch: 10 },{ wch: 15 },{ wch: 12 },{ wch: 8 },{ wch: 12 },{ wch: 25 },{ wch: 25 },{ wch: 20 },{ wch: 25 }];
-            XLSX.utils.book_append_sheet(wb, ws, 'Pacientes');
-            const fecha = new Date().toISOString().split('T')[0];
-            const nombre = barrioActual.nombre.replace(/[^a-z0-9]/gi, '_');
-            XLSX.writeFile(wb, `Catastro_${nombre}_${fecha}.xlsx`);
-        }
+function cerrarMatriz() { document.getElementById('modal-matriz').style.display = 'none'; }
 
-        function guardarMapa() {
-            if (aplicandoFiltros || !barrioActual) return;
-            guardarCanvasActual();
-            if (tokenAccesoGoogle) {
-                clearTimeout(window._syncTimer);
-                window._syncTimer = setTimeout(() => {
-                    subirADrive().catch(e => console.log('Sync auto:', e));
-                }, 3000);
-            }
-        }
-    </script>
+function exportarExcel() {
+  const pacientes = obtenerTodosLosPacientes();
+  if (pacientes.length === 0) { mostrarToast('No hay datos', 'error'); return; }
+  const datos = pacientes.map(p => ({
+    'Casa': p.casa, 'Estado': p.estado, 'Nombre': p.nombre,
+    'Cédula': p.cedula, 'Edad': p.edad, 'Sexo': p.sexo,
+    'Contacto': p.contacto, 'Escolaridad': p.escolaridad,
+    'Grupo': p.grupo, 'Vacunas': p.vacunas, 'Enfermedades': p.enfermedades,
+    'Medicamentos': p.medicamentos, 'Evento': p.eventoSalud,
+    'Condiciones': p.condiciones
+  }));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(datos);
+  ws['!cols'] = [{ wch: 15 },{ wch: 12 },{ wch: 25 },{ wch: 15 },{ wch: 6 },{ wch: 10 },{ wch: 15 },{ wch: 12 },{ wch: 8 },{ wch: 12 },{ wch: 25 },{ wch: 25 },{ wch: 20 },{ wch: 25 }];
+  XLSX.utils.book_append_sheet(wb, ws, 'Pacientes');
+  const fecha = new Date().toISOString().split('T')[0];
+  const nombre = barrioActual.nombre.replace(/[^a-z0-9]/gi, '_');
+  XLSX.writeFile(wb, 'Catastro_' + nombre + '_' + fecha + '.xlsx');
+}
+
+function guardarMapa() {
+  if (aplicandoFiltros || !barrioActual) return;
+  guardarCanvasActual();
+  if (tokenAccesoGoogle) {
+    clearTimeout(window._syncTimer);
+    window._syncTimer = setTimeout(() => {
+      subirADrive().catch(e => console.log(e));
+    }, 3000);
+  }
+}
+</script>
 </body>
 </html>
