@@ -421,6 +421,10 @@ let unsubscribeListener = null;
 let aplicandoCambiosRemotos = false;
 let guardandoEnFirestore = false;
 let hayCambiosPendientes = false;
+// Este contador nos dice qué tan "reciente" es nuestro último cambio local
+let ultimoCambioLocal = 0;
+// Este flag indica que ESTAMOS esperando confirmación del servidor
+let esperandoConfirmacion = false;
 
 const coloresCondiciones = {
   'Embarazada': { fill: 'rgba(233, 30, 99, 0.7)', stroke: '#e91e63' },
@@ -528,6 +532,7 @@ function cerrarInstrucciones() {
 
 function marcarCambioPendiente() {
   hayCambiosPendientes = true;
+  ultimoCambioLocal = Date.now();
   if (usuarioActual) {
     actualizarIndicadorSync('pendiente', '⏳ Sin subir');
     const caja = document.getElementById('sync-estado-caja');
@@ -694,7 +699,7 @@ function gestionarSync() {
   else if (confirm('¿Cerrar sesión de Google?')) auth.signOut();
 }
 
-// ==================== ESCUCHA EN TIEMPO REAL ====================
+// ==================== ESCUCHA EN TIEMPO REAL (MEJORADA) ====================
 function iniciarEscuchaTiempoReal() {
   if (!usuarioActual) return;
   if (unsubscribeListener) unsubscribeListener();
@@ -704,8 +709,26 @@ function iniciarEscuchaTiempoReal() {
   const docRef = db.collection('catastros').doc(docId);
   
   unsubscribeListener = docRef.onSnapshot((snapshot) => {
-    if (aplicandoCambiosRemotos) return;
-    if (guardandoEnFirestore) return;
+    // === FILTROS ANTI-BUCLE ===
+    
+    // 1. Si estamos aplicando cambios remotos, ignorar
+    if (aplicandoCambiosRemotos) {
+      log('⏭️ Ignorando (aplicando cambios remotos)', 'info');
+      return;
+    }
+    
+    // 2. Si estamos en medio de una subida, ignorar (es nuestro propio cambio)
+    if (guardandoEnFirestore) {
+      log('⏭️ Ignorando (subiendo nuestros cambios)', 'info');
+      return;
+    }
+    
+    // 3. Si acabamos de hacer un cambio local (últimos 5 segundos), ignorar
+    const tiempoDesdeCambio = Date.now() - ultimoCambioLocal;
+    if (tiempoDesdeCambio < 5000) {
+      log('⏭️ Ignorando (cambio local reciente hace ' + Math.round(tiempoDesdeCambio/1000) + 's)', 'info');
+      return;
+    }
     
     if (snapshot.exists) {
       const datosRemotos = snapshot.data();
@@ -714,27 +737,123 @@ function iniciarEscuchaTiempoReal() {
       const remotoStr = JSON.stringify(datosRemotos.datos || {});
       const localStr = JSON.stringify(datosLocales.datos || {});
       
-      if (remotoStr !== localStr) {
-        log('📥 Cambios en la nube', 'info');
-        
-        const modalAbierto = document.getElementById('modal-ficha').style.display === 'block' || 
-                             document.getElementById('modal-matriz').style.display === 'block';
-        
-        if (modalAbierto) {
-          mostrarToast('📥 Hay cambios nuevos. Guarda y recarga.', 'warning');
-        } else {
-          aplicandoCambiosRemotos = true;
-          restaurarTodosLosDatos(datosRemotos);
-          log('⬇️ Aplicando cambios...', 'ok');
-          mostrarToast('⬇️ Datos actualizados', 'success');
-          guardarZoomScroll();
-          setTimeout(() => window.location.reload(), 1000);
-        }
+      // 4. Si los datos son idénticos, no hacer nada
+      if (remotoStr === localStr) {
+        return;
       }
+      
+      // 5. Aquí llegamos solo si HAY DIFERENCIAS y NO es un eco nuestro
+      log('📥 Cambios REALES detectados en la nube', 'info');
+      
+      const modalAbierto = document.getElementById('modal-ficha').style.display === 'block' || 
+                           document.getElementById('modal-matriz').style.display === 'block';
+      
+      if (modalAbierto) {
+        // No interrumpir si el usuario está trabajando en un modal
+        mostrarToast('📥 Hay cambios nuevos. Guarda y espera unos segundos.', 'warning');
+        const caja = document.getElementById('sync-estado-caja');
+        if (caja) {
+          caja.className = 'sync-estado pendiente';
+          caja.innerHTML = '⚠️ Cambios nuevos disponibles';
+        }
+        return;
+      }
+      
+      // Aplicar cambios SIN recargar la página
+      aplicandoCambiosRemotos = true;
+      log('⬇️ Aplicando cambios en el lugar...', 'ok');
+      
+      // Guardar zoom/scroll actuales
+      const zoomAntes = zoomActual;
+      const wrapper = document.getElementById('mapa-wrapper');
+      const scrollL = wrapper.scrollLeft;
+      const scrollT = wrapper.scrollTop;
+      
+      // Restaurar datos en localStorage
+      restaurarTodosLosDatos(datosRemotos);
+      
+      // Actualizar el mapa visualmente
+      actualizarMapaDesdeDatos(function() {
+        // Restaurar zoom y scroll después de actualizar
+        zoomActual = zoomAntes;
+        aplicarZoom();
+        setTimeout(() => {
+          wrapper.scrollLeft = scrollL;
+          wrapper.scrollTop = scrollT;
+        }, 100);
+        
+        mostrarToast('⬇️ Cambios de tus compañeros aplicados', 'success');
+        const caja = document.getElementById('sync-estado-caja');
+        if (caja) {
+          caja.className = 'sync-estado ok';
+          const hora = new Date().toTimeString().substring(0,5);
+          caja.innerHTML = '✅ Actualizado: <strong>' + hora + '</strong>';
+        }
+        aplicandoCambiosRemotos = false;
+      });
     }
   }, (error) => {
     log('❌ Error listener: ' + error.message, 'error');
   });
+}
+
+// Actualiza el canvas SIN recargar la página
+function actualizarMapaDesdeDatos(callback) {
+  // Guardar la lista de barrios actualizada
+  actualizarSelectorBarrios();
+  
+  // Si hay un barrio activo, recargar SOLO su canvas
+  if (barrioActual) {
+    const barrioId = barrioActual.id;
+    const dataURL = localStorage.getItem('catastro_mapa_' + barrioId);
+    const canvasJSON = localStorage.getItem('catastro_canvas_' + barrioId);
+    
+    if (!dataURL) {
+      if (callback) callback();
+      return;
+    }
+    
+    const nuevoImg = new Image();
+    nuevoImg.onload = function() {
+      canvas.clear();
+      canvas.setWidth(nuevoImg.width);
+      canvas.setHeight(nuevoImg.height);
+      canvas.backgroundColor = 'transparent';
+      canvas.setZoom(1);
+      
+      const mapaImg = document.getElementById('mapa-imagen');
+      mapaImg.src = dataURL;
+      mapaImg.width = nuevoImg.width;
+      mapaImg.height = nuevoImg.height;
+      
+      document.getElementById('canvas-zoom-container').style.width = nuevoImg.width + 'px';
+      document.getElementById('canvas-zoom-container').style.height = nuevoImg.height + 'px';
+      
+      if (canvasJSON) {
+        try {
+          canvas.loadFromJSON(canvasJSON, function() {
+            restaurarEstadosObjetos();
+            canvas.renderAll();
+            canvas.calcOffset();
+            if (callback) callback();
+          });
+        } catch(e) {
+          log('Error al recargar canvas: ' + e.message, 'error');
+          canvas.renderAll();
+          if (callback) callback();
+        }
+      } else {
+        canvas.renderAll();
+        if (callback) callback();
+      }
+    };
+    nuevoImg.onerror = function() {
+      if (callback) callback();
+    };
+    nuevoImg.src = dataURL;
+  } else {
+    if (callback) callback();
+  }
 }
 
 async function verificarDatosRemotos() {
@@ -761,7 +880,6 @@ async function verificarDatosRemotos() {
       if (!hayDatosLocales && hayDatosRemotos) {
         restaurarTodosLosDatos(datosRemotos);
         mostrarToast('⬇️ Datos cargados de la nube', 'success');
-        guardarZoomScroll();
         setTimeout(() => window.location.reload(), 1000);
       } else if (hayDatosLocales && !hayDatosRemotos) {
         await subirManualmente(true);
@@ -776,7 +894,6 @@ async function verificarDatosRemotos() {
         if (bajar) {
           restaurarTodosLosDatos(datosRemotos);
           mostrarToast('⬇️ Datos de la nube', 'success');
-          guardarZoomScroll();
           setTimeout(() => window.location.reload(), 1000);
         } else {
           await subirManualmente(true);
@@ -831,7 +948,8 @@ async function subirManualmente(silencioso = false) {
     log('✅ Subida OK', 'ok');
     if (!silencioso) mostrarToast('✅ Datos subidos', 'success');
     
-    setTimeout(() => { guardandoEnFirestore = false; }, 2000);
+    // Esperar 3 segundos antes de quitar el flag para evitar ecos
+    setTimeout(() => { guardandoEnFirestore = false; }, 3000);
   } catch(e) {
     guardandoEnFirestore = false;
     log('❌ Error: ' + e.message, 'error');
@@ -864,7 +982,6 @@ async function bajarManualmente() {
     restaurarTodosLosDatos(docSnap.data());
     hayCambiosPendientes = false;
     mostrarToast('⬇️ Datos cargados', 'success');
-    guardarZoomScroll();
     setTimeout(() => window.location.reload(), 1200);
   } catch(e) {
     log('❌ Error: ' + e.message, 'error');
@@ -878,7 +995,7 @@ function programarSubida() {
     if (!usuarioActual || !hayCambiosPendientes) return;
     log('⏰ Subida automática', 'info');
     await subirManualmente(true);
-  }, 3000);
+  }, 4000);
 }
 
 // ==================== GESTOS TÁCTILES ====================
