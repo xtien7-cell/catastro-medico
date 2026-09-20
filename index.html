@@ -55,13 +55,16 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
 .btn-import-inner { background: #8e44ad; }
 .btn-google { background: #fff; color: #444; border: 2px solid #dadce0 !important; padding: 10px !important; }
 .btn-google.conectado { background: #e8f5e9; border-color: #27ae60 !important; color: #1e7e34; }
-.btn-sync-ahora { background: #2980b9; padding: 12px !important; font-size: 14px !important; }
-.btn-forzar-descarga { background: #8e44ad; padding: 12px !important; font-size: 14px !important; }
+.btn-subir-drive { background: #16a085 !important; padding: 12px !important; font-size: 14px !important; }
+.btn-bajar-drive { background: #d35400 !important; padding: 12px !important; font-size: 14px !important; }
 .google-icon { width: 18px; height: 18px; }
 .sync-separador { margin-top: 15px; padding-top: 12px; border-top: 2px dashed #bdc3c7; }
 .sync-titulo { text-align: center; color: #2c3e50; font-size: 12px; margin-bottom: 8px; display: block; }
 .sync-info { font-size: 10px; color: #7f8c8d; text-align: center; margin-top: 6px; line-height: 1.4; }
-.sync-estado { font-size: 11px; padding: 6px 8px; border-radius: 4px; margin-top: 8px; text-align: center; font-weight: bold; background: #ecf0f1; color: #2c3e50; }
+.sync-estado { font-size: 11px; padding: 8px; border-radius: 4px; margin-top: 8px; text-align: center; font-weight: bold; background: #ecf0f1; color: #2c3e50; line-height: 1.5; }
+.sync-estado.pendiente { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+.sync-estado.ok { background: #d4edda; color: #155724; border: 1px solid #27ae60; }
+.sync-estado.error { background: #f8d7da; color: #721c24; border: 1px solid #e74c3c; }
 .filtro-hint { font-size: 11px; color: #7f8c8d; padding: 0 0 8px 0; margin: 0; font-style: italic; }
 .filtro-item { display: flex; align-items: center; gap: 8px; padding: 8px 6px; margin-bottom: 2px; border-radius: 5px; cursor: pointer; font-size: 13px; }
 .filtro-item:hover { background: #ecf0f1; }
@@ -160,6 +163,13 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
 #toast.success { background: #27ae60; }
 #toast.error { background: #e74c3c; }
 #toast.info { background: #3498db; }
+#toast.warning { background: #e67e22; }
+#log-panel { position: fixed; bottom: 100px; right: 20px; background: rgba(0,0,0,0.9); color: #0f0; font-family: monospace; font-size: 11px; padding: 10px; border-radius: 6px; max-width: 350px; max-height: 200px; overflow-y: auto; z-index: 2500; display: none; }
+#log-panel.visible { display: block; }
+#log-panel .log-linea { margin: 2px 0; word-break: break-all; }
+#log-panel .log-error { color: #f66; }
+#log-panel .log-ok { color: #6f6; }
+#log-panel .log-info { color: #6cf; }
 </style>
 </head>
 <body>
@@ -201,25 +211,52 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
         <button class="btn-sync-inner btn-import-inner" onclick="document.getElementById('input-importar').click()">📥 Importar datos</button>
         <input type="file" id="input-importar" accept=".json" style="display:none" onchange="importarDatos(event)">
       </div>
-      <div class="sync-separador">
-        <span class="sync-titulo">☁️ Sincronización en la Nube</span>
-        <button id="btn-google" class="btn-sync-inner btn-google" onclick="conectarConGoogle()">
-          <svg class="google-icon" viewBox="0 0 48 48">
-            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-          </svg>
-          <span id="btn-google-texto">Conectar con Google Drive</span>
-        </button>
-        <button id="btn-sync-ahora" class="btn-sync-inner btn-sync-ahora" onclick="sincronizarAhora()" style="display:none;">🔄 Sincronizar ahora</button>
-        <button id="btn-recuperar" class="btn-sync-inner btn-forzar-descarga" onclick="recuperarDesdeDrive()" style="display:none;">⬇️ Forzar descarga desde Drive</button>
-        <button id="btn-info-sync" class="btn-sync-inner" onclick="verInfoSync()" style="background:#f39c12; display:none;">ℹ️ Ver tamaño de mis datos</button>
-        <div class="sync-estado" id="sync-estado-caja" style="display:none;">✅ Última sincronización: --:--</div>
-        <p class="sync-info" id="sync-info-texto">Sincroniza automáticamente tus datos en tu propio Google Drive.</p>
-      </div>
     </div>
   </div>
+
+  <!-- SECCIÓN DE SINCRONIZACIÓN - AHORA COMO SECCIÓN INDEPENDIENTE -->
+  <div class="sidebar-section-header" onclick="toggleSeccion('seccion-nube', this)">
+    <span>☁️ Nube (Google Drive)</span><span class="flecha">▼</span>
+  </div>
+  <div class="sidebar-section-content" id="seccion-nube">
+    <div class="seccion-inner">
+      <button id="btn-google" class="btn-sync-inner btn-google" onclick="conectarConGoogle()">
+        <svg class="google-icon" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        <span id="btn-google-texto">Conectar con Google Drive</span>
+      </button>
+      
+      <div id="controles-drive" style="display:none;">
+        <div class="sync-separador">
+          <span class="sync-titulo">📤 Subir a la nube</span>
+          <button class="btn-sync-inner btn-subir-drive" onclick="subirManualmente()">⬆️ SUBIR TODO AL DRIVE</button>
+          <p class="sync-info">Sube todos tus datos locales al Drive. Sobrescribe lo que haya.</p>
+        </div>
+
+        <div class="sync-separador">
+          <span class="sync-titulo">📥 Bajar de la nube</span>
+          <button class="btn-sync-inner btn-bajar-drive" onclick="bajarManualmente()">⬇️ BAJAR TODO DEL DRIVE</button>
+          <p class="sync-info">⚠️ Reemplaza tus datos locales con los del Drive. Pide confirmación.</p>
+        </div>
+
+        <div class="sync-separador">
+          <span class="sync-titulo">ℹ️ Estado</span>
+          <div class="sync-estado" id="sync-estado-caja">Sin sincronizar</div>
+          <button class="btn-sync-inner" onclick="verInfoSync()" style="background:#f39c12; margin-top:8px;">ℹ️ Ver detalles técnicos</button>
+          <button class="btn-sync-inner" onclick="mostrarLogs()" style="background:#34495e; margin-top:4px;">🔍 Ver registro de actividad</button>
+        </div>
+      </div>
+      
+      <p class="sync-info" id="sync-info-texto" style="margin-top:10px;">
+        Conecta tu cuenta para sincronizar con tu Drive personal.
+      </p>
+    </div>
+  </div>
+
   <div class="sidebar-section-header" onclick="toggleSeccion('seccion-selector-barrio', this)">
     <span>📍 Barrio</span><span class="flecha">▼</span>
   </div>
@@ -340,6 +377,7 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
   </div>
 </div>
 
+<div id="log-panel" onclick="this.classList.remove('visible')"></div>
 <div id="toast"></div>
 
 <script>
@@ -355,13 +393,8 @@ let modoActivo = 'bloqueado';
 let tokenAccesoGoogle = null;
 let tokenClient = null;
 let syncEnProgreso = false;
-let ultimaSync = null;
 let hayCambiosPendientes = false;
 let intervaloSyncAuto = null;
-// Fecha de la última vez que bajamos datos del Drive
-let ultimaDescargaRemota = 0;
-// ID único de este dispositivo
-let deviceId = null;
 
 const coloresCondiciones = {
   'Embarazada': { fill: 'rgba(233, 30, 99, 0.7)', stroke: '#e91e63' },
@@ -382,21 +415,29 @@ const estadosColoresHex = {
   'Cerrada': '#95a5a6', 'Abandonada': '#34495e'
 };
 
-// ==================== DEVICE ID ====================
-function obtenerDeviceId() {
-  let id = localStorage.getItem('catastro_device_id');
-  if (!id) {
-    id = 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem('catastro_device_id', id);
-  }
-  return id;
+// ==================== LOGS ====================
+function log(msg, tipo = 'info') {
+  console.log(msg);
+  const panel = document.getElementById('log-panel');
+  const hora = new Date().toTimeString().substring(0,8);
+  const linea = document.createElement('div');
+  linea.className = 'log-linea log-' + tipo;
+  linea.innerText = '[' + hora + '] ' + msg;
+  panel.appendChild(linea);
+  panel.scrollTop = panel.scrollHeight;
+  // Limitar a 100 líneas
+  while (panel.children.length > 100) panel.removeChild(panel.firstChild);
+}
+
+function mostrarLogs() {
+  document.getElementById('log-panel').classList.toggle('visible');
 }
 
 function mostrarToast(mensaje, tipo) {
   const toast = document.getElementById('toast');
   toast.innerText = mensaje;
   toast.className = 'visible ' + (tipo || 'info');
-  setTimeout(() => { toast.className = ''; }, 3000);
+  setTimeout(() => { toast.className = ''; }, 3500);
 }
 
 function toggleSidebarMovil() {
@@ -413,13 +454,17 @@ function marcarCambioPendiente() {
   hayCambiosPendientes = true;
   if (tokenAccesoGoogle) {
     actualizarIndicadorSync('pendiente', '⏳ Sin subir');
+    const caja = document.getElementById('sync-estado-caja');
+    if (caja) {
+      caja.className = 'sync-estado pendiente';
+      caja.innerHTML = '⚠️ Tienes cambios sin subir.<br>Se subirán automáticamente en 2 seg.';
+    }
   }
 }
 
 // ==================== INICIALIZACIÓN ====================
 window.addEventListener('load', function() {
-  deviceId = obtenerDeviceId();
-  console.log('📱 Device ID:', deviceId);
+  log('🚀 Iniciando aplicación...', 'info');
 
   const manifest = {
     name: "Catastro Médico", short_name: "Catastro", start_url: ".", display: "standalone",
@@ -431,7 +476,7 @@ window.addEventListener('load', function() {
 
   if ('serviceWorker' in navigator) {
     const swCode = `self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));`;
-    navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode],{type:'application/javascript'}))).catch(e=>console.log(e));
+    navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode],{type:'application/javascript'}))).catch(e=>log('SW error: ' + e, 'error'));
   }
 
   try {
@@ -441,7 +486,8 @@ window.addEventListener('load', function() {
       allowTouchScrolling: true
     });
     configurarEventosCanvas();
-  } catch(e) { console.error('Error canvas:', e); }
+    log('✅ Canvas inicializado', 'ok');
+  } catch(e) { log('❌ Error canvas: ' + e.message, 'error'); }
 
   inicializarGestosTactiles();
   actualizarSelectorBarrios();
@@ -460,21 +506,14 @@ window.addEventListener('load', function() {
 
   hayCambiosPendientes = false;
 
-  window.addEventListener('beforeunload', function(e) {
-    if (tokenAccesoGoogle && hayCambiosPendientes) {
-      subirADrive().catch(err => console.log('Error al cerrar:', err));
-    }
-  });
-
   window.addEventListener('online', function() {
-    if (tokenAccesoGoogle) {
-      mostrarToast('🌐 Conexión recuperada, sincronizando...', 'info');
-      sincronizar();
-    }
+    log('🌐 Conexión recuperada', 'ok');
+    mostrarToast('🌐 Conexión recuperada', 'info');
   });
 
   window.addEventListener('offline', function() {
-    mostrarToast('📴 Sin conexión. Los datos se guardarán localmente.', 'info');
+    log('📴 Sin conexión', 'info');
+    mostrarToast('📴 Sin conexión. Los datos se guardan localmente.', 'warning');
   });
 });
 
@@ -602,7 +641,8 @@ function cargarNuevoMapa() {
       document.getElementById('archivo-mapa').value = '';
       cambiarBarrio(id);
       actualizarSelectorBarrios();
-      mostrarToast('✅ Barrio "' + nombre + '" (' + tamañoKB + ' KB)', 'success');
+      log('✅ Barrio "' + nombre + '" cargado (' + tamañoKB + ' KB)', 'ok');
+      mostrarToast('✅ Barrio "' + nombre + '"', 'success');
       marcarCambioPendiente();
       programarSubida();
     };
@@ -717,7 +757,7 @@ function guardarCanvasActual() {
   if (!barrioActual || !canvas) return;
   try {
     localStorage.setItem('catastro_canvas_' + barrioActual.id, JSON.stringify(canvas.toJSON(['idCasa'])));
-  } catch(e) { console.error(e); }
+  } catch(e) { log('Error al guardar canvas: ' + e.message, 'error'); }
 }
 
 function getFichaKey(idCasa) { return 'catastro_ficha_' + (barrioActual ? barrioActual.id : 'default') + '_' + idCasa; }
@@ -726,19 +766,7 @@ function getEstadoKey(idCasa) { return 'catastro_estado_' + (barrioActual ? barr
 // ==================== EXPORTAR / IMPORTAR ====================
 function exportarDatos() {
   try {
-    const datos = {
-      version: '1.0', fecha: new Date().toISOString(),
-      barrios: cargarBarriosLista(),
-      barrioActivo: barrioActual ? barrioActual.id : null,
-      datos: {}
-    };
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && (key.startsWith('catastro_mapa_') || key.startsWith('catastro_canvas_') || 
-          key.startsWith('catastro_ficha_') || key.startsWith('catastro_estado_'))) {
-        datos.datos[key] = localStorage.getItem(key);
-      }
-    }
+    const datos = recolectarTodosLosDatos();
     const json = JSON.stringify(datos);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -751,7 +779,8 @@ function exportarDatos() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    mostrarToast('✅ Exportado (' + (json.length / 1024).toFixed(1) + ' KB)', 'success');
+    log('✅ Exportado (' + (json.length / 1024).toFixed(1) + ' KB)', 'ok');
+    mostrarToast('✅ Exportado', 'success');
   } catch(e) { mostrarToast('❌ Error al exportar', 'error'); }
 }
 
@@ -767,19 +796,8 @@ function importarDatos(event) {
     try {
       const datos = JSON.parse(e.target.result);
       if (!datos.datos || !datos.barrios) { mostrarToast('❌ Archivo no válido', 'error'); return; }
-      const keysAEliminar = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (key.startsWith('catastro_mapa_') || key.startsWith('catastro_canvas_') || 
-            key.startsWith('catastro_ficha_') || key.startsWith('catastro_estado_') ||
-            key === 'catastro_barrios' || key === 'catastro_barrio_activo')) {
-          keysAEliminar.push(key);
-        }
-      }
-      keysAEliminar.forEach(k => localStorage.removeItem(k));
-      for (const [key, value] of Object.entries(datos.datos)) localStorage.setItem(key, value);
-      localStorage.setItem('catastro_barrios', JSON.stringify(datos.barrios));
-      if (datos.barrioActivo) localStorage.setItem('catastro_barrio_activo', datos.barrioActivo);
+      restaurarTodosLosDatos(datos);
+      log('✅ Importado archivo local', 'ok');
       mostrarToast('✅ Datos importados. Recargando...', 'success');
       setTimeout(() => window.location.reload(), 1500);
     } catch(err) { mostrarToast('❌ Error al leer archivo', 'error'); }
@@ -791,8 +809,8 @@ function importarDatos(event) {
 // ==================== GOOGLE DRIVE ====================
 function recolectarTodosLosDatos() {
   const datos = {
-    version: '1.0', fecha: new Date().toISOString(),
-    deviceId: deviceId,
+    version: '2.0',
+    fecha: new Date().toISOString(),
     barrios: cargarBarriosLista(),
     barrioActivo: barrioActual ? barrioActual.id : null,
     datos: {}
@@ -830,44 +848,27 @@ function actualizarIndicadorSync(estado, texto) {
   ind.innerText = texto;
 }
 
-function actualizarEstadoSync(estado, hora) {
-  const caja = document.getElementById('sync-estado-caja');
-  caja.style.display = 'block';
-  if (hora) {
-    caja.innerHTML = estado + ' Última sincronización: <strong>' + hora + '</strong>';
-  } else {
-    caja.innerText = estado;
-  }
-}
-
 function verificarSesionGuardada() {
   const sesion = localStorage.getItem('google_session_token');
   const expira = localStorage.getItem('google_session_expira');
   if (sesion && expira && Date.now() < parseInt(expira)) {
     tokenAccesoGoogle = sesion;
+    log('🔑 Sesión de Google restaurada', 'ok');
     actualizarIndicadorSync('sincronizado', '☁️ Conectado');
     document.getElementById('btn-google').classList.add('conectado');
     document.getElementById('btn-google-texto').innerText = '✅ Conectado a Drive';
-    document.getElementById('sync-info-texto').innerText = 'Se sincroniza automáticamente.';
-    document.getElementById('btn-sync-ahora').style.display = 'flex';
-    document.getElementById('btn-recuperar').style.display = 'flex';
-    document.getElementById('btn-info-sync').style.display = 'flex';
+    document.getElementById('controles-drive').style.display = 'block';
+    document.getElementById('sync-info-texto').innerText = 'Conectado. Usa los botones para subir o bajar.';
+    
+    const caja = document.getElementById('sync-estado-caja');
     const horaGuardada = localStorage.getItem('ultima_sync_hora');
-    if (horaGuardada) actualizarEstadoSync('✅', horaGuardada);
-    iniciarSyncAutomatica();
-    // Sincronizar inmediatamente al abrir
-    setTimeout(() => sincronizar(), 500);
+    caja.className = 'sync-estado ok';
+    caja.innerHTML = horaGuardada 
+      ? '✅ Última subida: ' + horaGuardada
+      : '✅ Conectado. Listo para sincronizar.';
+  } else {
+    log('⚠️ No hay sesión de Google activa', 'info');
   }
-}
-
-function iniciarSyncAutomatica() {
-  if (intervaloSyncAuto) clearInterval(intervaloSyncAuto);
-  intervaloSyncAuto = setInterval(() => {
-    if (tokenAccesoGoogle && !syncEnProgreso) {
-      console.log('⏰ Sync automática');
-      sincronizar();
-    }
-  }, 20000);
 }
 
 function conectarConGoogle() {
@@ -879,6 +880,7 @@ function conectarConGoogle() {
     alert('⚠️ Configura tu CLIENT_ID de Google primero.');
     return;
   }
+  log('🔗 Iniciando conexión con Google...', 'info');
   actualizarIndicadorSync('sincronizando', '🔗 Conectando...');
   try {
     tokenClient = google.accounts.oauth2.initTokenClient({
@@ -886,6 +888,7 @@ function conectarConGoogle() {
       scope: 'https://www.googleapis.com/auth/drive.appdata',
       callback: async (respuesta) => {
         if (respuesta.error) {
+          log('❌ Error de Google: ' + respuesta.error, 'error');
           actualizarIndicadorSync('error', '❌ Error');
           mostrarToast('❌ Error: ' + respuesta.error, 'error');
           return;
@@ -893,20 +896,21 @@ function conectarConGoogle() {
         tokenAccesoGoogle = respuesta.access_token;
         localStorage.setItem('google_session_token', tokenAccesoGoogle);
         localStorage.setItem('google_session_expira', (Date.now() + respuesta.expires_in * 1000).toString());
+        log('✅ Conectado con Google Drive', 'ok');
         actualizarIndicadorSync('sincronizado', '☁️ Conectado');
         document.getElementById('btn-google').classList.add('conectado');
         document.getElementById('btn-google-texto').innerText = '✅ Conectado a Drive';
-        document.getElementById('sync-info-texto').innerText = 'Se sincroniza automáticamente.';
-        document.getElementById('btn-sync-ahora').style.display = 'flex';
-        document.getElementById('btn-recuperar').style.display = 'flex';
-        document.getElementById('btn-info-sync').style.display = 'flex';
+        document.getElementById('controles-drive').style.display = 'block';
+        document.getElementById('sync-info-texto').innerText = 'Conectado. Usa los botones para subir o bajar.';
+        const caja = document.getElementById('sync-estado-caja');
+        caja.className = 'sync-estado ok';
+        caja.innerHTML = '✅ Conectado. Listo para sincronizar.';
         mostrarToast('✅ ¡Conectado con Google Drive!', 'success');
-        iniciarSyncAutomatica();
-        await sincronizar();
       },
     });
     tokenClient.requestAccessToken();
   } catch(e) {
+    log('❌ Error: ' + e.message, 'error');
     actualizarIndicadorSync('error', '❌ Error');
     mostrarToast('❌ Error al conectar', 'error');
   }
@@ -921,240 +925,198 @@ function desconectarDeGoogle() {
   actualizarIndicadorSync('desconectado', '☁️ Sin Drive');
   document.getElementById('btn-google').classList.remove('conectado');
   document.getElementById('btn-google-texto').innerText = 'Conectar con Google Drive';
-  document.getElementById('sync-info-texto').innerText = 'Sincroniza automáticamente tus datos en tu propio Google Drive.';
-  document.getElementById('btn-sync-ahora').style.display = 'none';
-  document.getElementById('btn-recuperar').style.display = 'none';
-  document.getElementById('btn-info-sync').style.display = 'none';
-  document.getElementById('sync-estado-caja').style.display = 'none';
+  document.getElementById('controles-drive').style.display = 'none';
+  document.getElementById('sync-info-texto').innerText = 'Conecta tu cuenta para sincronizar con tu Drive personal.';
+  log('🔌 Desconectado de Google', 'info');
   mostrarToast('🔌 Desconectado', 'info');
 }
 
 function gestionarSync() {
   if (!tokenAccesoGoogle) conectarConGoogle();
-  else if (confirm('¿Sincronizar ahora?')) sincronizar();
 }
 
-async function sincronizarAhora() {
+// ==================== SUBIR AL DRIVE ====================
+async function subirManualmente() {
   if (!tokenAccesoGoogle) { mostrarToast('⚠️ Conecta primero', 'error'); return; }
-  mostrarToast('🔄 Sincronizando...', 'info');
-  await sincronizar();
+  
+  const datos = recolectarTodosLosDatos();
+  const cantidadBarrios = datos.barrios.length;
+  const cantidadMapas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_mapa_')).length;
+  const cantidadFichas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_ficha_')).length;
+  
+  if (!confirm('📤 SUBIR AL DRIVE\n\n' +
+    'Esto subirá TODOS tus datos locales a tu Google Drive:\n' +
+    '• ' + cantidadBarrios + ' barrio(s)\n' +
+    '• ' + cantidadMapas + ' mapa(s)\n' +
+    '• ' + cantidadFichas + ' ficha(s)\n\n' +
+    '⚠️ Sobrescribirá lo que haya en el Drive.\n\n' +
+    '¿Continuar?')) return;
+  
+  await subirADrive(true);
 }
 
-async function recuperarDesdeDrive() {
-  if (!tokenAccesoGoogle) { mostrarToast('⚠️ Conecta con Google Drive primero', 'error'); return; }
-  if (!confirm('⚠️ Esto reemplazará los datos locales con los del Drive.\n\n¿Continuar?')) return;
-  syncEnProgreso = true;
-  actualizarIndicadorSync('sincronizando', '⬇️ Descargando...');
+async function subirADrive(silencioso = false) {
+  if (!tokenAccesoGoogle) return;
   try {
+    log('⬆️ Subiendo al Drive...', 'info');
+    if (!silencioso) actualizarIndicadorSync('sincronizando', '⬆️ Subiendo...');
+    
+    const archivoExistente = await buscarArchivoEnDrive();
+    const datos = recolectarTodosLosDatos();
+    const contenido = JSON.stringify(datos);
+    const tamañoKB = Math.round(contenido.length / 1024);
+    const tamañoMB = (contenido.length / 1024 / 1024).toFixed(2);
+    
+    log('📦 Tamaño: ' + tamañoKB + ' KB (' + tamañoMB + ' MB)', 'info');
+    
+    if (contenido.length > 5 * 1024 * 1024) {
+      if (!confirm('⚠️ El paquete es grande (' + tamañoMB + ' MB).\nPuede fallar.\n\n¿Continuar?')) return;
+    }
+    
+    const metadata = { name: 'catastro_datos.json', mimeType: 'application/json' };
+    if (!archivoExistente) metadata.parents = ['appDataFolder'];
+    
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', new Blob([contenido], { type: 'application/json' }));
+    
+    const url = archivoExistente 
+      ? 'https://www.googleapis.com/upload/drive/v3/files/' + archivoExistente.id + '?uploadType=multipart'
+      : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+    
+    const r = await fetch(url, {
+      method: archivoExistente ? 'PATCH' : 'POST',
+      headers: { 'Authorization': 'Bearer ' + tokenAccesoGoogle },
+      body: form
+    });
+    
+    if (!r.ok) {
+      const errTxt = await r.text();
+      log('❌ Error del servidor: ' + r.status + ' - ' + errTxt.substring(0, 100), 'error');
+      throw new Error('HTTP ' + r.status);
+    }
+    
+    const hora = new Date().toTimeString().substring(0,5);
+    localStorage.setItem('ultima_sync_hora', hora);
+    hayCambiosPendientes = false;
+    
+    actualizarIndicadorSync('sincronizado', '☁️ ' + hora);
+    const caja = document.getElementById('sync-estado-caja');
+    caja.className = 'sync-estado ok';
+    caja.innerHTML = '✅ Última subida: <strong>' + hora + '</strong>';
+    
+    log('✅ Subida exitosa (' + tamañoKB + ' KB)', 'ok');
+    if (!silencioso) mostrarToast('✅ Datos subidos al Drive', 'success');
+    
+  } catch(e) {
+    log('❌ Error al subir: ' + e.message, 'error');
+    actualizarIndicadorSync('error', '❌ Error');
+    const caja = document.getElementById('sync-estado-caja');
+    caja.className = 'sync-estado error';
+    caja.innerHTML = '❌ Error al subir.<br>Los datos locales están seguros.';
+    if (!silencioso) mostrarToast('❌ Error al subir. Datos locales seguros.', 'error');
+  }
+}
+
+// ==================== BAJAR DEL DRIVE ====================
+async function bajarManualmente() {
+  if (!tokenAccesoGoogle) { mostrarToast('⚠️ Conecta primero', 'error'); return; }
+  
+  if (!confirm('⚠️ ATENCIÓN\n\n' +
+    'Esta acción REEMPLAZARÁ todos tus datos locales con los del Drive.\n\n' +
+    '• Si tienes cambios sin subir, SE PERDERÁN.\n' +
+    '• Es recomendable EXPORTAR un respaldo primero.\n\n' +
+    '¿Estás seguro de que quieres BAJAR del Drive?')) {
+    return;
+  }
+  
+  await bajarDeDrive(true);
+}
+
+async function bajarDeDrive(mostrarAlerta = false) {
+  if (!tokenAccesoGoogle) return;
+  try {
+    log('⬇️ Buscando datos en el Drive...', 'info');
+    actualizarIndicadorSync('sincronizando', '⬇️ Bajando...');
+    
     const archivo = await buscarArchivoEnDrive();
     if (!archivo) {
-      mostrarToast('⚠️ No hay datos en Drive', 'info');
-      syncEnProgreso = false;
+      log('⚠️ No hay archivo en el Drive', 'info');
+      mostrarToast('⚠️ No hay datos en el Drive todavía', 'warning');
       actualizarIndicadorSync('sincronizado', '☁️ Conectado');
       return;
     }
+    
+    log('📥 Descargando...', 'info');
     const datos = await descargarDeDrive(archivo.id);
+    
+    if (!datos.datos || !datos.barrios) {
+      throw new Error('Formato inválido');
+    }
+    
+    const cantidadBarrios = datos.barrios.length;
+    const cantidadMapas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_mapa_')).length;
+    
+    log('📦 Contenido del Drive: ' + cantidadBarrios + ' barrios, ' + cantidadMapas + ' mapas', 'info');
+    
     restaurarTodosLosDatos(datos);
-    ultimaDescargaRemota = Date.now();
     hayCambiosPendientes = false;
-    mostrarToast('⬇️ Datos cargados desde Drive', 'success');
+    
+    log('✅ Datos bajados del Drive', 'ok');
+    mostrarToast('⬇️ Datos cargados desde Drive. Recargando...', 'success');
     setTimeout(() => window.location.reload(), 1200);
+    
   } catch(e) {
-    console.error(e);
-    mostrarToast('❌ Error al descargar', 'error');
-    syncEnProgreso = false;
+    log('❌ Error al bajar: ' + e.message, 'error');
     actualizarIndicadorSync('error', '❌ Error');
+    mostrarToast('❌ Error al bajar del Drive', 'error');
   }
+}
+
+async function buscarArchivoEnDrive() {
+  const r = await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)",
+    { headers: { 'Authorization': 'Bearer ' + tokenAccesoGoogle } });
+  if (!r.ok) throw new Error('Error al buscar (HTTP ' + r.status + ')');
+  const d = await r.json();
+  return d.files && d.files.length > 0 ? d.files[0] : null;
+}
+
+async function descargarDeDrive(fileId) {
+  const r = await fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media',
+    { headers: { 'Authorization': 'Bearer ' + tokenAccesoGoogle } });
+  if (!r.ok) throw new Error('Error al descargar (HTTP ' + r.status + ')');
+  return await r.json();
 }
 
 function verInfoSync() {
   const datos = recolectarTodosLosDatos();
   const json = JSON.stringify(datos);
   const tamañoMB = (json.length / 1024 / 1024).toFixed(2);
-  const tamañoKB = Math.round(json.length / 1024);
   const cantidadBarrios = datos.barrios.length;
   const cantidadFichas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_ficha_')).length;
   const cantidadMapas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_mapa_')).length;
-  let mensaje = '📊 INFORMACIÓN\n\n';
-  mensaje += 'Dispositivo: ' + deviceId.substring(0, 15) + '...\n';
-  mensaje += 'Tamaño: ' + tamañoMB + ' MB (' + tamañoKB + ' KB)\n';
+  let mensaje = '📊 DETALLES TÉCNICOS\n\n';
+  mensaje += 'Tamaño local: ' + tamañoMB + ' MB\n';
   mensaje += 'Barrios: ' + cantidadBarrios + '\n';
   mensaje += 'Mapas: ' + cantidadMapas + '\n';
-  mensaje += 'Fichas: ' + cantidadFichas + '\n\n';
-  if (ultimaDescargaRemota) {
-    mensaje += 'Última descarga del Drive:\n' + new Date(ultimaDescargaRemota).toLocaleTimeString() + '\n\n';
-  }
-  if (tamañoMB > 4) mensaje += '⚠️ Paquete grande.';
-  else mensaje += '✅ Tamaño óptimo.';
+  mensaje += 'Fichas: ' + cantidadFichas + '\n';
+  mensaje += 'Conectado: ' + (tokenAccesoGoogle ? 'Sí' : 'No') + '\n\n';
+  mensaje += 'Última subida: ' + (localStorage.getItem('ultima_sync_hora') || 'nunca');
   alert(mensaje);
 }
 
-// ==================== FUNCIÓN CLAVE: SINCRONIZACIÓN INTELIGENTE ====================
-// Reglas:
-// 1. Siempre baja primero el archivo del Drive para ver la versión más reciente
-// 2. Si el Drive es MÁS NUEVO que nuestra última descarga → bajamos (o avisamos)
-// 3. Si el Drive es igual o más viejo Y tenemos cambios pendientes → subimos
-// 4. Si no hay cambios pendientes y el Drive es igual → nada
-async function sincronizar() {
-  if (!tokenAccesoGoogle) return;
-  if (syncEnProgreso) return;
-  syncEnProgreso = true;
-  
-  try {
-    // PASO 1: Siempre buscar el archivo en Drive
-    const archivoRemoto = await buscarArchivoEnDrive();
-    const datosLocales = recolectarTodosLosDatos();
-    const hayDatosLocales = Object.keys(datosLocales.datos || {}).length > 0;
-    
-    // Si no existe archivo en Drive
-    if (!archivoRemoto) {
-      console.log('📁 No hay archivo en Drive. Subiendo por primera vez.');
-      if (hayDatosLocales) {
-        await subirADrive();
-        const hora = new Date().toTimeString().substring(0,5);
-        actualizarEstadoSync('✅ Subido a Drive.', hora);
-        localStorage.setItem('ultima_sync_hora', hora);
-        ultimaDescargaRemota = Date.now();
-      }
-      actualizarIndicadorSync('sincronizado', '☁️ ' + new Date().toTimeString().substring(0,5));
-      hayCambiosPendientes = false;
-      syncEnProgreso = false;
+// Programa una subida automática después de 2 segundos sin actividad
+function programarSubida() {
+  clearTimeout(window._syncTimer);
+  window._syncTimer = setTimeout(async () => {
+    if (!tokenAccesoGoogle || !hayCambiosPendientes) return;
+    if (syncEnProgreso) {
+      setTimeout(programarSubida, 2000);
       return;
     }
-    
-    // PASO 2: Descargar el archivo remoto
-    const datosRemotos = await descargarDeDrive(archivoRemoto.id);
-    const hayDatosRemotos = datosRemotos.datos && Object.keys(datosRemotos.datos).length > 0;
-    
-    // PASO 3: Analizar escenarios
-    // Escenario A: No hay datos locales pero sí remotos → bajar
-    if (!hayDatosLocales && hayDatosRemotos) {
-      console.log('⬇️ Sin datos locales, bajando del Drive');
-      restaurarTodosLosDatos(datosRemotos);
-      ultimaDescargaRemota = Date.now();
-      mostrarToast('⬇️ Datos cargados desde Drive', 'success');
-      setTimeout(() => window.location.reload(), 1200);
-      return;
-    }
-    
-    // Escenario B: Hay locales pero no remotos → subir
-    if (hayDatosLocales && !hayDatosRemotos) {
-      console.log('⬆️ Sin datos en Drive, subiendo');
-      await subirADrive();
-      mostrarToast('⬆️ Datos subidos', 'success');
-      ultimaDescargaRemota = Date.now();
-      actualizarIndicadorSync('sincronizado', '☁️ ' + new Date().toTimeString().substring(0,5));
-      hayCambiosPendientes = false;
-      return;
-    }
-    
-    // Escenario C: Ambos tienen datos
-    const fechaLocal = new Date(datosLocales.fecha).getTime();
-    const fechaRemota = new Date(datosRemotos.fecha).getTime();
-    const deviceRemoto = datosRemotos.deviceId || 'desconocido';
-    const deviceLocal = datosLocales.deviceId || deviceId;
-    
-    console.log('📊 Local:', new Date(fechaLocal).toLocaleTimeString(), '| Remoto:', new Date(fechaRemota).toLocaleTimeString());
-    console.log('📱 Device local:', deviceLocal.substring(0, 10), '| Device remoto:', deviceRemoto.substring(0, 10));
-    
-    // Si el remoto fue modificado DESPUÉS de nuestra última descarga,
-    // significa que OTRO dispositivo hizo cambios
-    const remotoEsDeOtroDispositivo = deviceRemoto !== deviceLocal;
-    const remotoEsMasNuevo = fechaRemota > fechaLocal + 1000;
-    
-    // CASO 1: El remoto es de otro dispositivo Y más nuevo → BAJAR
-    if (remotoEsDeOtroDispositivo && remotoEsMasNuevo) {
-      console.log('⬇️ Otro dispositivo hizo cambios más recientes. Bajando...');
-      restaurarTodosLosDatos(datosRemotos);
-      ultimaDescargaRemota = Date.now();
-      mostrarToast('⬇️ Datos actualizados desde Drive', 'success');
-      setTimeout(() => window.location.reload(), 1200);
-      return;
-    }
-    
-    // CASO 2: Tenemos cambios pendientes y nuestro local es más nuevo → SUBIR
-    if (hayCambiosPendientes && fechaLocal >= fechaRemota - 500) {
-      console.log('⬆️ Subiendo nuestros cambios');
-      await subirADrive();
-      const hora = new Date().toTimeString().substring(0,5);
-      actualizarEstadoSync('⬆️ Subido. ', hora);
-      localStorage.setItem('ultima_sync_hora', hora);
-      actualizarIndicadorSync('sincronizado', '☁️ ' + hora);
-      hayCambiosPendientes = false;
-      return;
-    }
-    
-    // CASO 3: El remoto es más nuevo pero del MISMO dispositivo (o sin deviceId) → subir de todas formas
-    if (fechaRemota > fechaLocal + 2000 && !hayCambiosPendientes) {
-      console.log('⬇️ Remoto más nuevo, bajando');
-      restaurarTodosLosDatos(datosRemotos);
-      ultimaDescargaRemota = Date.now();
-      mostrarToast('⬇️ Datos actualizados desde Drive', 'success');
-      setTimeout(() => window.location.reload(), 1200);
-      return;
-    }
-    
-    // CASO 4: Todo igual → no hacer nada
-    console.log('✅ Ya está sincronizado');
-    actualizarIndicadorSync('sincronizado', '☁️ ' + new Date().toTimeString().substring(0,5));
-    ultimaDescargaRemota = Date.now();
-    hayCambiosPendientes = false;
-    
-  } catch(e) {
-    console.error('Error sync:', e);
-    actualizarIndicadorSync('error', '❌ Error');
-    mostrarToast('❌ Error de sincronización', 'error');
-  }
-  syncEnProgreso = false;
-}
-
-async function buscarArchivoEnDrive() {
-  const r = await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)",
-    { headers: { 'Authorization': 'Bearer ' + tokenAccesoGoogle } });
-  if (!r.ok) throw new Error('Error al buscar archivo');
-  const d = await r.json();
-  return d.files && d.files.length > 0 ? d.files[0] : null;
-}
-
-async function subirADrive() {
-  if (!tokenAccesoGoogle) return;
-  const archivoExistente = await buscarArchivoEnDrive();
-  const datos = recolectarTodosLosDatos();
-  const contenido = JSON.stringify(datos);
-  const tamañoMB = (contenido.length / 1024 / 1024).toFixed(2);
-  console.log('☁️ Subiendo:', tamañoMB + ' MB');
-  
-  if (contenido.length > 5 * 1024 * 1024) {
-    if (!confirm('⚠️ Paquete de ' + tamañoMB + ' MB. Puede fallar. ¿Continuar?')) return;
-  }
-  
-  const metadata = { name: 'catastro_datos.json', mimeType: 'application/json' };
-  if (!archivoExistente) metadata.parents = ['appDataFolder'];
-  
-  const form = new FormData();
-  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-  form.append('file', new Blob([contenido], { type: 'application/json' }));
-  
-  const url = archivoExistente 
-    ? 'https://www.googleapis.com/upload/drive/v3/files/' + archivoExistente.id + '?uploadType=multipart'
-    : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
-  
-  const r = await fetch(url, {
-    method: archivoExistente ? 'PATCH' : 'POST',
-    headers: { 'Authorization': 'Bearer ' + tokenAccesoGoogle },
-    body: form
-  });
-  if (!r.ok) throw new Error('Error al subir');
-  console.log('✅ Subido');
-  hayCambiosPendientes = false;
-  return await r.json();
-}
-
-async function descargarDeDrive(fileId) {
-  const r = await fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media',
-    { headers: { 'Authorization': 'Bearer ' + tokenAccesoGoogle } });
-  if (!r.ok) throw new Error('Error al descargar');
-  return await r.json();
+    log('⏰ Subida automática por cambios locales', 'info');
+    await subirADrive(true);
+  }, 2000);
 }
 
 // ==================== CASAS ====================
@@ -1595,26 +1557,11 @@ function exportarExcel() {
   XLSX.writeFile(wb, 'Catastro_' + nombre + '_' + fecha + '.xlsx');
 }
 
-// ==================== GUARDADO CON DEBOUNCE ====================
 function guardarMapa() {
   if (aplicandoFiltros || !barrioActual) return;
   guardarCanvasActual();
   marcarCambioPendiente();
   programarSubida();
-}
-
-// Programa una subida después de 2 segundos sin actividad
-function programarSubida() {
-  clearTimeout(window._syncTimer);
-  window._syncTimer = setTimeout(async () => {
-    if (!tokenAccesoGoogle || !hayCambiosPendientes) return;
-    if (syncEnProgreso) {
-      // Reintentar en 3 seg
-      setTimeout(programarSubida, 3000);
-      return;
-    }
-    await sincronizar();
-  }, 2000);
 }
 </script>
 </body>
