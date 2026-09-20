@@ -467,7 +467,6 @@ function guardarEquipo() {
   
   actualizarCajaEquipo();
   
-  // Recargar para aplicar el nuevo doc ID
   if (usuarioActual) {
     if (unsubscribeListener) unsubscribeListener();
     setTimeout(() => window.location.reload(), 1000);
@@ -480,6 +479,15 @@ function actualizarCajaEquipo() {
   caja.className = 'sync-estado ok';
   caja.innerHTML = '🏥 Equipo activo: <strong>' + codigo + '</strong>';
   document.getElementById('equipo-codigo').value = codigo;
+}
+
+// ==================== INDICADOR DE SINCRONIZACIÓN ====================
+function actualizarIndicadorSync(estado, texto) {
+  const ind = document.getElementById('sync-indicador');
+  if (ind) {
+    ind.className = estado;
+    ind.innerText = texto;
+  }
 }
 
 // ==================== LOGS ====================
@@ -596,17 +604,14 @@ window.addEventListener('load', function() {
     document.getElementById('instrucciones').classList.add('oculto');
   }
 
-  // Cargar barrio activo (con zoom restaurado)
   const activeId = localStorage.getItem('catastro_barrio_activo');
   const lista = cargarBarriosLista();
   if (activeId && lista.find(b => b.id === activeId)) {
     cambiarBarrio(activeId);
   }
 
-  // Guardar zoom/scroll al cerrar
   window.addEventListener('beforeunload', guardarZoomScroll);
   
-  // Guardar zoom/scroll en cambios de scroll (con debounce)
   document.getElementById('mapa-wrapper').addEventListener('scroll', () => {
     clearTimeout(window._scrollSaveTimer);
     window._scrollSaveTimer = setTimeout(guardarZoomScroll, 500);
@@ -722,7 +727,6 @@ function iniciarEscuchaTiempoReal() {
           restaurarTodosLosDatos(datosRemotos);
           log('⬇️ Aplicando cambios...', 'ok');
           mostrarToast('⬇️ Datos actualizados', 'success');
-          // Guardar zoom antes de recargar para que se restaure
           guardarZoomScroll();
           setTimeout(() => window.location.reload(), 1000);
         }
@@ -868,7 +872,6 @@ async function bajarManualmente() {
   }
 }
 
-// ==================== SUBIDA AUTOMÁTICA (CON DEBOUNCE LARGO) ====================
 function programarSubida() {
   clearTimeout(window._syncTimer);
   window._syncTimer = setTimeout(async () => {
@@ -1057,7 +1060,6 @@ function cambiarBarrio(id) {
           restaurarEstadosObjetos();
           canvas.renderAll();
           canvas.calcOffset();
-          // Restaurar zoom + scroll DESPUÉS de cargar
           setTimeout(restaurarZoomScroll, 300);
         });
       } catch(e) { 
@@ -1217,25 +1219,19 @@ function restaurarTodosLosDatos(datos) {
 function crearCasa() {
   if (!canvas || !barrioActual) { mostrarToast('Carga un barrio primero', 'error'); return; }
   
-  // === CALCULAR CENTRO DE LA VISTA ACTUAL ===
   const wrapper = document.getElementById('mapa-wrapper');
   const container = document.getElementById('canvas-zoom-container');
   const rectWrapper = wrapper.getBoundingClientRect();
   const rectContainer = container.getBoundingClientRect();
   
-  // Centro visible en coordenadas del viewport
   const centerViewX = rectWrapper.left + rectWrapper.width / 2;
   const centerViewY = rectWrapper.top + rectWrapper.height / 2;
   
-  // Convertir a coordenadas del canvas (compensando el zoom)
   const canvasX = (centerViewX - rectContainer.left) / zoomActual;
   const canvasY = (centerViewY - rectContainer.top) / zoomActual;
   
-  // === TAMAÑO CONSISTENTE EN PANTALLA ===
-  // Queremos que la casa se vea 60x50 px en pantalla, sin importar el zoom
   const pantallaAncho = 60;
   const pantallaAlto = 50;
-  // Convertir a coordenadas del canvas dividiendo por el zoom
   const canvasAncho = pantallaAncho / zoomActual;
   const canvasAlto = pantallaAlto / zoomActual;
   const canvasFontSize = 12 / zoomActual;
