@@ -62,6 +62,7 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
 .btn-bajar-drive { background: #d35400 !important; padding: 12px !important; font-size: 14px !important; }
 .btn-crear-equipo { background: #d35400 !important; padding: 12px !important; font-size: 14px !important; }
 .btn-eliminar-equipo { background: #c0392b !important; padding: 10px !important; font-size: 12px !important; }
+.btn-cargar-equipo { background: #2980b9 !important; padding: 12px !important; font-size: 14px !important; }
 .google-icon { width: 18px; height: 18px; }
 .sync-separador { margin-top: 15px; padding-top: 12px; border-top: 2px dashed #bdc3c7; }
 .sync-titulo { text-align: center; color: #2c3e50; font-size: 12px; margin-bottom: 8px; display: block; }
@@ -71,8 +72,8 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
 .sync-estado.ok { background: #d4edda; color: #155724; border: 1px solid #27ae60; }
 .sync-estado.error { background: #f8d7da; color: #721c24; border: 1px solid #e74c3c; }
 .sync-estado.equipo { background: #ffe5cc; color: #8a3d00; border: 1px solid #d35400; }
-.lista-equipos { max-height: 250px; overflow-y: auto; margin-top: 8px; border: 1px solid #bdc3c7; border-radius: 4px; background: #f8f9fa; }
-.equipo-item { padding: 10px 12px; border-bottom: 1px solid #ecf0f1; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.lista-equipos { max-height: 200px; overflow-y: auto; margin-top: 8px; border: 1px solid #bdc3c7; border-radius: 4px; background: #f8f9fa; }
+.equipo-item { padding: 8px 10px; border-bottom: 1px solid #ecf0f1; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
 .equipo-item:hover { background: #fff3cd; }
 .equipo-item.activo { background: #d35400; color: white; font-weight: bold; }
 .equipo-item:last-child { border-bottom: none; }
@@ -90,9 +91,9 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
 #canvas-zoom { position: absolute; top: 0; left: 0; transform-origin: top left; box-shadow: 0 0 20px rgba(0,0,0,0.5); background: white; }
 #mapa-imagen { display: block; position: relative; user-select: none; pointer-events: none; z-index: 1; max-width: none; }
 #canvas-fabric { position: absolute; top: 0; left: 0; z-index: 2; }
-#sin-equipo { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #7f8c8d; background: white; padding: 40px; border-radius: 12px; max-width: 90vw; z-index: 11; }
-#sin-equipo h2 { color: #d35400; }
 #sin-barrio { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #7f8c8d; background: white; padding: 30px; border-radius: 12px; max-width: 90vw; z-index: 10; }
+#sin-equipo { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #7f8c8d; background: white; padding: 40px; border-radius: 12px; max-width: 90vw; z-index: 11; display: none; }
+#sin-equipo h2 { color: #d35400; }
 #instrucciones { position: fixed; bottom: 15px; left: 280px; background: rgba(255,255,255,0.98); padding: 15px 18px 15px 18px; border-radius: 10px; font-size: 13px; max-width: 330px; z-index: 50; box-shadow: 0 4px 15px rgba(0,0,0,0.25); border-left: 4px solid #3498db; display: flex; flex-direction: column; gap: 7px; }
 #instrucciones.oculto { display: none; }
 #instrucciones strong { color: #2c3e50; font-size: 14px; padding-right: 20px; }
@@ -131,10 +132,10 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
 .tabs-matriz { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
 .tab-matriz { padding: 10px 20px; border: 2px solid #bdc3c7; background: white; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; color: #2c3e50; display: flex; align-items: center; gap: 6px; font-family: inherit; }
 .tab-matriz:hover { background: #ecf0f1; }
-.tab-matriz.activo { color: white; }
-#tab-barrio.activo { background: #16a085; border-color: #16a085; }
-#tab-eais.activo { background: #2980b9; border-color: #2980b9; }
-#tab-total.activo { background: #8e44ad; border-color: #8e44ad; }
+.tab-matriz.activo { background: #3498db; color: white; border-color: #3498db; }
+.tab-matriz.barrio.activo { background: #16a085; border-color: #16a085; }
+.tab-matriz.eais.activo { background: #2980b9; border-color: #2980b9; }
+.tab-matriz.total.activo { background: #8e44ad; border-color: #8e44ad; }
 .btn-excel { background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 .tabla-scroll { max-height: 60vh; overflow-y: auto; }
 .estado-visita-section { background: #ecf0f1; padding: 12px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #34495e; }
@@ -175,7 +176,6 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
   #instrucciones { display: none; }
   .form-group { min-width: 100%; }
   .tabs-matriz { flex-direction: column; }
-  .tab-matriz { width: 100%; justify-content: center; }
 }
 #overlay-sidebar { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 199; }
 #overlay-sidebar.visible { display: block; }
@@ -235,7 +235,7 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
       
       <button class="btn-sync-inner btn-eliminar-equipo" onclick="eliminarEquipoActual()" style="margin-top:10px;">🗑️ Eliminar equipo actual</button>
       
-      <p class="sync-info">Cada equipo tiene sus propios datos aislados.</p>
+      <p class="sync-info">Cada equipo tiene sus propios datos aislados. Los demás equipos no verán los tuyos.</p>
     </div>
   </div>
 
@@ -270,7 +270,7 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
     </div>
   </div>
 
-  <!-- ========== BARRIOS ========== -->
+  <!-- ========== BARRIO ========== -->
   <div class="sidebar-section-header" onclick="toggleSeccion('seccion-cargar-mapa', this)">
     <span>📍 Barrios</span><span class="flecha">▼</span>
   </div>
@@ -325,7 +325,7 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
 <div id="mapa-wrapper">
   <div id="sin-equipo">
     <h2>🏥 Selecciona un Equipo</h2>
-    <p>Crea o selecciona un equipo de salud en el menú izquierdo.</p>
+    <p>Crea o selecciona un equipo de salud en el menú izquierdo para empezar.</p>
     <p style="font-size:12px; color:#e67e22;"><strong>Ejemplo:</strong> EU01, EU02, EU06...</p>
   </div>
   <div id="canvas-zoom-container" style="display:none;">
@@ -337,6 +337,7 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
   <div id="sin-barrio" style="display:none;">
     <h2>📍 Sin barrios en este equipo</h2>
     <p>Crea el primer barrio desde el menú izquierdo.</p>
+    <p style="font-size:12px;color:#e67e22;">Arrastra con 1 dedo, zoom con 2 dedos.</p>
   </div>
 </div>
 
@@ -394,13 +395,13 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
         <h2 style="margin:0;font-size:16px;">📊 Pacientes</h2>
         <div class="matriz-info" id="matriz-info">Cargando...</div>
       </div>
-      <button class="btn-excel" id="btn-descargar" onclick="descargarExcel()">📥 Descargar Excel</button>
+      <button class="btn-excel" id="btn-descargar" onclick="descargarExcelActual()">📥 Descargar Excel</button>
     </div>
     
     <div class="tabs-matriz">
-      <button class="tab-matriz" onclick="cambiarTabMatriz('barrio')" id="tab-barrio">📍 Barrio</button>
-      <button class="tab-matriz" onclick="cambiarTabMatriz('eais')" id="tab-eais">🏥 EAIS</button>
-      <button class="tab-matriz" onclick="cambiarTabMatriz('total')" id="tab-total">🌎 Total</button>
+      <button class="tab-matriz barrio" onclick="cambiarTabMatriz('barrio')" id="tab-barrio">📍 Barrio</button>
+      <button class="tab-matriz eais" onclick="cambiarTabMatriz('eais')" id="tab-eais">🏥 EAIS</button>
+      <button class="tab-matriz total" onclick="cambiarTabMatriz('total')" id="tab-total">🌎 Total</button>
     </div>
     
     <div class="tabla-scroll">
@@ -422,7 +423,7 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
 <div id="toast"></div>
 
 <script>
-// ==================== FIREBASE ====================
+// ==================== CONFIGURACIÓN DE FIREBASE ====================
 const firebaseConfig = {
   apiKey: "AIzaSyA9ZDzrw1PFfQ49zom9uyvymz4uUh5Alzg",
   authDomain: "catastro-medico.firebaseapp.com",
@@ -455,9 +456,10 @@ let aplicandoCambiosRemotos = false;
 let guardandoEnFirestore = false;
 let hayCambiosPendientes = false;
 let ultimoCambioLocal = 0;
+// Nuevo: equipo actual
 let equipoActual = null;
+// Tab activo en la matriz
 let tabMatrizActivo = 'barrio';
-let pacientesMatrizActuales = [];
 
 const coloresCondiciones = {
   'Embarazada': { fill: 'rgba(233, 30, 99, 0.7)', stroke: '#e91e63' },
@@ -478,10 +480,12 @@ const estadosColoresHex = {
   'Cerrada': '#95a5a6', 'Abandonada': '#34495e'
 };
 
-// ==================== PREFIJO DE EQUIPO ====================
+// ==================== EQUIPO ACTIVO - SISTEMA DE PREFIJO ====================
+// Todas las claves de localStorage llevan el prefijo del equipo activo
 function P(key) {
   return 'catastro_' + (equipoActual || 'sin_equipo') + '_' + key;
 }
+
 function listaEquiposKey() { return 'catastro_equipos_lista'; }
 function equipoActivoKey() { return 'catastro_equipo_activo'; }
 
@@ -489,34 +493,42 @@ function cargarListaEquipos() {
   try { return JSON.parse(localStorage.getItem(listaEquiposKey()) || '[]'); } catch(e) { return []; }
 }
 function guardarListaEquipos(lista) { localStorage.setItem(listaEquiposKey(), JSON.stringify(lista)); }
-function cargarEquipoActivoGuardado() { return localStorage.getItem(equipoActivoKey()) || null; }
+
+function cargarEquipoActivoGuardado() {
+  return localStorage.getItem(equipoActivoKey()) || null;
+}
 function guardarEquipoActivo(id) { localStorage.setItem(equipoActivoKey(), id); }
 
-// ==================== MIGRACIÓN ====================
+// ==================== MIGRACIÓN AUTOMÁTICA ====================
 function migrarDatosAntiguos() {
+  // Si ya hay equipos, no migrar
   if (cargarListaEquipos().length > 0) return;
   
-  const tieneDatosViejos = localStorage.getItem('catastro_barrios') || 
-                            Object.keys(localStorage).some(k => k.startsWith('catastro_mapa_') || k.startsWith('catastro_ficha_'));
+  // Buscar datos viejos sin prefijo
+  const tieneDatosViejos = localStorage.getItem('catastro_barrios') || localStorage.getItem('catastro_mapa_');
   if (!tieneDatosViejos) {
+    // No hay nada que migrar, crear EU01 por defecto
     const lista = [{ id: 'EU01', fecha: new Date().toISOString() }];
     guardarListaEquipos(lista);
     return;
   }
   
-  console.log('🔄 Migrando datos a EU01...');
+  console.log('🔄 Migrando datos antiguos a EU01...');
   const lista = [{ id: 'EU01', fecha: new Date().toISOString() }];
   guardarListaEquipos(lista);
   
+  // Migrar todas las claves viejas
   const keysAViejas = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith('catastro_') && 
         !key.startsWith('catastro_equipos_lista') && 
         !key.startsWith('catastro_equipo_activo') &&
-        !key.startsWith('catastro_EU') &&
-        key.match(/^catastro_(barrios|barrio_activo|mapa_|canvas_|ficha_|estado_|zoom_|scroll)/)) {
-      keysAViejas.push(key);
+        !key.startsWith('catastro_EU')) {
+      // Es una clave vieja sin prefijo de equipo
+      if (key.match(/^catastro_(barrios|barrio_activo|mapa_|canvas_|ficha_|estado_|zoom_|scroll)/)) {
+        keysAViejas.push(key);
+      }
     }
   }
   
@@ -527,8 +539,220 @@ function migrarDatosAntiguos() {
     localStorage.removeItem(key);
   });
   
+  console.log('✅ Migrados ' + keysAViejas.length + ' elementos a EU01');
+  // Seleccionar EU01 automáticamente
   guardarEquipoActivo('EU01');
-  console.log('✅ Migrados ' + keysAViejas.length + ' elementos');
+}
+
+// ==================== UI: LISTA DE EQUIPOS ====================
+function actualizarUIEquipos() {
+  const lista = cargarListaEquipos();
+  const listaDiv = document.getElementById('lista-equipos');
+  const equipoCaja = document.getElementById('equipo-actual-caja');
+  const equipoInfo = document.getElementById('equipo-info');
+  
+  if (lista.length === 0) {
+    listaDiv.innerHTML = '<div style="padding:15px; text-align:center; color:#7f8c8d; font-size:12px;">Sin equipos creados</div>';
+    equipoCaja.className = 'sync-estado error';
+    equipoCaja.innerHTML = '🏥 Sin equipo seleccionado';
+    equipoInfo.innerText = '🏥 Sin equipo';
+    document.getElementById('sin-equipo').style.display = 'block';
+    document.getElementById('sin-barrio').style.display = 'none';
+    document.getElementById('canvas-zoom-container').style.display = 'none';
+    return;
+  }
+  
+  let html = '';
+  lista.forEach(eq => {
+    const activo = eq.id === equipoActual ? ' activo' : '';
+    html += '<div class="equipo-item' + activo + '" onclick="seleccionarEquipo(\'' + eq.id + '\')">' +
+      '<span>🏥 ' + eq.id + '</span>' +
+      '<span style="font-size:10px; opacity:0.7;">' + (eq.fecha ? new Date(eq.fecha).toLocaleDateString() : '') + '</span>' +
+      '</div>';
+  });
+  listaDiv.innerHTML = html;
+  
+  if (equipoActual) {
+    equipoCaja.className = 'sync-estado equipo';
+    equipoCaja.innerHTML = '✅ Equipo activo: <strong>' + equipoActual + '</strong>';
+    equipoInfo.innerText = '🏥 ' + equipoActual;
+  } else {
+    equipoCaja.className = 'sync-estado error';
+    equipoCaja.innerHTML = '🏥 Selecciona un equipo';
+    equipoInfo.innerText = '🏥 Sin equipo';
+    document.getElementById('sin-equipo').style.display = 'block';
+    document.getElementById('sin-barrio').style.display = 'none';
+    document.getElementById('canvas-zoom-container').style.display = 'none';
+  }
+}
+
+// ==================== ACCIONES DE EQUIPOS ====================
+function crearNuevoEquipo() {
+  const nombreInput = document.getElementById('nuevo-equipo-nombre').value.trim().toUpperCase();
+  if (!nombreInput) { mostrarToast('⚠️ Escribe un nombre', 'error'); return; }
+  
+  const nombreLimpio = nombreInput.replace(/[^A-Z0-9_]/g, '_');
+  
+  const lista = cargarListaEquipos();
+  if (lista.find(e => e.id === nombreLimpio)) {
+    mostrarToast('⚠️ Ya existe el equipo ' + nombreLimpio, 'error');
+    return;
+  }
+  
+  if (!confirm('🏥 CREAR EQUIPO: ' + nombreLimpio + '\n\n' +
+    'Se creará un espacio en blanco para trabajar.\n\n' +
+    '¿Continuar?')) return;
+  
+  // Guardar datos actuales antes de cambiar
+  if (equipoActual) guardarTodoLocal();
+  
+  lista.push({ id: nombreLimpio, fecha: new Date().toISOString() });
+  guardarListaEquipos(lista);
+  guardarEquipoActivo(nombreLimpio);
+  
+  log('🏥 Equipo creado: ' + nombreLimpio, 'ok');
+  mostrarToast('✅ Equipo ' + nombreLimpio + ' creado', 'success');
+  
+  document.getElementById('nuevo-equipo-nombre').value = '';
+  
+  // Cambiar al nuevo equipo
+  equipoActual = nombreLimpio;
+  iniciarEquipo();
+}
+
+function seleccionarEquipo(id) {
+  if (id === equipoActual) return;
+  
+  if (!confirm('🏥 CAMBIAR A EQUIPO: ' + id + '\n\n' +
+    'Se guardarán los datos actuales y se cargarán los del equipo ' + id + '.\n\n' +
+    '¿Continuar?')) return;
+  
+  // Guardar datos actuales
+  if (equipoActual) guardarTodoLocal();
+  
+  equipoActual = id;
+  guardarEquipoActivo(id);
+  
+  log('🏥 Cambiando a equipo: ' + id, 'info');
+  mostrarToast('✅ Equipo: ' + id, 'success');
+  
+  iniciarEquipo();
+}
+
+function eliminarEquipoActual() {
+  if (!equipoActual) { mostrarToast('⚠️ No hay equipo activo', 'error'); return; }
+  
+  if (!confirm('⚠️ ELIMINAR EQUIPO: ' + equipoActual + '\n\n' +
+    'Esto borrará TODOS los datos de este equipo:\n' +
+    '- Los barrios y mapas locales\n' +
+    '- Las fichas familiares\n' +
+    '- Los datos en la nube (si estás conectado)\n\n' +
+    '⚠️ ESTA ACCIÓN NO SE PUEDE DESHACER\n\n' +
+    '¿Estás SEGURO?')) return;
+  
+  if (!confirm('⚠️ CONFIRMACIÓN FINAL\n\n' +
+    '¿Realmente quieres eliminar ' + equipoActual + '?')) return;
+  
+  const idEliminar = equipoActual;
+  
+  // Eliminar todas las claves del equipo
+  const keysAEliminar = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('catastro_' + idEliminar + '_')) {
+      keysAEliminar.push(key);
+    }
+  }
+  keysAEliminar.forEach(k => localStorage.removeItem(k));
+  
+  // Quitar de la lista
+  const lista = cargarListaEquipos().filter(e => e.id !== idEliminar);
+  guardarListaEquipos(lista);
+  
+  // Si Firebase está conectado, borrar el documento
+  if (usuarioActual) {
+    db.collection('catastros').doc(idEliminar).delete()
+      .then(() => log('🗑️ Equipo borrado de la nube', 'ok'))
+      .catch(e => log('⚠️ No se pudo borrar de la nube: ' + e.message, 'error'));
+  }
+  
+  log('🗑️ Equipo eliminado: ' + idEliminar, 'info');
+  mostrarToast('✅ Equipo eliminado', 'success');
+  
+  // Cambiar al siguiente equipo si hay
+  if (lista.length > 0) {
+    equipoActual = lista[0].id;
+    guardarEquipoActivo(equipoActual);
+  } else {
+    equipoActual = null;
+    localStorage.removeItem(equipoActivoKey());
+  }
+  
+  iniciarEquipo();
+}
+
+// ==================== INICIAR EQUIPO ====================
+function iniciarEquipo() {
+  // Limpiar estado
+  barrioActual = null;
+  if (canvas) canvas.clear();
+  
+  // Actualizar UI
+  actualizarUIEquipos();
+  actualizarSelectorBarrios();
+  
+  if (!equipoActual) {
+    document.getElementById('sin-equipo').style.display = 'block';
+    document.getElementById('sin-barrio').style.display = 'none';
+    document.getElementById('canvas-zoom-container').style.display = 'none';
+    document.getElementById('btn-matriz').disabled = true;
+    document.getElementById('mapa-imagen').src = '';
+    return;
+  }
+  
+  document.getElementById('sin-equipo').style.display = 'none';
+  document.getElementById('btn-matriz').disabled = false;
+  
+  // Verificar si hay barrios en este equipo
+  const lista = cargarBarriosLista();
+  if (lista.length === 0) {
+    document.getElementById('sin-barrio').style.display = 'block';
+    document.getElementById('canvas-zoom-container').style.display = 'none';
+    document.getElementById('mapa-imagen').src = '';
+  } else {
+    // Cargar el barrio activo guardado o el primero
+    const activoGuardado = localStorage.getItem(P('barrio_activo'));
+    const barrioId = (activoGuardado && lista.find(b => b.id === activoGuardado)) 
+      ? activoGuardado 
+      : lista[0].id;
+    
+    document.getElementById('sin-barrio').style.display = 'none';
+    cambiarBarrio(barrioId);
+  }
+  
+  // Reiniciar escucha de Firestore
+  if (usuarioActual) {
+    if (unsubscribeListener) unsubscribeListener();
+    iniciarEscuchaTiempoReal();
+  }
+}
+
+// ==================== GUARDAR TODO LOCAL ====================
+function guardarTodoLocal() {
+  // Esta función se llama antes de cambiar de equipo
+  // Asegura que todo está guardado en localStorage con el prefijo correcto
+  if (barrioActual && canvas) {
+    guardarCanvasActual();
+  }
+}
+
+// ==================== INDICADOR DE SINCRONIZACIÓN ====================
+function actualizarIndicadorSync(estado, texto) {
+  const ind = document.getElementById('sync-indicador');
+  if (ind) {
+    ind.className = estado;
+    ind.innerText = texto;
+  }
 }
 
 // ==================== LOGS ====================
@@ -567,11 +791,6 @@ function cerrarInstrucciones() {
   localStorage.setItem('instrucciones_cerradas', '1');
 }
 
-function toggleSeccion(id, header) {
-  document.getElementById(id).classList.toggle('abierto');
-  header.classList.toggle('abierto');
-}
-
 function marcarCambioPendiente() {
   if (!equipoActual) return;
   hayCambiosPendientes = true;
@@ -581,188 +800,109 @@ function marcarCambioPendiente() {
     const caja = document.getElementById('sync-estado-caja');
     if (caja) {
       caja.className = 'sync-estado pendiente';
-      caja.innerHTML = '⚠️ Cambios sin subir.';
+      caja.innerHTML = '⚠️ Tienes cambios sin subir.';
     }
   }
 }
 
-function actualizarIndicadorSync(estado, texto) {
-  const ind = document.getElementById('sync-indicador');
-  if (ind) {
-    ind.className = estado;
-    ind.innerText = texto;
-  }
+// ==================== ZOOM Y SCROLL ====================
+function guardarZoomScroll() {
+  if (!barrioActual || !equipoActual) return;
+  try {
+    localStorage.setItem(P('zoom_' + barrioActual.id), zoomActual.toString());
+    const wrapper = document.getElementById('mapa-wrapper');
+    localStorage.setItem(P('scrollL_' + barrioActual.id), wrapper.scrollLeft.toString());
+    localStorage.setItem(P('scrollT_' + barrioActual.id), wrapper.scrollTop.toString());
+  } catch(e) { console.log('Error guardando zoom:', e); }
 }
 
-// ==================== UI EQUIPOS ====================
-function actualizarUIEquipos() {
-  const lista = cargarListaEquipos();
-  const listaDiv = document.getElementById('lista-equipos');
-  const equipoCaja = document.getElementById('equipo-actual-caja');
-  const equipoInfo = document.getElementById('equipo-info');
+function restaurarZoomScroll() {
+  if (!barrioActual || !equipoActual) return;
+  const savedZoom = parseFloat(localStorage.getItem(P('zoom_' + barrioActual.id)));
+  const savedScrollL = parseInt(localStorage.getItem(P('scrollL_' + barrioActual.id)));
+  const savedScrollT = parseInt(localStorage.getItem(P('scrollT_' + barrioActual.id)));
   
-  if (lista.length === 0) {
-    listaDiv.innerHTML = '<div style="padding:15px; text-align:center; color:#7f8c8d; font-size:12px;">Sin equipos creados</div>';
-    equipoCaja.className = 'sync-estado error';
-    equipoCaja.innerHTML = '🏥 Sin equipo seleccionado';
-    equipoInfo.innerText = '🏥 Sin equipo';
-    return;
+  if (!isNaN(savedZoom) && savedZoom > 0.1 && savedZoom < 4) {
+    zoomActual = savedZoom;
+    aplicarZoom();
   }
   
-  let html = '';
-  lista.forEach(eq => {
-    const activo = eq.id === equipoActual ? ' activo' : '';
-    html += '<div class="equipo-item' + activo + '" onclick="seleccionarEquipo(\'' + eq.id + '\')">' +
-      '<span>🏥 ' + eq.id + '</span>' +
-      '</div>';
-  });
-  listaDiv.innerHTML = html;
-  
-  if (equipoActual) {
-    equipoCaja.className = 'sync-estado equipo';
-    equipoCaja.innerHTML = '✅ Equipo activo: <strong>' + equipoActual + '</strong>';
-    equipoInfo.innerText = '🏥 ' + equipoActual;
-  } else {
-    equipoCaja.className = 'sync-estado error';
-    equipoCaja.innerHTML = '🏥 Selecciona un equipo';
-    equipoInfo.innerText = '🏥 Sin equipo';
-  }
+  setTimeout(() => {
+    const wrapper = document.getElementById('mapa-wrapper');
+    if (!isNaN(savedScrollL)) wrapper.scrollLeft = savedScrollL;
+    if (!isNaN(savedScrollT)) wrapper.scrollTop = savedScrollT;
+  }, 200);
 }
 
-function crearNuevoEquipo() {
-  const nombreInput = document.getElementById('nuevo-equipo-nombre').value.trim().toUpperCase();
-  if (!nombreInput) { mostrarToast('⚠️ Escribe un nombre', 'error'); return; }
+// ==================== INICIALIZACIÓN ====================
+window.addEventListener('load', function() {
+  log('🚀 Iniciando aplicación...', 'info');
   
-  const nombreLimpio = nombreInput.replace(/[^A-Z0-9_]/g, '_');
+  // Migrar datos antiguos si los hay
+  migrarDatosAntiguos();
   
-  const lista = cargarListaEquipos();
-  if (lista.find(e => e.id === nombreLimpio)) {
-    mostrarToast('⚠️ Ya existe el equipo ' + nombreLimpio, 'error');
-    return;
-  }
+  // Cargar equipo activo
+  equipoActual = cargarEquipoActivoGuardado();
   
-  if (!confirm('🏥 CREAR EQUIPO: ' + nombreLimpio + '\n\n' +
-    'Se creará un espacio en blanco para trabajar.\n\n¿Continuar?')) return;
-  
-  if (equipoActual) guardarTodoLocal();
-  
-  lista.push({ id: nombreLimpio, fecha: new Date().toISOString() });
-  guardarListaEquipos(lista);
-  guardarEquipoActivo(nombreLimpio);
-  equipoActual = nombreLimpio;
-  
-  document.getElementById('nuevo-equipo-nombre').value = '';
-  
-  log('🏥 Equipo creado: ' + nombreLimpio, 'ok');
-  mostrarToast('✅ Equipo ' + nombreLimpio + ' creado', 'success');
-  
-  iniciarEquipo();
-}
+  const manifest = {
+    name: "Catastro Médico", short_name: "Catastro", start_url: ".", display: "standalone",
+    background_color: "#2c3e50", theme_color: "#2c3e50",
+    icons: [{ src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgZmlsbD0iIzJjM2U1MCIgcng9IjMwIi8+PC9zdmc+", sizes: "192x192", type: "image/svg+xml" }]
+  };
+  const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+  document.getElementById('manifest-placeholder').href = URL.createObjectURL(manifestBlob);
 
-function seleccionarEquipo(id) {
-  if (id === equipoActual) return;
-  if (!confirm('🏥 CAMBIAR A EQUIPO: ' + id + '\n\n¿Continuar?')) return;
-  
-  if (equipoActual) guardarTodoLocal();
-  
-  equipoActual = id;
-  guardarEquipoActivo(id);
-  
-  log('🏥 Cambiando a: ' + id, 'info');
-  mostrarToast('✅ Equipo: ' + id, 'success');
-  
-  iniciarEquipo();
-}
+  if ('serviceWorker' in navigator) {
+    const swCode = `self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));`;
+    navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode],{type:'application/javascript'}))).catch(e=>console.log(e));
+  }
 
-function eliminarEquipoActual() {
-  if (!equipoActual) { mostrarToast('⚠️ No hay equipo activo', 'error'); return; }
-  
-  if (!confirm('⚠️ ELIMINAR EQUIPO: ' + equipoActual + '\n\n' +
-    'Esto borrará TODOS los datos de este equipo.\n\n' +
-    'ESTA ACCIÓN NO SE PUEDE DESHACER.\n\n¿Continuar?')) return;
-  
-  if (!confirm('⚠️ CONFIRMACIÓN FINAL\n\n¿Realmente eliminar ' + equipoActual + '?')) return;
-  
-  const idEliminar = equipoActual;
-  
-  const keysAEliminar = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith('catastro_' + idEliminar + '_')) {
-      keysAEliminar.push(key);
-    }
-  }
-  keysAEliminar.forEach(k => localStorage.removeItem(k));
-  
-  const lista = cargarListaEquipos().filter(e => e.id !== idEliminar);
-  guardarListaEquipos(lista);
-  
-  if (usuarioActual) {
-    db.collection('catastros').doc(idEliminar).delete()
-      .then(() => log('🗑️ Borrado de la nube', 'ok'))
-      .catch(e => log('⚠️ Error nube: ' + e.message, 'error'));
-  }
-  
-  log('🗑️ Equipo eliminado: ' + idEliminar, 'info');
-  mostrarToast('✅ Equipo eliminado', 'success');
-  
-  if (lista.length > 0) {
-    equipoActual = lista[0].id;
-    guardarEquipoActivo(equipoActual);
-  } else {
-    equipoActual = null;
-    localStorage.removeItem(equipoActivoKey());
-  }
-  
-  iniciarEquipo();
-}
+  try {
+    canvas = new fabric.Canvas('c', {
+      selection: true, preserveObjectStacking: true,
+      backgroundColor: 'transparent', width: 800, height: 600,
+      allowTouchScrolling: true
+    });
+    configurarEventosCanvas();
+    log('✅ Canvas inicializado', 'ok');
+  } catch(e) { log('❌ Error canvas: ' + e.message, 'error'); }
 
-function iniciarEquipo() {
-  barrioActual = null;
-  if (canvas) canvas.clear();
+  inicializarGestosTactiles();
   
+  if (localStorage.getItem('instrucciones_cerradas') === '1') {
+    document.getElementById('instrucciones').classList.add('oculto');
+  }
+
+  // Actualizar UI de equipos
   actualizarUIEquipos();
-  actualizarSelectorBarrios();
-  actualizarTabsMatriz();
   
-  if (!equipoActual) {
-    document.getElementById('sin-equipo').style.display = 'block';
-    document.getElementById('sin-barrio').style.display = 'none';
-    document.getElementById('canvas-zoom-container').style.display = 'none';
-    document.getElementById('btn-matriz').disabled = true;
-    document.getElementById('mapa-imagen').src = '';
-    return;
+  // Si hay equipo activo, iniciar
+  if (equipoActual) {
+    iniciarEquipo();
   }
-  
-  document.getElementById('sin-equipo').style.display = 'none';
-  document.getElementById('btn-matriz').disabled = false;
-  
-  const lista = cargarBarriosLista();
-  if (lista.length === 0) {
-    document.getElementById('sin-barrio').style.display = 'block';
-    document.getElementById('canvas-zoom-container').style.display = 'none';
-    document.getElementById('mapa-imagen').src = '';
-  } else {
-    const activoGuardado = localStorage.getItem(P('barrio_activo'));
-    const barrioId = (activoGuardado && lista.find(b => b.id === activoGuardado)) 
-      ? activoGuardado 
-      : lista[0].id;
-    
-    document.getElementById('sin-barrio').style.display = 'none';
-    cambiarBarrio(barrioId);
-  }
-  
-  if (usuarioActual) {
-    if (unsubscribeListener) unsubscribeListener();
-    iniciarEscuchaTiempoReal();
-  }
-}
 
-function guardarTodoLocal() {
-  if (barrioActual && canvas) guardarCanvasActual();
-}
+  window.addEventListener('beforeunload', function() {
+    if (equipoActual) guardarTodoLocal();
+    guardarZoomScroll();
+  });
+  
+  document.getElementById('mapa-wrapper').addEventListener('scroll', () => {
+    clearTimeout(window._scrollSaveTimer);
+    window._scrollSaveTimer = setTimeout(guardarZoomScroll, 500);
+  });
 
-// ==================== FIREBASE AUTH ====================
+  inicializarFirebase();
+
+  window.addEventListener('online', function() {
+    mostrarToast('🌐 Conexión recuperada', 'info');
+  });
+
+  window.addEventListener('offline', function() {
+    mostrarToast('📴 Sin conexión. Los datos se guardan localmente.', 'warning');
+  });
+});
+
+// ==================== FIREBASE ====================
 function inicializarFirebase() {
   auth.onAuthStateChanged((user) => {
     if (user) {
@@ -771,14 +911,14 @@ function inicializarFirebase() {
       document.getElementById('btn-google-texto').innerText = '✅ ' + (user.displayName || user.email);
       document.getElementById('btn-google').classList.add('conectado');
       document.getElementById('controles-firebase').style.display = 'block';
-      document.getElementById('sync-info-texto').innerText = 'Conectado.';
+      document.getElementById('sync-info-texto').innerText = 'Conectado. Sincronización activa.';
       
       actualizarIndicadorSync('sincronizado', '☁️ ' + (user.displayName || 'OK').substring(0, 12));
       
       const caja = document.getElementById('sync-estado-caja');
       if (caja) {
         caja.className = 'sync-estado ok';
-        caja.innerHTML = '✅ Conectado';
+        caja.innerHTML = '✅ Conectado como <strong>' + (user.displayName || user.email) + '</strong>';
       }
       
       if (equipoActual) {
@@ -787,10 +927,11 @@ function inicializarFirebase() {
       }
     } else {
       usuarioActual = null;
+      log('👤 Sin sesión', 'info');
       document.getElementById('btn-google-texto').innerText = 'Conectar con Google';
       document.getElementById('btn-google').classList.remove('conectado');
       document.getElementById('controles-firebase').style.display = 'none';
-      document.getElementById('sync-info-texto').innerText = 'Conecta tu cuenta.';
+      document.getElementById('sync-info-texto').innerText = 'Conecta tu cuenta para sincronizar.';
       actualizarIndicadorSync('desconectado', '☁️ Sin conexión');
       
       if (unsubscribeListener) {
@@ -803,19 +944,22 @@ function inicializarFirebase() {
 
 function conectarConGoogle() {
   if (usuarioActual) {
-    if (confirm('¿Cerrar sesión?')) auth.signOut();
+    if (confirm('¿Cerrar sesión? Tus datos locales NO se borrarán.')) {
+      auth.signOut();
+    }
     return;
   }
-  
+  log('🔗 Iniciando sesión...', 'info');
   actualizarIndicadorSync('sincronizando', '🔗 Conectando...');
+  
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider)
     .then((result) => {
-      log('✅ ' + result.user.displayName, 'ok');
+      log('✅ Sesión: ' + result.user.displayName, 'ok');
       mostrarToast('✅ ' + result.user.displayName, 'success');
     })
     .catch((error) => {
-      log('❌ ' + error.message, 'error');
+      log('❌ Error: ' + error.message, 'error');
       mostrarToast('❌ Error al conectar', 'error');
       actualizarIndicadorSync('error', '❌ Error');
     });
@@ -823,21 +967,25 @@ function conectarConGoogle() {
 
 function gestionarSync() {
   if (!usuarioActual) conectarConGoogle();
-  else if (confirm('¿Cerrar sesión?')) auth.signOut();
+  else if (confirm('¿Cerrar sesión de Google?')) auth.signOut();
 }
 
-// ==================== ESCUCHA TIEMPO REAL ====================
+// ==================== ESCUCHA EN TIEMPO REAL ====================
 function iniciarEscuchaTiempoReal() {
-  if (!usuarioActual || !equipoActual) return;
+  if (!usuarioActual) return;
+  if (!equipoActual) return;
   if (unsubscribeListener) unsubscribeListener();
   
-  const docRef = db.collection('catastros').doc(equipoActual);
-  log('👀 Escuchando: ' + equipoActual, 'info');
+  const docId = equipoActual;
+  log('👀 Escuchando equipo: ' + docId, 'info');
+  const docRef = db.collection('catastros').doc(docId);
   
   unsubscribeListener = docRef.onSnapshot((snapshot) => {
     if (aplicandoCambiosRemotos) return;
     if (guardandoEnFirestore) return;
-    if (Date.now() - ultimoCambioLocal < 5000) return;
+    
+    const tiempoDesdeCambio = Date.now() - ultimoCambioLocal;
+    if (tiempoDesdeCambio < 5000) return;
     
     if (snapshot.exists) {
       const datosRemotos = snapshot.data();
@@ -848,17 +996,18 @@ function iniciarEscuchaTiempoReal() {
       
       if (remotoStr === localStr) return;
       
-      log('📥 Cambios externos', 'info');
+      log('📥 Cambios externos detectados', 'info');
       
       const modalAbierto = document.getElementById('modal-ficha').style.display === 'block' || 
                            document.getElementById('modal-matriz').style.display === 'block';
       
       if (modalAbierto) {
-        mostrarToast('📥 Cambios nuevos. Guarda y espera.', 'warning');
+        mostrarToast('📥 Hay cambios nuevos. Guarda y espera.', 'warning');
         return;
       }
       
       aplicandoCambiosRemotos = true;
+      
       const zoomAntes = zoomActual;
       const wrapper = document.getElementById('mapa-wrapper');
       const scrollL = wrapper.scrollLeft;
@@ -873,12 +1022,13 @@ function iniciarEscuchaTiempoReal() {
           wrapper.scrollLeft = scrollL;
           wrapper.scrollTop = scrollT;
         }, 100);
-        mostrarToast('⬇️ Cambios aplicados', 'success');
+        
+        mostrarToast('⬇️ Cambios de tus compañeros aplicados', 'success');
         aplicandoCambiosRemotos = false;
       });
     }
   }, (error) => {
-    log('❌ Listener: ' + error.message, 'error');
+    log('❌ Error listener: ' + error.message, 'error');
   });
 }
 
@@ -886,8 +1036,9 @@ function actualizarMapaDesdeDatos(callback) {
   actualizarSelectorBarrios();
   
   if (barrioActual) {
-    const dataURL = localStorage.getItem(P('mapa_' + barrioActual.id));
-    const canvasJSON = localStorage.getItem(P('canvas_' + barrioActual.id));
+    const barrioId = barrioActual.id;
+    const dataURL = localStorage.getItem(P('mapa_' + barrioId));
+    const canvasJSON = localStorage.getItem(P('canvas_' + barrioId));
     
     if (!dataURL) { if (callback) callback(); return; }
     
@@ -951,6 +1102,20 @@ async function verificarDatosRemotos() {
         setTimeout(() => window.location.reload(), 1000);
       } else if (hayDatosLocales && !hayDatosRemotos) {
         await subirManualmente(true);
+      } else {
+        const bajar = confirm(
+          '⚠️ Datos diferentes entre local y nube para el equipo ' + equipoActual + '.\n\n' +
+          '· Aceptar = BAJAR de la nube\n' +
+          '· Cancelar = SUBIR locales\n\n' +
+          '¿Bajar de la nube?'
+        );
+        
+        if (bajar) {
+          restaurarTodosLosDatos(datosRemotos);
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          await subirManualmente(true);
+        }
       }
     } else {
       if (Object.keys(recolectarTodosLosDatos().datos || {}).length > 0) {
@@ -958,22 +1123,36 @@ async function verificarDatosRemotos() {
       }
     }
   } catch(e) {
-    log('❌ ' + e.message, 'error');
+    log('❌ Error verificar: ' + e.message, 'error');
   }
 }
 
 // ==================== SUBIR / BAJAR ====================
 async function subirManualmente(silencioso = false) {
-  if (!equipoActual) { if (!silencioso) mostrarToast('⚠️ Sin equipo', 'error'); return; }
-  if (!usuarioActual) { if (!silencioso) mostrarToast('⚠️ Sin conexión', 'error'); return; }
+  if (!equipoActual) {
+    if (!silencioso) mostrarToast('⚠️ Primero selecciona un equipo', 'error');
+    return;
+  }
+  if (!usuarioActual) {
+    if (!silencioso) mostrarToast('⚠️ Conecta con Google', 'error');
+    return;
+  }
   
   if (!silencioso) {
-    if (!confirm('📤 SUBIR ' + equipoActual + ' a la nube?\n\n¿Continuar?')) return;
+    const datos = recolectarTodosLosDatos();
+    const b = datos.barrios.length;
+    const m = Object.keys(datos.datos).filter(k => k.startsWith(P('mapa_'))).length;
+    const f = Object.keys(datos.datos).filter(k => k.startsWith(P('ficha_'))).length;
+    
+    if (!confirm('📤 SUBIR A LA NUBE\n\n' +
+      'Equipo: ' + equipoActual + '\n' +
+      '· ' + b + ' barrio(s)\n· ' + m + ' mapa(s)\n· ' + f + ' ficha(s)\n\n' +
+      '¿Continuar?')) return;
   }
   
   try {
     guardandoEnFirestore = true;
-    log('⬆️ Subiendo ' + equipoActual, 'info');
+    log('⬆️ Subiendo equipo ' + equipoActual + '...', 'info');
     
     const docRef = db.collection('catastros').doc(equipoActual);
     await docRef.set(recolectarTodosLosDatos());
@@ -985,44 +1164,45 @@ async function subirManualmente(silencioso = false) {
     const caja = document.getElementById('sync-estado-caja');
     if (caja) {
       caja.className = 'sync-estado ok';
-      caja.innerHTML = '✅ Subida: ' + hora;
+      caja.innerHTML = '✅ Subida: <strong>' + hora + '</strong>';
     }
     actualizarIndicadorSync('sincronizado', '☁️ ' + hora);
     log('✅ Subida OK', 'ok');
-    if (!silencioso) mostrarToast('✅ Subido', 'success');
+    if (!silencioso) mostrarToast('✅ Datos subidos', 'success');
     
     setTimeout(() => { guardandoEnFirestore = false; }, 3000);
   } catch(e) {
     guardandoEnFirestore = false;
-    log('❌ ' + e.message, 'error');
+    log('❌ Error: ' + e.message, 'error');
     actualizarIndicadorSync('error', '❌ Error');
-    if (!silencioso) mostrarToast('❌ Error', 'error');
+    if (!silencioso) mostrarToast('❌ Error al subir', 'error');
   }
 }
 
 async function bajarManualmente() {
-  if (!equipoActual) { mostrarToast('⚠️ Sin equipo', 'error'); return; }
-  if (!usuarioActual) { mostrarToast('⚠️ Sin conexión', 'error'); return; }
+  if (!equipoActual) { mostrarToast('⚠️ Primero selecciona un equipo', 'error'); return; }
+  if (!usuarioActual) { mostrarToast('⚠️ Conecta primero', 'error'); return; }
   
-  if (!confirm('⚠️ BAJAR ' + equipoActual + ' de la nube?\n\nReemplazará datos locales.')) return;
+  if (!confirm('⚠️ REEMPLAZARÁ tus datos locales con los de la nube.\n\n' +
+    'Equipo: ' + equipoActual + '\n\n¿Continuar?')) return;
   
   try {
-    log('⬇️ Bajando ' + equipoActual, 'info');
+    log('⬇️ Bajando equipo ' + equipoActual + '...', 'info');
     const docRef = db.collection('catastros').doc(equipoActual);
     const docSnap = await docRef.get();
     
     if (!docSnap.exists) {
-      mostrarToast('⚠️ Sin datos en la nube', 'warning');
+      mostrarToast('⚠️ Sin datos en la nube para este equipo', 'warning');
       return;
     }
     
     restaurarTodosLosDatos(docSnap.data());
     hayCambiosPendientes = false;
-    mostrarToast('⬇️ Cargado', 'success');
+    mostrarToast('⬇️ Datos cargados', 'success');
     setTimeout(() => window.location.reload(), 1200);
   } catch(e) {
-    log('❌ ' + e.message, 'error');
-    mostrarToast('❌ Error', 'error');
+    log('❌ Error: ' + e.message, 'error');
+    mostrarToast('❌ Error al bajar', 'error');
   }
 }
 
@@ -1031,40 +1211,12 @@ function programarSubida() {
   clearTimeout(window._syncTimer);
   window._syncTimer = setTimeout(async () => {
     if (!usuarioActual || !hayCambiosPendientes) return;
+    log('⏰ Subida automática', 'info');
     await subirManualmente(true);
   }, 4000);
 }
 
-// ==================== ZOOM Y SCROLL ====================
-function guardarZoomScroll() {
-  if (!barrioActual || !equipoActual) return;
-  try {
-    localStorage.setItem(P('zoom_' + barrioActual.id), zoomActual.toString());
-    const wrapper = document.getElementById('mapa-wrapper');
-    localStorage.setItem(P('scrollL_' + barrioActual.id), wrapper.scrollLeft.toString());
-    localStorage.setItem(P('scrollT_' + barrioActual.id), wrapper.scrollTop.toString());
-  } catch(e) {}
-}
-
-function restaurarZoomScroll() {
-  if (!barrioActual || !equipoActual) return;
-  const savedZoom = parseFloat(localStorage.getItem(P('zoom_' + barrioActual.id)));
-  const savedScrollL = parseInt(localStorage.getItem(P('scrollL_' + barrioActual.id)));
-  const savedScrollT = parseInt(localStorage.getItem(P('scrollT_' + barrioActual.id)));
-  
-  if (!isNaN(savedZoom) && savedZoom > 0.1 && savedZoom < 4) {
-    zoomActual = savedZoom;
-    aplicarZoom();
-  }
-  
-  setTimeout(() => {
-    const wrapper = document.getElementById('mapa-wrapper');
-    if (!isNaN(savedScrollL)) wrapper.scrollLeft = savedScrollL;
-    if (!isNaN(savedScrollT)) wrapper.scrollTop = savedScrollT;
-  }, 200);
-}
-
-// ==================== GESTOS ====================
+// ==================== GESTOS TÁCTILES ====================
 function inicializarGestosTactiles() {
   const wrapper = document.getElementById('mapa-wrapper');
   let pinchState = { activo: false, distIni: 0, zoomIni: 1, centroX: 0, centroY: 0, scrollLeftIni: 0, scrollTopIni: 0 };
@@ -1110,6 +1262,7 @@ function inicializarGestosTactiles() {
   }, { passive: false });
 }
 
+// ==================== ZOOM ====================
 function cambiarZoom(delta) { 
   zoomActual = Math.max(0.2, Math.min(3, zoomActual + delta)); 
   aplicarZoom(); 
@@ -1131,12 +1284,15 @@ function aplicarZoom() {
   }
   document.getElementById('zoom-nivel').innerText = Math.round(zoomActual * 100) + '%';
 }
-
 function actualizarIndicadorModo(modo) {
   modoActivo = modo;
   const ind = document.getElementById('modo-indicador');
   if (modo === 'editando') { ind.className = 'editando'; ind.innerText = '✏️ Editando'; }
   else { ind.className = 'bloqueado'; ind.innerText = '📌 Bloqueado'; }
+}
+function toggleSeccion(id, header) {
+  document.getElementById(id).classList.toggle('abierto');
+  header.classList.toggle('abierto');
 }
 
 // ==================== BARRIOS ====================
@@ -1151,7 +1307,6 @@ function guardarBarriosLista(lista) {
 
 function actualizarSelectorBarrios() {
   const selector = document.getElementById('selector-barrio');
-  if (!selector) return;
   selector.innerHTML = '';
   if (!equipoActual) {
     selector.innerHTML = '<option value="">-- Sin equipo --</option>';
@@ -1172,11 +1327,11 @@ function actualizarSelectorBarrios() {
 }
 
 function cargarNuevoMapa() {
-  if (!equipoActual) { mostrarToast('⚠️ Primero un equipo', 'error'); return; }
+  if (!equipoActual) { mostrarToast('⚠️ Primero selecciona un equipo', 'error'); return; }
   const nombre = document.getElementById('nombre-barrio').value.trim();
   const fileInput = document.getElementById('archivo-mapa');
-  if (!nombre) { mostrarToast('⚠️ Ponle un nombre', 'error'); return; }
-  if (!fileInput.files || !fileInput.files[0]) { mostrarToast('⚠️ Selecciona imagen', 'error'); return; }
+  if (!nombre) { mostrarToast('⚠️ Ponle un nombre al barrio', 'error'); return; }
+  if (!fileInput.files || !fileInput.files[0]) { mostrarToast('⚠️ Selecciona una imagen', 'error'); return; }
   const reader = new FileReader();
   reader.onload = function(e) {
     const img = new Image();
@@ -1201,7 +1356,7 @@ function cargarNuevoMapa() {
       document.getElementById('archivo-mapa').value = '';
       cambiarBarrio(id);
       actualizarSelectorBarrios();
-      mostrarToast('✅ Barrio ' + nombre, 'success');
+      mostrarToast('✅ Barrio "' + nombre + '"', 'success');
       marcarCambioPendiente();
       programarSubida();
     };
@@ -1223,7 +1378,7 @@ function cambiarBarrio(id) {
   
   const dataURL = localStorage.getItem(P('mapa_' + id));
   const canvasJSON = localStorage.getItem(P('canvas_' + id));
-  if (!dataURL) { mostrarToast('No se encontró imagen', 'error'); return; }
+  if (!dataURL) { mostrarToast('No se encontró la imagen', 'error'); return; }
   
   document.getElementById('sin-barrio').style.display = 'none';
   document.getElementById('canvas-zoom-container').style.display = 'inline-block';
@@ -1287,8 +1442,8 @@ function restaurarEstadosObjetos() {
 }
 
 function eliminarBarrioActual() {
-  if (!barrioActual) { mostrarToast('Sin barrio activo', 'error'); return; }
-  if (!confirm('¿Eliminar "' + barrioActual.nombre + '"?')) return;
+  if (!barrioActual) { mostrarToast('No hay barrio activo', 'error'); return; }
+  if (!confirm('¿Eliminar "' + barrioActual.nombre + '" y todos sus datos?')) return;
   const id = barrioActual.id;
   localStorage.removeItem(P('mapa_' + id));
   localStorage.removeItem(P('canvas_' + id));
@@ -1298,7 +1453,7 @@ function eliminarBarrioActual() {
   const keysAEliminar = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && (key.startsWith(P('ficha_' + id + '_')) || key.startsWith(P('estado_' + id + '_')))) {
+    if (key.startsWith(P('ficha_' + id + '_')) || key.startsWith(P('estado_' + id + '_'))) {
       keysAEliminar.push(key);
     }
   }
@@ -1311,7 +1466,7 @@ function eliminarBarrioActual() {
   document.getElementById('sin-barrio').style.display = 'block';
   document.getElementById('btn-matriz').disabled = true;
   actualizarSelectorBarrios();
-  mostrarToast('✅ Eliminado', 'success');
+  mostrarToast('✅ Barrio eliminado', 'success');
   marcarCambioPendiente();
   programarSubida();
 }
@@ -1320,21 +1475,21 @@ function guardarCanvasActual() {
   if (!barrioActual || !canvas || !equipoActual) return;
   try {
     localStorage.setItem(P('canvas_' + barrioActual.id), JSON.stringify(canvas.toJSON(['idCasa'])));
-  } catch(e) {}
+  } catch(e) { log('Error: ' + e.message, 'error'); }
 }
 
 function getFichaKey(idCasa) { 
-  if (!barrioActual || !equipoActual) return 'temp';
+  if (!barrioActual || !equipoActual) return 'temp_ficha';
   return P('ficha_' + barrioActual.id + '_' + idCasa); 
 }
 function getEstadoKey(idCasa) { 
-  if (!barrioActual || !equipoActual) return 'temp';
+  if (!barrioActual || !equipoActual) return 'temp_estado';
   return P('estado_' + barrioActual.id + '_' + idCasa); 
 }
 
 // ==================== EXPORTAR / IMPORTAR ====================
 function exportarDatos() {
-  if (!equipoActual) { mostrarToast('Sin equipo', 'error'); return; }
+  if (!equipoActual) { mostrarToast('⚠️ Primero selecciona un equipo', 'error'); return; }
   try {
     const datos = recolectarTodosLosDatos();
     const json = JSON.stringify(datos);
@@ -1342,8 +1497,9 @@ function exportarDatos() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     const fecha = new Date().toISOString().split('T')[0];
+    const hora = new Date().toTimeString().split(' ')[0].replace(/:/g, '');
     a.href = url;
-    a.download = 'catastro_' + equipoActual + '_' + fecha + '.json';
+    a.download = 'catastro_' + equipoActual + '_' + fecha + '_' + hora + '.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1355,8 +1511,8 @@ function exportarDatos() {
 function importarDatos(event) {
   const file = event.target.files[0];
   if (!file) return;
-  if (!equipoActual) { mostrarToast('Sin equipo', 'error'); event.target.value = ''; return; }
-  if (!confirm('¿Reemplazar datos del equipo ' + equipoActual + '?')) {
+  if (!equipoActual) { mostrarToast('⚠️ Primero selecciona un equipo', 'error'); event.target.value = ''; return; }
+  if (!confirm('⚠️ La importación REEMPLAZARÁ todos los datos del equipo ' + equipoActual + '.\n\n¿Continuar?')) {
     event.target.value = '';
     return;
   }
@@ -1364,11 +1520,11 @@ function importarDatos(event) {
   reader.onload = function(e) {
     try {
       const datos = JSON.parse(e.target.result);
-      if (!datos.datos || !datos.barrios) { mostrarToast('❌ Archivo inválido', 'error'); return; }
+      if (!datos.datos || !datos.barrios) { mostrarToast('❌ Archivo no válido', 'error'); return; }
       restaurarTodosLosDatos(datos);
-      mostrarToast('✅ Importado', 'success');
+      mostrarToast('✅ Importado. Recargando...', 'success');
       setTimeout(() => window.location.reload(), 1500);
-    } catch(err) { mostrarToast('❌ Error', 'error'); }
+    } catch(err) { mostrarToast('❌ Error al leer', 'error'); }
     event.target.value = '';
   };
   reader.readAsText(file);
@@ -1399,16 +1555,20 @@ function recolectarTodosLosDatos() {
 
 function restaurarTodosLosDatos(datos) {
   if (!datos || !datos.datos || !datos.barrios) throw new Error('Formato inválido');
-  if (!equipoActual) throw new Error('Sin equipo');
+  if (!equipoActual) throw new Error('Sin equipo activo');
   
+  // Limpiar claves actuales del equipo
   const prefijo = P('');
   const keysAEliminar = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && key.startsWith(prefijo)) keysAEliminar.push(key);
+    if (key && key.startsWith(prefijo)) {
+      keysAEliminar.push(key);
+    }
   }
   keysAEliminar.forEach(k => localStorage.removeItem(k));
   
+  // Restaurar nuevos datos
   for (const [keySinPrefijo, value] of Object.entries(datos.datos)) {
     localStorage.setItem(P(keySinPrefijo), value);
   }
@@ -1418,7 +1578,7 @@ function restaurarTodosLosDatos(datos) {
 
 // ==================== CASAS ====================
 function crearCasa() {
-  if (!canvas || !barrioActual || !equipoActual) { mostrarToast('Selecciona equipo y barrio', 'error'); return; }
+  if (!canvas || !barrioActual || !equipoActual) { mostrarToast('Selecciona un equipo y barrio primero', 'error'); return; }
   
   const wrapper = document.getElementById('mapa-wrapper');
   const container = document.getElementById('canvas-zoom-container');
@@ -1457,13 +1617,13 @@ function crearCasa() {
   canvas.setActiveObject(grupo);
   canvas.renderAll();
   guardarMapa();
-  mostrarToast('Casa creada', 'info');
+  mostrarToast('Casa creada en el centro', 'info');
 }
 
 function ponerNomenclatura() {
   if (!canvas) return;
   const obj = canvas.getActiveObject();
-  if (!obj || obj.type !== 'group') { mostrarToast('Selecciona casa', 'error'); return; }
+  if (!obj || obj.type !== 'group') { mostrarToast('Selecciona una casa', 'error'); return; }
   const nombre = prompt("Nomenclatura (ej. MZ14-C15):");
   if (nombre && nombre.trim()) {
     const t = obj._objects.find(o => o.type === 'textbox' || o.type === 'text');
@@ -1493,7 +1653,7 @@ function fijarCasas() {
   aplicarFiltros();
   guardarMapa();
   actualizarIndicadorModo('bloqueado');
-  mostrarToast('Fijadas', 'success');
+  mostrarToast('Casas fijadas', 'success');
 }
 
 function modoEdicion() {
@@ -1522,14 +1682,14 @@ function modoEdicion() {
 function eliminarSeleccionado() {
   if (!canvas) return;
   const obj = canvas.getActiveObject();
-  if (!obj) { mostrarToast('Selecciona algo', 'error'); return; }
-  let mensaje = "¿Eliminar?";
+  if (!obj) { mostrarToast('Selecciona un elemento', 'error'); return; }
+  let mensaje = "¿Eliminar el elemento?";
   let idCasa = null;
   if (obj.type === 'group' && obj.idCasa) {
     idCasa = obj.idCasa;
     mensaje = localStorage.getItem(getFichaKey(idCasa))
-      ? "⚠️ Casa '" + idCasa + "' tiene datos. ¿Eliminar?"
-      : "¿Eliminar casa '" + idCasa + "'?";
+      ? "⚠️ La casa '" + idCasa + "' tiene datos. ¿Eliminar todo?"
+      : "¿Eliminar la casa '" + idCasa + "'?";
   }
   if (!confirm(mensaje)) return;
   if (idCasa) {
@@ -1652,14 +1812,15 @@ function abrirResumenFamiliar(idCasa) {
           '<h4>' + (int.nombre || 'Sin nombre') + '</h4>' +
           '<p><strong>Edad:</strong> ' + (int.edad || 'N/A') + ' | <strong>Sexo:</strong> ' + (int.sexo || 'N/A') + '</p>' +
           '<p><strong>📞</strong> ' + (int.contacto || 'No registrado') + '</p>' +
-          '<p><strong>Grupo:</strong> ' + grupo + '</p>' +
+          '<p><strong>Grupo:</strong> ' + grupo + ' | <strong>Vacunas:</strong> ' + (int.vacunasCompletas || 'N/A') + '</p>' +
           '<p><strong>Enf:</strong> ' + (int.enfermedades || 'Ninguna') + '</p>' +
+          (int.eventoSalud && int.eventoSalud.trim() ? '<p><strong>🚨 ' + int.eventoSalud + '</strong></p>' : '') +
           (int.condiciones && int.condiciones.length > 0 ? '<div>' + int.condiciones.map(c => '<span class="tag-condicion" style="background:' + ((coloresCondiciones[c]||{}).stroke||'#e74c3c') + '">' + c + '</span>').join('') + '</div>' : '') +
           '</div>';
       });
       lista.innerHTML = html;
     } else lista.innerHTML = '<p class="sin-datos">Sin integrantes.</p>';
-  } else lista.innerHTML = '<p class="sin-datos">Sin datos. Agrega ficha.</p>';
+  } else lista.innerHTML = '<p class="sin-datos">Sin datos. Agrega una ficha.</p>';
   document.getElementById('sidebar-resumen').classList.add('abierto');
 }
 
@@ -1717,7 +1878,7 @@ function agregarIntegranteForm(datos = {}) {
     '<button class="btn-eliminar-integrante" onclick="this.parentElement.remove()">✕</button>' +
     '<h4>Integrante ' + (index + 1) + '</h4>' +
     '<div class="form-row">' +
-      '<div class="form-group"><label>Nombre</label><input type="text" class="int-nombre" value="' + (datos.nombre || '') + '"></div>' +
+      '<div class="form-group"><label>Nombre Completo</label><input type="text" class="int-nombre" value="' + (datos.nombre || '') + '"></div>' +
       '<div class="form-group"><label>Cédula</label><input type="text" class="int-cedula" value="' + (datos.cedula || '') + '"></div>' +
       '<div class="form-group" style="max-width:70px;"><label>Edad</label><input type="number" class="int-edad" value="' + (datos.edad || '') + '"></div>' +
     '</div>' +
@@ -1755,7 +1916,7 @@ function agregarIntegranteForm(datos = {}) {
       '<div class="form-group"><label>Medicamentos</label><textarea class="int-medicamentos">' + (datos.medicamentos || '') + '</textarea></div>' +
     '</div>' +
     '<div class="form-row">' +
-      '<div class="form-group"><label>🚨 Evento</label><input type="text" class="int-evento" value="' + (datos.eventoSalud || '') + '"></div>' +
+      '<div class="form-group"><label>🚨 Evento de Salud</label><input type="text" class="int-evento" value="' + (datos.eventoSalud || '') + '"></div>' +
     '</div>' +
     '<div class="form-group"><label>Condiciones Especiales</label><div class="condiciones-grid">' +
       ['Embarazada', 'Niños menores de 2 años', 'Discapacidad', 'Hipertensión', 'Diabetes', 'Salud mental', 'VIH', 'Tuberculosis', 'Desnutrición', 'Cuidados paliativos'].map(cond => {
@@ -1797,7 +1958,7 @@ function guardarFicha() {
     }
   });
   localStorage.setItem(getFichaKey(idCasaActual), JSON.stringify(integrantes));
-  mostrarToast('✅ Guardada', 'success');
+  mostrarToast('✅ Ficha guardada', 'success');
   cerrarModal();
   const hayFiltros = Array.from(document.querySelectorAll('#seccion-filtro input[type="checkbox"]')).some(cb => cb.checked);
   if (hayFiltros) aplicarFiltros();
@@ -1805,29 +1966,17 @@ function guardarFicha() {
   programarSubida();
 }
 
-// ==================== MATRIZ ====================
-function actualizarTabsMatriz() {
-  document.getElementById('tab-barrio').classList.remove('activo');
-  document.getElementById('tab-eais').classList.remove('activo');
-  document.getElementById('tab-total').classList.remove('activo');
-  document.getElementById('tab-' + tabMatrizActivo).classList.add('activo');
-}
-
-function cambiarTabMatriz(tab) {
-  tabMatrizActivo = tab;
-  actualizarTabsMatriz();
-  abrirMatriz();
-}
-
+// ==================== MATRIZ DE PACIENTES ====================
 function obtenerPacientesDeBarrio(idBarrio, nombreBarrio) {
   if (!equipoActual) return [];
   const pacientes = [];
   const prefijo = P('ficha_' + idBarrio + '_');
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && key.startsWith(prefijo)) {
+    if (key.startsWith(prefijo)) {
       const idCasa = key.substring(prefijo.length);
-      const estado = localStorage.getItem(P('estado_' + idBarrio + '_' + idCasa)) || 'Pendiente';
+      const estadoKey = P('estado_' + idBarrio + '_' + idCasa);
+      const estado = localStorage.getItem(estadoKey) || 'Pendiente';
       const integrantes = JSON.parse(localStorage.getItem(key) || '[]');
       integrantes.forEach(int => {
         pacientes.push({
@@ -1860,12 +2009,8 @@ function obtenerPacientesDeEquipo() {
 }
 
 async function obtenerPacientesDeTodosLosEquipos() {
-  if (!usuarioActual) {
-    mostrarToast('⚠️ Conecta con Google para ver el Total', 'error');
-    return [];
-  }
+  if (!usuarioActual) return [];
   try {
-    mostrarToast('⏳ Cargando todos los equipos...', 'info');
     const snapshot = await db.collection('catastros').get();
     let todos = [];
     snapshot.forEach(doc => {
@@ -1873,20 +2018,23 @@ async function obtenerPacientesDeTodosLosEquipos() {
       const datos = doc.data();
       if (!datos || !datos.datos) return;
       
+      // Recorrer todos los fichas del equipo
       Object.keys(datos.datos).forEach(key => {
         if (key.startsWith('ficha_')) {
-          const resto = key.substring(6);
+          const resto = key.substring(6); // quitar 'ficha_'
           const idx = resto.indexOf('_');
           const idBarrio = resto.substring(0, idx);
           const idCasa = resto.substring(idx + 1);
           
+          // Buscar nombre del barrio
           let nombreBarrio = idBarrio;
           if (datos.barrios) {
             const b = datos.barrios.find(x => x.id === idBarrio);
             if (b) nombreBarrio = b.nombre;
           }
           
-          const estado = datos.datos['estado_' + idBarrio + '_' + idCasa] || 'Pendiente';
+          const estadoKey = 'estado_' + idBarrio + '_' + idCasa;
+          const estado = datos.datos[estadoKey] || 'Pendiente';
           
           try {
             const integrantes = JSON.parse(datos.datos[key] || '[]');
@@ -1904,19 +2052,28 @@ async function obtenerPacientesDeTodosLosEquipos() {
                 condiciones: (int.condiciones || []).join(', ')
               });
             });
-          } catch(e) {}
+          } catch(e) { /* ignorar */ }
         }
       });
     });
     return todos;
   } catch(e) {
-    log('❌ ' + e.message, 'error');
+    log('❌ Error leyendo todos: ' + e.message, 'error');
     return [];
   }
 }
 
+function cambiarTabMatriz(tab) {
+  tabMatrizActivo = tab;
+  document.getElementById('tab-barrio').classList.remove('activo');
+  document.getElementById('tab-eais').classList.remove('activo');
+  document.getElementById('tab-total').classList.remove('activo');
+  document.getElementById('tab-' + tab).classList.add('activo');
+  abrirMatriz();
+}
+
 async function abrirMatriz() {
-  if (!equipoActual) { mostrarToast('Selecciona un equipo', 'error'); return; }
+  if (!equipoActual) { mostrarToast('Selecciona un equipo primero', 'error'); return; }
   
   const tbody = document.getElementById('tbody-matriz');
   const info = document.getElementById('matriz-info');
@@ -1928,21 +2085,21 @@ async function abrirMatriz() {
   if (tabMatrizActivo === 'barrio') {
     if (!barrioActual) {
       tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:20px;color:#7f8c8d;">Sin barrio activo.</td></tr>';
-      info.innerText = 'Sin barrio';
+      info.innerText = 'Selecciona un barrio';
       document.getElementById('modal-matriz').style.display = 'block';
       return;
     }
     pacientes = obtenerPacientesDeBarrio(barrioActual.id, barrioActual.nombre);
     titulo = '📍 ' + barrioActual.nombre + ' (' + equipoActual + ')';
-  } else if (tabMatrizActivo === 'eais') {
+  } else if (tabMatrizAtivo === 'eais') {
     pacientes = obtenerPacientesDeEquipo();
     titulo = '🏥 ' + equipoActual + ' - Todos los barrios';
   } else if (tabMatrizActivo === 'total') {
+    mostrarToast('⏳ Leyendo todos los equipos...', 'info');
     pacientes = await obtenerPacientesDeTodosLosEquipos();
     titulo = '🌎 TODOS los equipos';
   }
   
-  pacientesMatrizActuales = pacientes;
   tbody.innerHTML = '';
   
   if (pacientes.length === 0) {
@@ -1954,133 +2111,4 @@ async function abrirMatriz() {
       const color = estadosColoresHex[p.estado] || '#95a5a6';
       html += '<tr>' +
         '<td><strong>' + p.casa + '</strong></td>' +
-        '<td><span class="estado-tag" style="background:' + color + ';">' + p.estado + '</span></td>' +
-        '<td>' + p.nombre + '</td><td>' + p.cedula + '</td><td>' + p.edad + '</td><td>' + p.sexo + '</td>' +
-        '<td>' + p.contacto + '</td><td>' + p.escolaridad + '</td><td>' + p.grupo + '</td>' +
-        '<td>' + p.vacunas + '</td><td>' + p.enfermedades + '</td><td>' + p.medicamentos + '</td>' +
-        '<td>' + p.eventoSalud + '</td><td>' + p.condiciones + '</td></tr>';
-    });
-    tbody.innerHTML = html;
-    info.innerText = titulo + ' | ' + pacientes.length + ' pacientes en ' + new Set(pacientes.map(p => p.casa)).size + ' casas';
-  }
-  document.getElementById('modal-matriz').style.display = 'block';
-}
-
-function cerrarMatriz() { document.getElementById('modal-matriz').style.display = 'none'; }
-
-function descargarExcel() {
-  if (pacientesMatrizActuales.length === 0) {
-    mostrarToast('⚠️ Sin datos para descargar', 'error');
-    return;
-  }
-  
-  const datos = pacientesMatrizActuales.map(p => ({
-    'EAIS': p.equipo || '',
-    'Barrio': p.barrio || '',
-    'Casa': p.casa, 'Estado': p.estado, 'Nombre': p.nombre,
-    'Cédula': p.cedula, 'Edad': p.edad, 'Sexo': p.sexo,
-    'Contacto': p.contacto, 'Escolaridad': p.escolaridad,
-    'Grupo': p.grupo, 'Vacunas': p.vacunas, 'Enfermedades': p.enfermedades,
-    'Medicamentos': p.medicamentos, 'Evento': p.eventoSalud,
-    'Condiciones': p.condiciones
-  }));
-  
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(datos);
-  ws['!cols'] = [
-    { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 25 },
-    { wch: 15 }, { wch: 6 }, { wch: 10 }, { wch: 15 }, { wch: 12 },
-    { wch: 8 }, { wch: 12 }, { wch: 25 }, { wch: 25 }, { wch: 20 }, { wch: 25 }
-  ];
-  
-  let nombreHoja = 'Pacientes';
-  let nombreArchivo = 'Pacientes';
-  const fecha = new Date().toISOString().split('T')[0];
-  
-  if (tabMatrizActivo === 'barrio') {
-    nombreHoja = barrioActual ? barrioActual.nombre.substring(0, 25) : 'Barrio';
-    nombreArchivo = 'Barrio_' + (barrioActual ? barrioActual.nombre : 'Sin') + '_' + fecha;
-  } else if (tabMatrizActivo === 'eais') {
-    nombreHoja = equipoActual;
-    nombreArchivo = 'EAIS_' + equipoActual + '_' + fecha;
-  } else {
-    nombreHoja = 'Todos';
-    nombreArchivo = 'TODOS_' + fecha;
-  }
-  
-  XLSX.utils.book_append_sheet(wb, ws, nombreHoja);
-  XLSX.writeFile(wb, nombreArchivo.replace(/[^a-z0-9_\-]/gi, '_') + '.xlsx');
-  mostrarToast('✅ Excel descargado', 'success');
-}
-
-function guardarMapa() {
-  if (aplicandoFiltros || !barrioActual || !equipoActual) return;
-  guardarCanvasActual();
-  marcarCambioPendiente();
-  programarSubida();
-}
-
-// ==================== INICIALIZACIÓN ====================
-window.addEventListener('load', function() {
-  log('🚀 Iniciando...', 'info');
-  
-  migrarDatosAntiguos();
-  equipoActual = cargarEquipoActivoGuardado();
-  
-  const manifest = {
-    name: "Catastro Médico", short_name: "Catastro", start_url: ".", display: "standalone",
-    background_color: "#2c3e50", theme_color: "#2c3e50",
-    icons: [{ src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgZmlsbD0iIzJjM2U1MCIgcng9IjMwIi8+PC9zdmc+", sizes: "192x192", type: "image/svg+xml" }]
-  };
-  const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
-  document.getElementById('manifest-placeholder').href = URL.createObjectURL(manifestBlob);
-
-  if ('serviceWorker' in navigator) {
-    const swCode = `self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));`;
-    navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode],{type:'application/javascript'}))).catch(e=>console.log(e));
-  }
-
-  try {
-    canvas = new fabric.Canvas('c', {
-      selection: true, preserveObjectStacking: true,
-      backgroundColor: 'transparent', width: 800, height: 600,
-      allowTouchScrolling: true
-    });
-    configurarEventosCanvas();
-    log('✅ Canvas OK', 'ok');
-  } catch(e) { log('❌ ' + e.message, 'error'); }
-
-  inicializarGestosTactiles();
-  
-  if (localStorage.getItem('instrucciones_cerradas') === '1') {
-    document.getElementById('instrucciones').classList.add('oculto');
-  }
-
-  actualizarUIEquipos();
-  actualizarTabsMatriz();
-  
-  if (equipoActual) {
-    iniciarEquipo();
-  } else {
-    document.getElementById('sin-equipo').style.display = 'block';
-    document.getElementById('btn-matriz').disabled = true;
-  }
-
-  window.addEventListener('beforeunload', function() {
-    if (equipoActual) guardarTodoLocal();
-    guardarZoomScroll();
-  });
-  
-  document.getElementById('mapa-wrapper').addEventListener('scroll', () => {
-    clearTimeout(window._scrollSaveTimer);
-    window._scrollSaveTimer = setTimeout(guardarZoomScroll, 500);
-  });
-
-  inicializarFirebase();
-
-  window.addEventListener('online', function() { mostrarToast('🌐 Reconectado', 'info'); });
-  window.addEventListener('offline', function() { mostrarToast('📴 Sin conexión', 'warning'); });
-});
-</script>
-</body>
-</html>
+        '<td><span class="estado-tag" style="background:' + color + ';">' + p.est
