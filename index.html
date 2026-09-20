@@ -35,7 +35,6 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
 @keyframes pulso-sync { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 #btn-hamburguesa { display: none; background: #2c3e50; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 18px; }
 #sidebar-filtros { position: fixed; left: 0; top: 56px; width: 240px; height: calc(100vh - 56px); background: #fff; box-shadow: 3px 0 10px rgba(0,0,0,0.15); z-index: 90; overflow-y: auto; border-right: 2px solid #bdc3c7; transition: left 0.3s; }
-
 .sidebar-section-header { background: #2c3e50; color: white; padding: 14px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #bdc3c7; }
 .sidebar-section-header .flecha { transition: transform 0.3s; font-size: 11px; }
 .sidebar-section-header.abierto .flecha { transform: rotate(0deg); }
@@ -43,7 +42,6 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
 .sidebar-section-content { max-height: 0; overflow: hidden; transition: max-height 0.35s ease-out; background: #fff; border-bottom: 2px solid #bdc3c7; }
 .sidebar-section-content.abierto { max-height: 2500px; overflow-y: auto; }
 .btn-matriz { display: block; width: 100%; background: #2c3e50; color: white; border: none; padding: 14px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid #bdc3c7; font-family: inherit; text-align: left; }
-
 .seccion-inner { padding: 12px; }
 .seccion-inner label { display: block; font-size: 12px; font-weight: bold; color: #2c3e50; margin-bottom: 5px; margin-top: 8px; }
 .seccion-inner label:first-child { margin-top: 0; }
@@ -79,7 +77,6 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
 #mapa-imagen { display: block; position: relative; user-select: none; pointer-events: none; z-index: 1; max-width: none; }
 #canvas-fabric { position: absolute; top: 0; left: 0; z-index: 2; }
 #sin-barrio { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #7f8c8d; background: white; padding: 30px; border-radius: 12px; max-width: 90vw; z-index: 10; }
-
 #instrucciones { position: fixed; bottom: 15px; left: 260px; background: rgba(255,255,255,0.98); padding: 15px 18px 15px 18px; border-radius: 10px; font-size: 13px; max-width: 330px; z-index: 50; box-shadow: 0 4px 15px rgba(0,0,0,0.25); border-left: 4px solid #3498db; display: flex; flex-direction: column; gap: 7px; }
 #instrucciones.oculto { display: none; }
 #instrucciones strong { color: #2c3e50; font-size: 14px; padding-right: 20px; }
@@ -87,7 +84,6 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
 #instrucciones .instruccion-item span { flex: 1; }
 #instrucciones .btn-cerrar-instr { position: absolute; top: 6px; right: 8px; background: none; border: none; color: #95a5a6; font-size: 16px; cursor: pointer; padding: 2px 6px; font-weight: bold; }
 #instrucciones .btn-cerrar-instr:hover { color: #e74c3c; }
-
 #sidebar-resumen { position: fixed; right: -400px; top: 56px; width: 350px; height: calc(100vh - 56px); background: white; box-shadow: -5px 0 15px rgba(0,0,0,0.2); transition: right 0.3s; z-index: 500; display: flex; flex-direction: column; }
 #sidebar-resumen.abierto { right: 0; }
 .sidebar-header { background: #2c3e50; color: white; padding: 14px; display: flex; justify-content: space-between; align-items: center; }
@@ -362,7 +358,10 @@ let syncEnProgreso = false;
 let ultimaSync = null;
 let hayCambiosPendientes = false;
 let intervaloSyncAuto = null;
-let intervaloLimpiezaTimer = null;
+// Fecha de la última vez que bajamos datos del Drive
+let ultimaDescargaRemota = 0;
+// ID único de este dispositivo
+let deviceId = null;
 
 const coloresCondiciones = {
   'Embarazada': { fill: 'rgba(233, 30, 99, 0.7)', stroke: '#e91e63' },
@@ -383,6 +382,16 @@ const estadosColoresHex = {
   'Cerrada': '#95a5a6', 'Abandonada': '#34495e'
 };
 
+// ==================== DEVICE ID ====================
+function obtenerDeviceId() {
+  let id = localStorage.getItem('catastro_device_id');
+  if (!id) {
+    id = 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('catastro_device_id', id);
+  }
+  return id;
+}
+
 function mostrarToast(mensaje, tipo) {
   const toast = document.getElementById('toast');
   toast.innerText = mensaje;
@@ -400,7 +409,6 @@ function cerrarInstrucciones() {
   localStorage.setItem('instrucciones_cerradas', '1');
 }
 
-// ==================== MARCA CAMBIOS PENDIENTES ====================
 function marcarCambioPendiente() {
   hayCambiosPendientes = true;
   if (tokenAccesoGoogle) {
@@ -410,6 +418,9 @@ function marcarCambioPendiente() {
 
 // ==================== INICIALIZACIÓN ====================
 window.addEventListener('load', function() {
+  deviceId = obtenerDeviceId();
+  console.log('📱 Device ID:', deviceId);
+
   const manifest = {
     name: "Catastro Médico", short_name: "Catastro", start_url: ".", display: "standalone",
     background_color: "#2c3e50", theme_color: "#2c3e50",
@@ -447,28 +458,22 @@ window.addEventListener('load', function() {
     cambiarBarrio(activeId);
   }
 
-  // Limpiar bandera de cambios pendientes al arrancar (no sabemos qué pasó)
   hayCambiosPendientes = false;
 
-  // Antes de cerrar la ventana, intentar subir
   window.addEventListener('beforeunload', function(e) {
     if (tokenAccesoGoogle && hayCambiosPendientes) {
-      // Intentar subida rápida (sin esperar)
       subirADrive().catch(err => console.log('Error al cerrar:', err));
     }
   });
 
-  // Detectar si volvió la conexión
   window.addEventListener('online', function() {
-    console.log('🌐 Conexión recuperada');
-    if (tokenAccesoGoogle && hayCambiosPendientes) {
+    if (tokenAccesoGoogle) {
       mostrarToast('🌐 Conexión recuperada, sincronizando...', 'info');
       sincronizar();
     }
   });
 
   window.addEventListener('offline', function() {
-    console.log('📴 Sin conexión');
     mostrarToast('📴 Sin conexión. Los datos se guardarán localmente.', 'info');
   });
 });
@@ -477,7 +482,6 @@ window.addEventListener('load', function() {
 function inicializarGestosTactiles() {
   const wrapper = document.getElementById('mapa-wrapper');
   let pinchState = { activo: false, distIni: 0, zoomIni: 1, centroX: 0, centroY: 0, scrollLeftIni: 0, scrollTopIni: 0 };
-  
   wrapper.addEventListener('touchstart', function(e) {
     if (e.touches.length === 2) {
       const dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -490,7 +494,6 @@ function inicializarGestosTactiles() {
       };
     }
   }, { passive: true });
-  
   wrapper.addEventListener('touchmove', function(e) {
     if (e.touches.length === 2 && pinchState.activo) {
       e.preventDefault();
@@ -510,11 +513,9 @@ function inicializarGestosTactiles() {
       }
     }
   }, { passive: false });
-  
   wrapper.addEventListener('touchend', function(e) {
     if (e.touches.length < 2) pinchState.activo = false;
   });
-  
   wrapper.addEventListener('wheel', function(e) {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
@@ -537,14 +538,12 @@ function aplicarZoom() {
   }
   document.getElementById('zoom-nivel').innerText = Math.round(zoomActual * 100) + '%';
 }
-
 function actualizarIndicadorModo(modo) {
   modoActivo = modo;
   const ind = document.getElementById('modo-indicador');
   if (modo === 'editando') { ind.className = 'editando'; ind.innerText = '✏️ Editando'; }
   else { ind.className = 'bloqueado'; ind.innerText = '📌 Bloqueado'; }
 }
-
 function toggleSeccion(id, header) {
   document.getElementById(id).classList.toggle('abierto');
   header.classList.toggle('abierto');
@@ -578,7 +577,6 @@ function cargarNuevoMapa() {
   const fileInput = document.getElementById('archivo-mapa');
   if (!nombre) { mostrarToast('⚠️ Ponle un nombre al barrio', 'error'); return; }
   if (!fileInput.files || !fileInput.files[0]) { mostrarToast('⚠️ Selecciona una imagen', 'error'); return; }
-  
   const reader = new FileReader();
   reader.onload = function(e) {
     const img = new Image();
@@ -606,7 +604,7 @@ function cargarNuevoMapa() {
       actualizarSelectorBarrios();
       mostrarToast('✅ Barrio "' + nombre + '" (' + tamañoKB + ' KB)', 'success');
       marcarCambioPendiente();
-      subirADrive(true).catch(e => console.log(e));
+      programarSubida();
     };
     img.src = e.target.result;
   };
@@ -712,7 +710,7 @@ function eliminarBarrioActual() {
   actualizarSelectorBarrios();
   mostrarToast('✅ Barrio eliminado', 'success');
   marcarCambioPendiente();
-  subirADrive(true).catch(e => console.log(e));
+  programarSubida();
 }
 
 function guardarCanvasActual() {
@@ -794,6 +792,7 @@ function importarDatos(event) {
 function recolectarTodosLosDatos() {
   const datos = {
     version: '1.0', fecha: new Date().toISOString(),
+    deviceId: deviceId,
     barrios: cargarBarriosLista(),
     barrioActivo: barrioActual ? barrioActual.id : null,
     datos: {}
@@ -849,18 +848,13 @@ function verificarSesionGuardada() {
     actualizarIndicadorSync('sincronizado', '☁️ Conectado');
     document.getElementById('btn-google').classList.add('conectado');
     document.getElementById('btn-google-texto').innerText = '✅ Conectado a Drive';
-    document.getElementById('sync-info-texto').innerText = 'Se sincroniza automáticamente cada 30 seg.';
+    document.getElementById('sync-info-texto').innerText = 'Se sincroniza automáticamente.';
     document.getElementById('btn-sync-ahora').style.display = 'flex';
     document.getElementById('btn-recuperar').style.display = 'flex';
     document.getElementById('btn-info-sync').style.display = 'flex';
-    
-    // Recuperar la última hora de sync
     const horaGuardada = localStorage.getItem('ultima_sync_hora');
     if (horaGuardada) actualizarEstadoSync('✅', horaGuardada);
-    
-    // Iniciar sincronización automática cada 30 segundos
     iniciarSyncAutomatica();
-    
     // Sincronizar inmediatamente al abrir
     setTimeout(() => sincronizar(), 500);
   }
@@ -873,7 +867,7 @@ function iniciarSyncAutomatica() {
       console.log('⏰ Sync automática');
       sincronizar();
     }
-  }, 30000); // cada 30 segundos
+  }, 20000);
 }
 
 function conectarConGoogle() {
@@ -902,7 +896,7 @@ function conectarConGoogle() {
         actualizarIndicadorSync('sincronizado', '☁️ Conectado');
         document.getElementById('btn-google').classList.add('conectado');
         document.getElementById('btn-google-texto').innerText = '✅ Conectado a Drive';
-        document.getElementById('sync-info-texto').innerText = 'Se sincroniza automáticamente cada 30 seg.';
+        document.getElementById('sync-info-texto').innerText = 'Se sincroniza automáticamente.';
         document.getElementById('btn-sync-ahora').style.display = 'flex';
         document.getElementById('btn-recuperar').style.display = 'flex';
         document.getElementById('btn-info-sync').style.display = 'flex';
@@ -940,7 +934,6 @@ function gestionarSync() {
   else if (confirm('¿Sincronizar ahora?')) sincronizar();
 }
 
-// Sincronización manual (botón grande)
 async function sincronizarAhora() {
   if (!tokenAccesoGoogle) { mostrarToast('⚠️ Conecta primero', 'error'); return; }
   mostrarToast('🔄 Sincronizando...', 'info');
@@ -950,7 +943,28 @@ async function sincronizarAhora() {
 async function recuperarDesdeDrive() {
   if (!tokenAccesoGoogle) { mostrarToast('⚠️ Conecta con Google Drive primero', 'error'); return; }
   if (!confirm('⚠️ Esto reemplazará los datos locales con los del Drive.\n\n¿Continuar?')) return;
-  await sincronizar(true);
+  syncEnProgreso = true;
+  actualizarIndicadorSync('sincronizando', '⬇️ Descargando...');
+  try {
+    const archivo = await buscarArchivoEnDrive();
+    if (!archivo) {
+      mostrarToast('⚠️ No hay datos en Drive', 'info');
+      syncEnProgreso = false;
+      actualizarIndicadorSync('sincronizado', '☁️ Conectado');
+      return;
+    }
+    const datos = await descargarDeDrive(archivo.id);
+    restaurarTodosLosDatos(datos);
+    ultimaDescargaRemota = Date.now();
+    hayCambiosPendientes = false;
+    mostrarToast('⬇️ Datos cargados desde Drive', 'success');
+    setTimeout(() => window.location.reload(), 1200);
+  } catch(e) {
+    console.error(e);
+    mostrarToast('❌ Error al descargar', 'error');
+    syncEnProgreso = false;
+    actualizarIndicadorSync('error', '❌ Error');
+  }
 }
 
 function verInfoSync() {
@@ -962,131 +976,128 @@ function verInfoSync() {
   const cantidadFichas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_ficha_')).length;
   const cantidadMapas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_mapa_')).length;
   let mensaje = '📊 INFORMACIÓN\n\n';
+  mensaje += 'Dispositivo: ' + deviceId.substring(0, 15) + '...\n';
   mensaje += 'Tamaño: ' + tamañoMB + ' MB (' + tamañoKB + ' KB)\n';
   mensaje += 'Barrios: ' + cantidadBarrios + '\n';
   mensaje += 'Mapas: ' + cantidadMapas + '\n';
   mensaje += 'Fichas: ' + cantidadFichas + '\n\n';
-  if (tamañoMB > 4) mensaje += '⚠️ Paquete grande. Si falla, elimina barrios antiguos.';
+  if (ultimaDescargaRemota) {
+    mensaje += 'Última descarga del Drive:\n' + new Date(ultimaDescargaRemota).toLocaleTimeString() + '\n\n';
+  }
+  if (tamañoMB > 4) mensaje += '⚠️ Paquete grande.';
   else mensaje += '✅ Tamaño óptimo.';
   alert(mensaje);
 }
 
-// ==================== SINCRONIZACIÓN MEJORADA ====================
-async function sincronizar(forzarDescarga = false) {
+// ==================== FUNCIÓN CLAVE: SINCRONIZACIÓN INTELIGENTE ====================
+// Reglas:
+// 1. Siempre baja primero el archivo del Drive para ver la versión más reciente
+// 2. Si el Drive es MÁS NUEVO que nuestra última descarga → bajamos (o avisamos)
+// 3. Si el Drive es igual o más viejo Y tenemos cambios pendientes → subimos
+// 4. Si no hay cambios pendientes y el Drive es igual → nada
+async function sincronizar() {
   if (!tokenAccesoGoogle) return;
   if (syncEnProgreso) return;
   syncEnProgreso = true;
   
-  if (!forzarDescarga) {
-    actualizarIndicadorSync('sincronizando', '🔄 Sincronizando...');
-  }
-  
   try {
+    // PASO 1: Siempre buscar el archivo en Drive
     const archivoRemoto = await buscarArchivoEnDrive();
     const datosLocales = recolectarTodosLosDatos();
     const hayDatosLocales = Object.keys(datosLocales.datos || {}).length > 0;
     
     // Si no existe archivo en Drive
     if (!archivoRemoto) {
+      console.log('📁 No hay archivo en Drive. Subiendo por primera vez.');
       if (hayDatosLocales) {
         await subirADrive();
         const hora = new Date().toTimeString().substring(0,5);
         actualizarEstadoSync('✅ Subido a Drive.', hora);
         localStorage.setItem('ultima_sync_hora', hora);
+        ultimaDescargaRemota = Date.now();
       }
-      ultimaSync = new Date();
-      actualizarIndicadorSync('sincronizado', '☁️ ' + ultimaSync.toTimeString().substring(0,5));
+      actualizarIndicadorSync('sincronizado', '☁️ ' + new Date().toTimeString().substring(0,5));
       hayCambiosPendientes = false;
       syncEnProgreso = false;
       return;
     }
     
+    // PASO 2: Descargar el archivo remoto
     const datosRemotos = await descargarDeDrive(archivoRemoto.id);
     const hayDatosRemotos = datosRemotos.datos && Object.keys(datosRemotos.datos).length > 0;
     
-    // FORZAR DESCARGA
-    if (forzarDescarga) {
-      if (hayDatosRemotos) {
-        restaurarTodosLosDatos(datosRemotos);
-        mostrarToast('⬇️ Datos cargados desde Drive', 'success');
-        setTimeout(() => window.location.reload(), 1200);
-      } else {
-        mostrarToast('⚠️ No hay datos en Drive', 'info');
-      }
-      syncEnProgreso = false;
-      return;
-    }
-    
-    // Sin datos locales pero sí remotos → bajar
+    // PASO 3: Analizar escenarios
+    // Escenario A: No hay datos locales pero sí remotos → bajar
     if (!hayDatosLocales && hayDatosRemotos) {
+      console.log('⬇️ Sin datos locales, bajando del Drive');
       restaurarTodosLosDatos(datosRemotos);
+      ultimaDescargaRemota = Date.now();
       mostrarToast('⬇️ Datos cargados desde Drive', 'success');
       setTimeout(() => window.location.reload(), 1200);
-      syncEnProgreso = false;
       return;
     }
     
-    // Con datos locales pero no remotos → subir
+    // Escenario B: Hay locales pero no remotos → subir
     if (hayDatosLocales && !hayDatosRemotos) {
+      console.log('⬆️ Sin datos en Drive, subiendo');
       await subirADrive();
       mostrarToast('⬆️ Datos subidos', 'success');
-      ultimaSync = new Date();
-      actualizarIndicadorSync('sincronizado', '☁️ ' + ultimaSync.toTimeString().substring(0,5));
+      ultimaDescargaRemota = Date.now();
+      actualizarIndicadorSync('sincronizado', '☁️ ' + new Date().toTimeString().substring(0,5));
       hayCambiosPendientes = false;
-      syncEnProgreso = false;
       return;
     }
     
-    // AMBOS: comparar fechas
+    // Escenario C: Ambos tienen datos
     const fechaLocal = new Date(datosLocales.fecha).getTime();
     const fechaRemota = new Date(datosRemotos.fecha).getTime();
-    const diff = Math.abs(fechaRemota - fechaLocal);
+    const deviceRemoto = datosRemotos.deviceId || 'desconocido';
+    const deviceLocal = datosLocales.deviceId || deviceId;
     
-    // Si hay cambios pendientes locales, subimos primero (tenemos prioridad)
-    if (hayCambiosPendientes) {
-      if (fechaRemota > fechaLocal + 5000) {
-        // El remoto es más nuevo por >5 seg → probablemente otro dispositivo
-        // Aún así, mostramos aviso
-        if (confirm('⚠️ Otro dispositivo hizo cambios recientes.\n\n¿Quieres bajar los datos del Drive?\n\n' +
-                    '· Sí = Bajar del Drive (perderás tus cambios locales)\n' +
-                    '· No = Subir tus cambios (sobreescribirás el Drive)')) {
-          restaurarTodosLosDatos(datosRemotos);
-          mostrarToast('⬇️ Datos cargados desde Drive', 'success');
-          setTimeout(() => window.location.reload(), 1200);
-          syncEnProgreso = false;
-          return;
-        }
-      }
+    console.log('📊 Local:', new Date(fechaLocal).toLocaleTimeString(), '| Remoto:', new Date(fechaRemota).toLocaleTimeString());
+    console.log('📱 Device local:', deviceLocal.substring(0, 10), '| Device remoto:', deviceRemoto.substring(0, 10));
+    
+    // Si el remoto fue modificado DESPUÉS de nuestra última descarga,
+    // significa que OTRO dispositivo hizo cambios
+    const remotoEsDeOtroDispositivo = deviceRemoto !== deviceLocal;
+    const remotoEsMasNuevo = fechaRemota > fechaLocal + 1000;
+    
+    // CASO 1: El remoto es de otro dispositivo Y más nuevo → BAJAR
+    if (remotoEsDeOtroDispositivo && remotoEsMasNuevo) {
+      console.log('⬇️ Otro dispositivo hizo cambios más recientes. Bajando...');
+      restaurarTodosLosDatos(datosRemotos);
+      ultimaDescargaRemota = Date.now();
+      mostrarToast('⬇️ Datos actualizados desde Drive', 'success');
+      setTimeout(() => window.location.reload(), 1200);
+      return;
+    }
+    
+    // CASO 2: Tenemos cambios pendientes y nuestro local es más nuevo → SUBIR
+    if (hayCambiosPendientes && fechaLocal >= fechaRemota - 500) {
+      console.log('⬆️ Subiendo nuestros cambios');
       await subirADrive();
       const hora = new Date().toTimeString().substring(0,5);
       actualizarEstadoSync('⬆️ Subido. ', hora);
       localStorage.setItem('ultima_sync_hora', hora);
       actualizarIndicadorSync('sincronizado', '☁️ ' + hora);
       hayCambiosPendientes = false;
-      syncEnProgreso = false;
       return;
     }
     
-    // Sin cambios locales pendientes → decidir por fecha
-    if (fechaRemota > fechaLocal + 1000) {
-      // El remoto es más nuevo → bajar
+    // CASO 3: El remoto es más nuevo pero del MISMO dispositivo (o sin deviceId) → subir de todas formas
+    if (fechaRemota > fechaLocal + 2000 && !hayCambiosPendientes) {
+      console.log('⬇️ Remoto más nuevo, bajando');
       restaurarTodosLosDatos(datosRemotos);
+      ultimaDescargaRemota = Date.now();
       mostrarToast('⬇️ Datos actualizados desde Drive', 'success');
       setTimeout(() => window.location.reload(), 1200);
-    } else if (fechaLocal > fechaRemota + 1000) {
-      // El local es más nuevo → subir
-      await subirADrive();
-      const hora = new Date().toTimeString().substring(0,5);
-      actualizarEstadoSync('✅ Actualizado. ', hora);
-      localStorage.setItem('ultima_sync_hora', hora);
-      actualizarIndicadorSync('sincronizado', '☁️ ' + hora);
-    } else {
-      // Muy parecidos → ya está sincronizado
-      const hora = new Date().toTimeString().substring(0,5);
-      actualizarIndicadorSync('sincronizado', '☁️ ' + hora);
+      return;
     }
     
-    ultimaSync = new Date();
+    // CASO 4: Todo igual → no hacer nada
+    console.log('✅ Ya está sincronizado');
+    actualizarIndicadorSync('sincronizado', '☁️ ' + new Date().toTimeString().substring(0,5));
+    ultimaDescargaRemota = Date.now();
     hayCambiosPendientes = false;
     
   } catch(e) {
@@ -1105,19 +1116,15 @@ async function buscarArchivoEnDrive() {
   return d.files && d.files.length > 0 ? d.files[0] : null;
 }
 
-async function subirADrive(forzar = false) {
+async function subirADrive() {
   if (!tokenAccesoGoogle) return;
-  if (!forzar && !hayCambiosPendientes) {
-    // No hay cambios, no subir
-    return;
-  }
   const archivoExistente = await buscarArchivoEnDrive();
   const datos = recolectarTodosLosDatos();
   const contenido = JSON.stringify(datos);
   const tamañoMB = (contenido.length / 1024 / 1024).toFixed(2);
   console.log('☁️ Subiendo:', tamañoMB + ' MB');
   
-  if (contenido.length > 5 * 1024 * 1024 && !forzar) {
+  if (contenido.length > 5 * 1024 * 1024) {
     if (!confirm('⚠️ Paquete de ' + tamañoMB + ' MB. Puede fallar. ¿Continuar?')) return;
   }
   
@@ -1141,10 +1148,6 @@ async function subirADrive(forzar = false) {
   console.log('✅ Subido');
   hayCambiosPendientes = false;
   return await r.json();
-}
-
-async function bajarDeDrive() {
-  // Función legacy, ya no se usa
 }
 
 async function descargarDeDrive(fileId) {
@@ -1407,7 +1410,7 @@ function cambiarEstadoVisita(nuevoEstado) {
     if (obj) { aplicarColorEstado(obj); canvas.renderAll(); }
   }
   marcarCambioPendiente();
-  subirADrive(true).catch(e => console.log(e));
+  programarSubida();
 }
 
 function actualizarBotonesEstado(estado) {
@@ -1512,7 +1515,7 @@ function guardarFicha() {
   const hayFiltros = Array.from(document.querySelectorAll('#seccion-filtro input[type="checkbox"]')).some(cb => cb.checked);
   if (hayFiltros) aplicarFiltros();
   marcarCambioPendiente();
-  subirADrive(true).catch(e => console.log(e));
+  programarSubida();
 }
 
 function obtenerTodosLosPacientes() {
@@ -1592,23 +1595,26 @@ function exportarExcel() {
   XLSX.writeFile(wb, 'Catastro_' + nombre + '_' + fecha + '.xlsx');
 }
 
-// ==================== GUARDADO CON AUTO-SYNC ====================
+// ==================== GUARDADO CON DEBOUNCE ====================
 function guardarMapa() {
   if (aplicandoFiltros || !barrioActual) return;
   guardarCanvasActual();
   marcarCambioPendiente();
-  
-  // Debounce reducido a 1.5 segundos
+  programarSubida();
+}
+
+// Programa una subida después de 2 segundos sin actividad
+function programarSubida() {
   clearTimeout(window._syncTimer);
-  window._syncTimer = setTimeout(() => {
-    if (tokenAccesoGoogle && hayCambiosPendientes) {
-      subirADrive(true).catch(e => console.log(e));
-      const hora = new Date().toTimeString().substring(0,5);
-      actualizarIndicadorSync('sincronizado', '☁️ ' + hora);
-      actualizarEstadoSync('✅ Subido a Drive. ', hora);
-      localStorage.setItem('ultima_sync_hora', hora);
+  window._syncTimer = setTimeout(async () => {
+    if (!tokenAccesoGoogle || !hayCambiosPendientes) return;
+    if (syncEnProgreso) {
+      // Reintentar en 3 seg
+      setTimeout(programarSubida, 3000);
+      return;
     }
-  }, 1500);
+    await sincronizar();
+  }, 2000);
 }
 </script>
 </body>
