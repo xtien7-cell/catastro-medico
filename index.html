@@ -67,6 +67,7 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
 .sync-estado.pendiente { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
 .sync-estado.ok { background: #d4edda; color: #155724; border: 1px solid #27ae60; }
 .sync-estado.error { background: #f8d7da; color: #721c24; border: 1px solid #e74c3c; }
+.equipo-codigo { background: #f39c12 !important; color: white !important; }
 .filtro-hint { font-size: 11px; color: #7f8c8d; padding: 0 0 8px 0; margin: 0; font-style: italic; }
 .filtro-item { display: flex; align-items: center; gap: 8px; padding: 8px 6px; margin-bottom: 2px; border-radius: 5px; cursor: pointer; font-size: 13px; }
 .filtro-item:hover { background: #ecf0f1; }
@@ -232,15 +233,22 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
       
       <div id="controles-firebase" style="display:none;">
         <div class="sync-separador">
+          <span class="sync-titulo">🏥 Mi Equipo</span>
+          <label>Código del Equipo:</label>
+          <input type="text" id="equipo-codigo" placeholder="Ej: eais05" maxlength="30">
+          <button class="btn-sync-inner equipo-codigo" onclick="guardarEquipo()">💾 Guardar equipo</button>
+          <div class="sync-estado" id="equipo-actual-caja">Sin equipo configurado</div>
+          <p class="sync-info">Cada equipo tiene sus propios datos. Los demás equipos no verán los tuyos.</p>
+        </div>
+
+        <div class="sync-separador">
           <span class="sync-titulo">📤 Subir mis datos</span>
           <button class="btn-sync-inner btn-subir-drive" onclick="subirManualmente()">⬆️ SUBIR TODO A LA NUBE</button>
-          <p class="sync-info">Sube tus datos actuales. Los demás lo verán en segundos.</p>
         </div>
         
         <div class="sync-separador">
           <span class="sync-titulo">📥 Bajar de la nube</span>
           <button class="btn-sync-inner btn-bajar-drive" onclick="bajarManualmente()">⬇️ FORZAR DESCARGA</button>
-          <p class="sync-info">⚠️ Reemplaza tus datos locales con los de la nube.</p>
         </div>
         
         <div class="sync-separador">
@@ -391,22 +399,14 @@ const firebaseConfig = {
   appId: "1:600952886375:web:f738d3e0bfe11d28f670c2"
 };
 
-// Inicializar Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Habilitar persistencia offline
 db.enablePersistence().catch((err) => {
-  if (err.code == 'failed-precondition') {
-    console.log('⚠️ Persistencia: múltiples pestañas abiertas');
-  } else if (err.code == 'unimplemented') {
-    console.log('⚠️ Persistencia no soportada en este navegador');
-  }
+  if (err.code == 'failed-precondition') console.log('⚠️ Persistencia: múltiples pestañas');
+  else if (err.code == 'unimplemented') console.log('⚠️ Persistencia no soportada');
 });
-
-// ID del documento compartido (todos los médicos ven lo mismo)
-const DOC_ID = 'compartido';
 
 // ==================== VARIABLES ====================
 let canvas = null;
@@ -440,6 +440,47 @@ const estadosColoresHex = {
   'Pendiente': '#e74c3c', 'Visitada': '#27ae60', 'Fallida': '#f1c40f',
   'Cerrada': '#95a5a6', 'Abandonada': '#34495e'
 };
+
+// ==================== EQUIPO ====================
+function obtenerEquipoCodigo() {
+  return localStorage.getItem('catastro_equipo_codigo') || 'compartido';
+}
+
+function getDocId() {
+  return obtenerEquipoCodigo();
+}
+
+function guardarEquipo() {
+  const codigoInput = document.getElementById('equipo-codigo').value.trim();
+  if (!codigoInput) { mostrarToast('⚠️ Ingresa un código', 'error'); return; }
+  
+  const codigo = codigoInput.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+  
+  if (!confirm('🏥 Cambiar a equipo: "' + codigo + '"\n\n' +
+    'Los datos de tu equipo anterior NO se borran.\n' +
+    'Podrás volver cambiando el código.\n\n' +
+    '¿Continuar?')) return;
+  
+  localStorage.setItem('catastro_equipo_codigo', codigo);
+  log('🏥 Equipo cambiado a: ' + codigo, 'ok');
+  mostrarToast('✅ Equipo: ' + codigo, 'success');
+  
+  actualizarCajaEquipo();
+  
+  // Recargar para aplicar el nuevo doc ID
+  if (usuarioActual) {
+    if (unsubscribeListener) unsubscribeListener();
+    setTimeout(() => window.location.reload(), 1000);
+  }
+}
+
+function actualizarCajaEquipo() {
+  const caja = document.getElementById('equipo-actual-caja');
+  const codigo = obtenerEquipoCodigo();
+  caja.className = 'sync-estado ok';
+  caja.innerHTML = '🏥 Equipo activo: <strong>' + codigo + '</strong>';
+  document.getElementById('equipo-codigo').value = codigo;
+}
 
 // ==================== LOGS ====================
 function log(msg, tipo = 'info') {
@@ -484,9 +525,40 @@ function marcarCambioPendiente() {
     const caja = document.getElementById('sync-estado-caja');
     if (caja) {
       caja.className = 'sync-estado pendiente';
-      caja.innerHTML = '⚠️ Tienes cambios sin subir.<br>Se subirán en unos segundos.';
+      caja.innerHTML = '⚠️ Tienes cambios sin subir.';
     }
   }
+}
+
+// ==================== ZOOM Y SCROLL PERSISTENTES ====================
+function guardarZoomScroll() {
+  if (!barrioActual) return;
+  try {
+    localStorage.setItem('catastro_zoom_' + barrioActual.id, zoomActual.toString());
+    const wrapper = document.getElementById('mapa-wrapper');
+    localStorage.setItem('catastro_scrollL_' + barrioActual.id, wrapper.scrollLeft.toString());
+    localStorage.setItem('catastro_scrollT_' + barrioActual.id, wrapper.scrollTop.toString());
+  } catch(e) { console.log('Error guardando zoom:', e); }
+}
+
+function restaurarZoomScroll() {
+  if (!barrioActual) return;
+  const savedZoom = parseFloat(localStorage.getItem('catastro_zoom_' + barrioActual.id));
+  const savedScrollL = parseInt(localStorage.getItem('catastro_scrollL_' + barrioActual.id));
+  const savedScrollT = parseInt(localStorage.getItem('catastro_scrollT_' + barrioActual.id));
+  
+  if (!isNaN(savedZoom) && savedZoom > 0.1 && savedZoom < 4) {
+    zoomActual = savedZoom;
+    aplicarZoom();
+    log('🔍 Zoom restaurado: ' + Math.round(zoomActual * 100) + '%', 'info');
+  }
+  
+  setTimeout(() => {
+    const wrapper = document.getElementById('mapa-wrapper');
+    if (!isNaN(savedScrollL)) wrapper.scrollLeft = savedScrollL;
+    if (!isNaN(savedScrollT)) wrapper.scrollTop = savedScrollT;
+    log('📜 Posición restaurada', 'info');
+  }, 200);
 }
 
 // ==================== INICIALIZACIÓN ====================
@@ -524,37 +596,45 @@ window.addEventListener('load', function() {
     document.getElementById('instrucciones').classList.add('oculto');
   }
 
+  // Cargar barrio activo (con zoom restaurado)
   const activeId = localStorage.getItem('catastro_barrio_activo');
   const lista = cargarBarriosLista();
   if (activeId && lista.find(b => b.id === activeId)) {
     cambiarBarrio(activeId);
   }
 
-  // Iniciar Firebase
+  // Guardar zoom/scroll al cerrar
+  window.addEventListener('beforeunload', guardarZoomScroll);
+  
+  // Guardar zoom/scroll en cambios de scroll (con debounce)
+  document.getElementById('mapa-wrapper').addEventListener('scroll', () => {
+    clearTimeout(window._scrollSaveTimer);
+    window._scrollSaveTimer = setTimeout(guardarZoomScroll, 500);
+  });
+
   inicializarFirebase();
 
   window.addEventListener('online', function() {
-    log('🌐 Conexión recuperada', 'ok');
     mostrarToast('🌐 Conexión recuperada', 'info');
   });
 
   window.addEventListener('offline', function() {
-    log('📴 Sin conexión', 'info');
     mostrarToast('📴 Sin conexión. Los datos se guardan localmente.', 'warning');
   });
 });
 
-// ==================== FIREBASE INICIALIZACIÓN ====================
+// ==================== FIREBASE ====================
 function inicializarFirebase() {
   auth.onAuthStateChanged((user) => {
     if (user) {
       usuarioActual = user;
-      log('🔑 Sesión activa: ' + user.displayName, 'ok');
+      log('🔑 Sesión: ' + user.displayName, 'ok');
       document.getElementById('btn-google-texto').innerText = '✅ ' + (user.displayName || user.email);
       document.getElementById('btn-google').classList.add('conectado');
       document.getElementById('controles-firebase').style.display = 'block';
-      document.getElementById('sync-info-texto').innerText = 'Conectado. Sincronización en tiempo real activa.';
-      actualizarIndicadorSync('sincronizado', '☁️ ' + (user.displayName || 'Conectado').substring(0, 12));
+      document.getElementById('sync-info-texto').innerText = 'Conectado. Sincronización activa.';
+      actualizarIndicadorSync('sincronizado', '☁️ ' + (user.displayName || 'OK').substring(0, 12));
+      actualizarCajaEquipo();
       
       const caja = document.getElementById('sync-estado-caja');
       if (caja) {
@@ -564,10 +644,9 @@ function inicializarFirebase() {
       
       iniciarEscuchaTiempoReal();
       setTimeout(verificarDatosRemotos, 1500);
-      
     } else {
       usuarioActual = null;
-      log('👤 Sin sesión activa', 'info');
+      log('👤 Sin sesión', 'info');
       document.getElementById('btn-google-texto').innerText = 'Conectar con Google';
       document.getElementById('btn-google').classList.remove('conectado');
       document.getElementById('controles-firebase').style.display = 'none';
@@ -584,23 +663,22 @@ function inicializarFirebase() {
 
 function conectarConGoogle() {
   if (usuarioActual) {
-    if (confirm('¿Cerrar sesión de Google?\n\nTus datos locales NO se borrarán.')) {
+    if (confirm('¿Cerrar sesión? Tus datos locales NO se borrarán.')) {
       auth.signOut();
     }
     return;
   }
-  
-  log('🔗 Iniciando sesión con Google...', 'info');
+  log('🔗 Iniciando sesión...', 'info');
   actualizarIndicadorSync('sincronizando', '🔗 Conectando...');
   
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider)
     .then((result) => {
-      log('✅ Sesión iniciada: ' + result.user.displayName, 'ok');
-      mostrarToast('✅ Conectado como ' + result.user.displayName, 'success');
+      log('✅ Sesión: ' + result.user.displayName, 'ok');
+      mostrarToast('✅ ' + result.user.displayName, 'success');
     })
     .catch((error) => {
-      log('❌ Error al iniciar sesión: ' + error.message, 'error');
+      log('❌ Error: ' + error.message, 'error');
       mostrarToast('❌ Error al conectar', 'error');
       actualizarIndicadorSync('error', '❌ Error');
     });
@@ -616,8 +694,9 @@ function iniciarEscuchaTiempoReal() {
   if (!usuarioActual) return;
   if (unsubscribeListener) unsubscribeListener();
   
-  log('👀 Escuchando cambios en tiempo real...', 'info');
-  const docRef = db.collection('catastros').doc(DOC_ID);
+  const docId = getDocId();
+  log('👀 Escuchando equipo: ' + docId, 'info');
+  const docRef = db.collection('catastros').doc(docId);
   
   unsubscribeListener = docRef.onSnapshot((snapshot) => {
     if (aplicandoCambiosRemotos) return;
@@ -631,36 +710,33 @@ function iniciarEscuchaTiempoReal() {
       const localStr = JSON.stringify(datosLocales.datos || {});
       
       if (remotoStr !== localStr) {
-        log('📥 Cambios detectados en la nube', 'info');
+        log('📥 Cambios en la nube', 'info');
         
         const modalAbierto = document.getElementById('modal-ficha').style.display === 'block' || 
                              document.getElementById('modal-matriz').style.display === 'block';
         
         if (modalAbierto) {
-          mostrarToast('📥 Hay cambios nuevos. Guarda y recarga para verlos.', 'warning');
-          const caja = document.getElementById('sync-estado-caja');
-          caja.className = 'sync-estado pendiente';
-          caja.innerHTML = '⚠️ Cambios nuevos en la nube pendientes';
+          mostrarToast('📥 Hay cambios nuevos. Guarda y recarga.', 'warning');
         } else {
           aplicandoCambiosRemotos = true;
           restaurarTodosLosDatos(datosRemotos);
-          log('⬇️ Aplicando cambios de la nube...', 'ok');
-          mostrarToast('⬇️ Datos actualizados desde la nube', 'success');
+          log('⬇️ Aplicando cambios...', 'ok');
+          mostrarToast('⬇️ Datos actualizados', 'success');
+          // Guardar zoom antes de recargar para que se restaure
+          guardarZoomScroll();
           setTimeout(() => window.location.reload(), 1000);
         }
       }
-    } else {
-      log('ℹ️ Documento nuevo en la nube. Serás el primero.', 'info');
     }
   }, (error) => {
-    log('❌ Error en listener: ' + error.message, 'error');
+    log('❌ Error listener: ' + error.message, 'error');
   });
 }
 
 async function verificarDatosRemotos() {
   if (!usuarioActual) return;
   try {
-    const docRef = db.collection('catastros').doc(DOC_ID);
+    const docRef = db.collection('catastros').doc(getDocId());
     const docSnap = await docRef.get();
     
     if (docSnap.exists) {
@@ -671,8 +747,7 @@ async function verificarDatosRemotos() {
       const localStr = JSON.stringify(datosLocales.datos || {});
       
       if (remotoStr === localStr) {
-        log('✅ Datos locales y remotos coinciden', 'ok');
-        actualizarIndicadorSync('sincronizado', '☁️ Al día');
+        log('✅ Sincronizado', 'ok');
         return;
       }
       
@@ -680,70 +755,64 @@ async function verificarDatosRemotos() {
       const hayDatosRemotos = Object.keys(datosRemotos.datos || {}).length > 0;
       
       if (!hayDatosLocales && hayDatosRemotos) {
-        log('⬇️ Sin datos locales, bajando de la nube...', 'info');
         restaurarTodosLosDatos(datosRemotos);
-        mostrarToast('⬇️ Datos cargados desde la nube', 'success');
+        mostrarToast('⬇️ Datos cargados de la nube', 'success');
+        guardarZoomScroll();
         setTimeout(() => window.location.reload(), 1000);
       } else if (hayDatosLocales && !hayDatosRemotos) {
-        log('⬆️ Sin datos en la nube, subiendo los locales...', 'info');
         await subirManualmente(true);
       } else {
         const bajar = confirm(
-          '⚠️ Hay datos en la nube diferentes a los locales.\n\n' +
-          '¿Qué quieres hacer?\n\n' +
-          '· Aceptar = BAJAR los datos de la nube (reemplaza los locales)\n' +
-          '· Cancelar = SUBIR tus datos locales (reemplaza la nube)\n\n' +
-          'Si no estás seguro, EXPORTA un respaldo antes.'
+          '⚠️ Datos diferentes entre local y nube.\n\n' +
+          '· Aceptar = BAJAR de la nube (pierde cambios locales)\n' +
+          '· Cancelar = SUBIR locales (reemplaza la nube)\n\n' +
+          '¿Bajar de la nube?'
         );
         
         if (bajar) {
           restaurarTodosLosDatos(datosRemotos);
-          mostrarToast('⬇️ Datos cargados desde la nube', 'success');
+          mostrarToast('⬇️ Datos de la nube', 'success');
+          guardarZoomScroll();
           setTimeout(() => window.location.reload(), 1000);
         } else {
           await subirManualmente(true);
         }
       }
     } else {
-      log('ℹ️ Documento nuevo. Subiendo datos locales...', 'info');
       if (Object.keys(recolectarTodosLosDatos().datos || {}).length > 0) {
         await subirManualmente(true);
       }
     }
   } catch(e) {
-    log('❌ Error al verificar: ' + e.message, 'error');
+    log('❌ Error verificar: ' + e.message, 'error');
   }
 }
 
-// ==================== SUBIR A FIRESTORE ====================
+// ==================== SUBIR / BAJAR ====================
 async function subirManualmente(silencioso = false) {
   if (!usuarioActual) {
-    if (!silencioso) mostrarToast('⚠️ Conecta primero con Google', 'error');
+    if (!silencioso) mostrarToast('⚠️ Conecta con Google', 'error');
     return;
   }
   
-  const datos = recolectarTodosLosDatos();
-  const cantidadBarrios = datos.barrios.length;
-  const cantidadMapas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_mapa_')).length;
-  const cantidadFichas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_ficha_')).length;
-  
   if (!silencioso) {
+    const datos = recolectarTodosLosDatos();
+    const b = datos.barrios.length;
+    const m = Object.keys(datos.datos).filter(k => k.startsWith('catastro_mapa_')).length;
+    const f = Object.keys(datos.datos).filter(k => k.startsWith('catastro_ficha_')).length;
+    
     if (!confirm('📤 SUBIR A LA NUBE\n\n' +
-      'Esto subirá TUS datos actuales a la nube:\n' +
-      '• ' + cantidadBarrios + ' barrio(s)\n' +
-      '• ' + cantidadMapas + ' mapa(s)\n' +
-      '• ' + cantidadFichas + ' ficha(s)\n\n' +
-      '⚠️ Reemplazará los datos que estén en la nube.\n\n' +
+      'Equipo: ' + getDocId() + '\n' +
+      '· ' + b + ' barrio(s)\n· ' + m + ' mapa(s)\n· ' + f + ' ficha(s)\n\n' +
       '¿Continuar?')) return;
   }
   
   try {
     guardandoEnFirestore = true;
-    log('⬆️ Subiendo a la nube...', 'info');
-    if (!silencioso) actualizarIndicadorSync('sincronizando', '⬆️ Subiendo...');
+    log('⬆️ Subiendo...', 'info');
     
-    const docRef = db.collection('catastros').doc(DOC_ID);
-    await docRef.set(datos);
+    const docRef = db.collection('catastros').doc(getDocId());
+    await docRef.set(recolectarTodosLosDatos());
     
     const hora = new Date().toTimeString().substring(0,5);
     localStorage.setItem('ultima_sync_hora', hora);
@@ -752,104 +821,61 @@ async function subirManualmente(silencioso = false) {
     const caja = document.getElementById('sync-estado-caja');
     if (caja) {
       caja.className = 'sync-estado ok';
-      caja.innerHTML = '✅ Última subida: <strong>' + hora + '</strong>';
+      caja.innerHTML = '✅ Subida: <strong>' + hora + '</strong>';
     }
     actualizarIndicadorSync('sincronizado', '☁️ ' + hora);
-    
-    log('✅ Subida exitosa', 'ok');
-    if (!silencioso) mostrarToast('✅ Datos subidos a la nube', 'success');
+    log('✅ Subida OK', 'ok');
+    if (!silencioso) mostrarToast('✅ Datos subidos', 'success');
     
     setTimeout(() => { guardandoEnFirestore = false; }, 2000);
-    
   } catch(e) {
     guardandoEnFirestore = false;
-    log('❌ Error al subir: ' + e.message, 'error');
+    log('❌ Error: ' + e.message, 'error');
     actualizarIndicadorSync('error', '❌ Error');
     const caja = document.getElementById('sync-estado-caja');
     if (caja) {
       caja.className = 'sync-estado error';
-      caja.innerHTML = '❌ Error al subir. Los datos locales están seguros.';
+      caja.innerHTML = '❌ Error. Datos locales seguros.';
     }
     if (!silencioso) mostrarToast('❌ Error al subir', 'error');
   }
 }
 
-// ==================== BAJAR DE FIRESTORE ====================
 async function bajarManualmente() {
-  if (!usuarioActual) {
-    mostrarToast('⚠️ Conecta primero con Google', 'error');
-    return;
-  }
+  if (!usuarioActual) { mostrarToast('⚠️ Conecta primero', 'error'); return; }
   
-  if (!confirm('⚠️ ATENCIÓN\n\n' +
-    'Esto REEMPLAZARÁ todos tus datos locales con los de la nube.\n\n' +
-    '• Si tienes cambios sin subir, se perderán.\n' +
-    '• Es recomendable EXPORTAR un respaldo primero.\n\n' +
-    '¿Continuar?')) return;
+  if (!confirm('⚠️ REEMPLAZARÁ tus datos locales con los de la nube.\n\n' +
+    'Equipo: ' + getDocId() + '\n\n¿Continuar?')) return;
   
   try {
-    log('⬇️ Descargando de la nube...', 'info');
-    actualizarIndicadorSync('sincronizando', '⬇️ Bajando...');
-    
-    const docRef = db.collection('catastros').doc(DOC_ID);
+    log('⬇️ Bajando...', 'info');
+    const docRef = db.collection('catastros').doc(getDocId());
     const docSnap = await docRef.get();
     
     if (!docSnap.exists) {
-      mostrarToast('⚠️ No hay datos en la nube todavía', 'warning');
-      actualizarIndicadorSync('sincronizado', '☁️ Sin datos');
+      mostrarToast('⚠️ Sin datos en la nube para este equipo', 'warning');
       return;
     }
     
-    const datos = docSnap.data();
-    restaurarTodosLosDatos(datos);
+    restaurarTodosLosDatos(docSnap.data());
     hayCambiosPendientes = false;
-    
-    log('✅ Datos bajados de la nube', 'ok');
-    mostrarToast('⬇️ Datos cargados. Recargando...', 'success');
+    mostrarToast('⬇️ Datos cargados', 'success');
+    guardarZoomScroll();
     setTimeout(() => window.location.reload(), 1200);
-    
   } catch(e) {
-    log('❌ Error al bajar: ' + e.message, 'error');
-    actualizarIndicadorSync('error', '❌ Error');
+    log('❌ Error: ' + e.message, 'error');
     mostrarToast('❌ Error al bajar', 'error');
   }
 }
 
-// ==================== SUBIDA AUTOMÁTICA ====================
+// ==================== SUBIDA AUTOMÁTICA (CON DEBOUNCE LARGO) ====================
 function programarSubida() {
   clearTimeout(window._syncTimer);
   window._syncTimer = setTimeout(async () => {
     if (!usuarioActual || !hayCambiosPendientes) return;
-    log('⏰ Subida automática por cambios locales', 'info');
+    log('⏰ Subida automática', 'info');
     await subirManualmente(true);
-  }, 2500);
-}
-
-// ==================== FUNCIONES AUXILIARES ====================
-function verInfoSync() {
-  const datos = recolectarTodosLosDatos();
-  const json = JSON.stringify(datos);
-  const tamañoMB = (json.length / 1024 / 1024).toFixed(2);
-  const cantidadBarrios = datos.barrios.length;
-  const cantidadFichas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_ficha_')).length;
-  const cantidadMapas = Object.keys(datos.datos).filter(k => k.startsWith('catastro_mapa_')).length;
-  
-  let mensaje = '📊 DETALLES\n\n';
-  mensaje += 'Usuario: ' + (usuarioActual ? usuarioActual.displayName : 'no conectado') + '\n';
-  mensaje += 'Tamaño: ' + tamañoMB + ' MB\n';
-  mensaje += 'Barrios: ' + cantidadBarrios + '\n';
-  mensaje += 'Mapas: ' + cantidadMapas + '\n';
-  mensaje += 'Fichas: ' + cantidadFichas + '\n\n';
-  mensaje += 'Última subida: ' + (localStorage.getItem('ultima_sync_hora') || 'nunca');
-  alert(mensaje);
-}
-
-function actualizarIndicadorSync(estado, texto) {
-  const ind = document.getElementById('sync-indicador');
-  if (ind) {
-    ind.className = estado;
-    ind.innerText = texto;
-  }
+  }, 3000);
 }
 
 // ==================== GESTOS TÁCTILES ====================
@@ -899,8 +925,16 @@ function inicializarGestosTactiles() {
 }
 
 // ==================== ZOOM ====================
-function cambiarZoom(delta) { zoomActual = Math.max(0.2, Math.min(3, zoomActual + delta)); aplicarZoom(); }
-function resetZoom() { zoomActual = 1; aplicarZoom(); }
+function cambiarZoom(delta) { 
+  zoomActual = Math.max(0.2, Math.min(3, zoomActual + delta)); 
+  aplicarZoom(); 
+  guardarZoomScroll();
+}
+function resetZoom() { 
+  zoomActual = 1; 
+  aplicarZoom(); 
+  guardarZoomScroll();
+}
 function aplicarZoom() {
   const zoomDiv = document.getElementById('canvas-zoom');
   const container = document.getElementById('canvas-zoom-container');
@@ -965,7 +999,6 @@ function cargarNuevoMapa() {
       ctx.fillRect(0, 0, ancho, alto);
       ctx.drawImage(img, 0, 0, ancho, alto);
       const dataURL = tmp.toDataURL('image/jpeg', 0.55);
-      const tamañoKB = Math.round((dataURL.length * 0.75) / 1024);
       const id = 'barrio_' + Date.now();
       try { localStorage.setItem('catastro_mapa_' + id, dataURL); }
       catch (err) { mostrarToast('❌ Imagen muy grande', 'error'); return; }
@@ -976,7 +1009,6 @@ function cargarNuevoMapa() {
       document.getElementById('archivo-mapa').value = '';
       cambiarBarrio(id);
       actualizarSelectorBarrios();
-      log('✅ Barrio "' + nombre + '" cargado (' + tamañoKB + ' KB)', 'ok');
       mostrarToast('✅ Barrio "' + nombre + '"', 'success');
       marcarCambioPendiente();
       programarSubida();
@@ -996,13 +1028,13 @@ function cambiarBarrio(id) {
   localStorage.setItem('catastro_barrio_activo', id);
   document.getElementById('barrio-activo-info').innerText = '📍 ' + barrio.nombre;
   document.getElementById('btn-matriz').disabled = false;
-  zoomActual = 1;
-  document.getElementById('zoom-nivel').innerText = '100%';
+  
   const dataURL = localStorage.getItem('catastro_mapa_' + id);
   const canvasJSON = localStorage.getItem('catastro_canvas_' + id);
   if (!dataURL) { mostrarToast('No se encontró la imagen', 'error'); return; }
   document.getElementById('sin-barrio').style.display = 'none';
   document.getElementById('canvas-zoom-container').style.display = 'inline-block';
+  
   const nuevoImg = new Image();
   nuevoImg.onload = function() {
     const mapaImg = document.getElementById('mapa-imagen');
@@ -1014,9 +1046,7 @@ function cambiarBarrio(id) {
     canvas.backgroundColor = 'transparent';
     canvas.setZoom(1);
     canvas.calcOffset();
-    document.getElementById('canvas-zoom-container').style.width = nuevoImg.width + 'px';
-    document.getElementById('canvas-zoom-container').style.height = nuevoImg.height + 'px';
-    document.getElementById('canvas-zoom').style.transform = 'scale(1)';
+    
     if (canvasJSON) {
       canvas.clear();
       canvas.setWidth(nuevoImg.width);
@@ -1027,16 +1057,21 @@ function cambiarBarrio(id) {
           restaurarEstadosObjetos();
           canvas.renderAll();
           canvas.calcOffset();
+          // Restaurar zoom + scroll DESPUÉS de cargar
+          setTimeout(restaurarZoomScroll, 300);
         });
-      } catch(e) { canvas.renderAll(); }
+      } catch(e) { 
+        canvas.renderAll();
+        setTimeout(restaurarZoomScroll, 300);
+      }
     } else {
       canvas.clear();
       canvas.setWidth(nuevoImg.width);
       canvas.setHeight(nuevoImg.height);
       canvas.backgroundColor = 'transparent';
       canvas.renderAll();
+      setTimeout(restaurarZoomScroll, 300);
     }
-    setTimeout(() => { canvas.calcOffset(); canvas.renderAll(); }, 100);
   };
   nuevoImg.src = dataURL;
   document.getElementById('selector-barrio').value = id;
@@ -1066,6 +1101,9 @@ function eliminarBarrioActual() {
   const id = barrioActual.id;
   localStorage.removeItem('catastro_mapa_' + id);
   localStorage.removeItem('catastro_canvas_' + id);
+  localStorage.removeItem('catastro_zoom_' + id);
+  localStorage.removeItem('catastro_scrollL_' + id);
+  localStorage.removeItem('catastro_scrollT_' + id);
   const keysAEliminar = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
@@ -1092,7 +1130,7 @@ function guardarCanvasActual() {
   if (!barrioActual || !canvas) return;
   try {
     localStorage.setItem('catastro_canvas_' + barrioActual.id, JSON.stringify(canvas.toJSON(['idCasa'])));
-  } catch(e) { log('Error al guardar canvas: ' + e.message, 'error'); }
+  } catch(e) { log('Error: ' + e.message, 'error'); }
 }
 
 function getFichaKey(idCasa) { return 'catastro_ficha_' + (barrioActual ? barrioActual.id : 'default') + '_' + idCasa; }
@@ -1109,14 +1147,13 @@ function exportarDatos() {
     const fecha = new Date().toISOString().split('T')[0];
     const hora = new Date().toTimeString().split(' ')[0].replace(/:/g, '');
     a.href = url;
-    a.download = 'catastro_backup_' + fecha + '_' + hora + '.json';
+    a.download = 'catastro_' + getDocId() + '_' + fecha + '_' + hora + '.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    log('✅ Exportado (' + (json.length / 1024).toFixed(1) + ' KB)', 'ok');
     mostrarToast('✅ Exportado', 'success');
-  } catch(e) { mostrarToast('❌ Error al exportar', 'error'); }
+  } catch(e) { mostrarToast('❌ Error', 'error'); }
 }
 
 function importarDatos(event) {
@@ -1132,10 +1169,9 @@ function importarDatos(event) {
       const datos = JSON.parse(e.target.result);
       if (!datos.datos || !datos.barrios) { mostrarToast('❌ Archivo no válido', 'error'); return; }
       restaurarTodosLosDatos(datos);
-      log('✅ Importado archivo local', 'ok');
-      mostrarToast('✅ Datos importados. Recargando...', 'success');
+      mostrarToast('✅ Importado. Recargando...', 'success');
       setTimeout(() => window.location.reload(), 1500);
-    } catch(err) { mostrarToast('❌ Error al leer archivo', 'error'); }
+    } catch(err) { mostrarToast('❌ Error al leer', 'error'); }
     event.target.value = '';
   };
   reader.readAsText(file);
@@ -1143,8 +1179,9 @@ function importarDatos(event) {
 
 function recolectarTodosLosDatos() {
   const datos = {
-    version: '2.0',
+    version: '3.0',
     fecha: new Date().toISOString(),
+    equipo: getDocId(),
     barrios: cargarBarriosLista(),
     barrioActivo: barrioActual ? barrioActual.id : null,
     datos: {}
@@ -1179,16 +1216,53 @@ function restaurarTodosLosDatos(datos) {
 // ==================== CASAS ====================
 function crearCasa() {
   if (!canvas || !barrioActual) { mostrarToast('Carga un barrio primero', 'error'); return; }
-  const rect = new fabric.Rect({ width: 60, height: 50, fill: 'rgba(231, 76, 60, 0.4)', stroke: '#c0392b', strokeWidth: 2, rx: 5, ry: 5 });
-  const text = new fabric.Textbox('', { fontSize: 12, fontFamily: 'Arial', fill: '#2c3e50', textAlign: 'center', width: 60, top: 15, left: 0, fontWeight: 'bold', splitByGrapheme: true });
-  const grupo = new fabric.Group([rect, text], { left: 100, top: 100, hasControls: true, hasBorders: true, selectable: true, evented: true });
+  
+  // === CALCULAR CENTRO DE LA VISTA ACTUAL ===
+  const wrapper = document.getElementById('mapa-wrapper');
+  const container = document.getElementById('canvas-zoom-container');
+  const rectWrapper = wrapper.getBoundingClientRect();
+  const rectContainer = container.getBoundingClientRect();
+  
+  // Centro visible en coordenadas del viewport
+  const centerViewX = rectWrapper.left + rectWrapper.width / 2;
+  const centerViewY = rectWrapper.top + rectWrapper.height / 2;
+  
+  // Convertir a coordenadas del canvas (compensando el zoom)
+  const canvasX = (centerViewX - rectContainer.left) / zoomActual;
+  const canvasY = (centerViewY - rectContainer.top) / zoomActual;
+  
+  // === TAMAÑO CONSISTENTE EN PANTALLA ===
+  // Queremos que la casa se vea 60x50 px en pantalla, sin importar el zoom
+  const pantallaAncho = 60;
+  const pantallaAlto = 50;
+  // Convertir a coordenadas del canvas dividiendo por el zoom
+  const canvasAncho = pantallaAncho / zoomActual;
+  const canvasAlto = pantallaAlto / zoomActual;
+  const canvasFontSize = 12 / zoomActual;
+  
+  const rect = new fabric.Rect({
+    width: canvasAncho, height: canvasAlto,
+    fill: 'rgba(231, 76, 60, 0.4)', stroke: '#c0392b',
+    strokeWidth: 2 / zoomActual, rx: 5 / zoomActual, ry: 5 / zoomActual
+  });
+  const text = new fabric.Textbox('', {
+    fontSize: canvasFontSize, fontFamily: 'Arial', fill: '#2c3e50',
+    textAlign: 'center', width: canvasAncho,
+    top: canvasAlto * 0.3, left: 0,
+    fontWeight: 'bold', splitByGrapheme: true
+  });
+  const grupo = new fabric.Group([rect, text], {
+    left: canvasX - canvasAncho/2,
+    top: canvasY - canvasAlto/2,
+    hasControls: true, hasBorders: true, selectable: true, evented: true
+  });
   grupo.set('idCasa', 'Nueva-' + Date.now());
   grupo.setCoords();
   canvas.add(grupo);
   canvas.setActiveObject(grupo);
   canvas.renderAll();
   guardarMapa();
-  mostrarToast('Casa creada', 'info');
+  mostrarToast('Casa creada en el centro de tu vista', 'info');
 }
 
 function ponerNomenclatura() {
@@ -1324,10 +1398,10 @@ function aplicarFiltros() {
     if (encontrada) {
       const color = coloresCondiciones[encontrada];
       obj.set('opacity', 1);
-      if (rect) { rect.set('fill', color.fill); rect.set('stroke', color.stroke); rect.set('strokeWidth', 4); }
+      if (rect) { rect.set('fill', color.fill); rect.set('stroke', color.stroke); rect.set('strokeWidth', 4 / zoomActual); }
     } else {
       obj.set('opacity', 0.12);
-      if (rect) rect.set('strokeWidth', 2);
+      if (rect) rect.set('strokeWidth', 2 / zoomActual);
     }
   });
   canvas.renderAll();
@@ -1353,7 +1427,7 @@ function aplicarColorEstado(obj) {
   const estado = localStorage.getItem(getEstadoKey(obj.idCasa)) || 'Pendiente';
   const rect = obj._objects.find(o => o.type === 'rect');
   if (!rect) return;
-  rect.set('strokeWidth', 2);
+  rect.set('strokeWidth', 2 / zoomActual);
   switch(estado) {
     case 'Visitada': rect.set('fill', 'rgba(46, 204, 113, 0.4)'); rect.set('stroke', '#27ae60'); break;
     case 'Fallida': rect.set('fill', 'rgba(241, 196, 15, 0.4)'); rect.set('stroke', '#f1c40f'); break;
@@ -1610,7 +1684,7 @@ function exportarExcel() {
   ws['!cols'] = [{ wch: 15 },{ wch: 12 },{ wch: 25 },{ wch: 15 },{ wch: 6 },{ wch: 10 },{ wch: 15 },{ wch: 12 },{ wch: 8 },{ wch: 12 },{ wch: 25 },{ wch: 25 },{ wch: 20 },{ wch: 25 }];
   XLSX.utils.book_append_sheet(wb, ws, 'Pacientes');
   const fecha = new Date().toISOString().split('T')[0];
-  const nombre = barrioActual.nombre.replace(/[^a-z0-9]/gi, '_');
+  const nombre = (barrioActual.nombre + '_' + getDocId()).replace(/[^a-z0-9]/gi, '_');
   XLSX.writeFile(wb, 'Catastro_' + nombre + '_' + fecha + '.xlsx');
 }
 
@@ -1622,5 +1696,4 @@ function guardarMapa() {
 }
 </script>
 </body>
-</html>
 </html>
