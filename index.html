@@ -1886,4 +1886,186 @@ async function abrirMatriz(tipo) {
     tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:20px;color:#7f8c8d;">Sin pacientes.</td></tr>';
     info.innerText = titulo + ' | 0 pacientes';
   } else {
-    let html =
+    let html = '';
+    pac.forEach(p => {
+      const color = estadosColoresHex[p.estado] || '#95a5a6';
+      html += '<tr>' +
+        '<td><strong>' + p.casa + '</strong></td>' +
+        '<td><span class="estado-tag" style="background:' + color + ';">' + p.estado + '</span></td>' +
+        '<td>' + (p.nombre || '') + '</td><td>' + (p.cedula || '') + '</td><td>' + (p.edad || '') + '</td><td>' + (p.sexo || '') + '</td>' +
+        '<td>' + (p.contacto || '') + '</td><td>' + (p.escolaridad || '') + '</td><td>' + (p.grupoDispensarial || '') + '</td>' +
+        '<td>' + (p.vacunasCompletas || '') + '</td><td>' + (p.enfermedades || '') + '</td><td>' + (p.medicamentos || '') + '</td>' +
+        '<td>' + (p.eventoSalud || '') + '</td><td>' + ((p.condiciones || []).join(', ')) + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+    info.innerText = titulo + ' | ' + pac.length + ' pacientes en ' + new Set(pac.map(p => p.casa)).size + ' casas';
+  }
+  document.getElementById('modal-matriz').style.display = 'block';
+}
+
+function cerrarMatriz() { document.getElementById('modal-matriz').style.display = 'none'; }
+
+function descargarExcel() {
+  if (pacientesMatrizActuales.length === 0) { mostrarToast('⚠️ Sin datos', 'error'); return; }
+  const datos = pacientesMatrizActuales.map(p => ({
+    'EAIS': p.equipo || '', 'Barrio': p.barrio || '', 'Casa': p.casa, 'Estado': p.estado,
+    'Nombre': p.nombre || '', 'Cédula': p.cedula || '',
+    'Edad': p.edad || '', 'Sexo': p.sexo || '',
+    'Contacto': p.contacto || '', 'Escolaridad': p.escolaridad || '',
+    'Grupo': p.grupoDispensarial || '', 'Vacunas': p.vacunasCompletas || '',
+    'Enfermedades': p.enfermedades || '', 'Medicamentos': p.medicamentos || '',
+    'Evento': p.eventoSalud || '', 'Condiciones': (p.condiciones || []).join(', ')
+  }));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(datos);
+  ws['!cols'] = [{ wch: 10 },{ wch: 15 },{ wch: 12 },{ wch: 12 },{ wch: 25 },{ wch: 15 },{ wch: 6 },{ wch: 10 },{ wch: 15 },{ wch: 12 },{ wch: 8 },{ wch: 12 },{ wch: 25 },{ wch: 25 },{ wch: 20 },{ wch: 25 }];
+  let hoja = 'Pacientes';
+  let archivo = 'Pacientes';
+  const fecha = new Date().toISOString().split('T')[0];
+  if (tabMatrizActivo === 'barrio') {
+    hoja = barrioActual ? barrioActual.nombre.substring(0, 25) : 'Barrio';
+    archivo = 'Barrio_' + (barrioActual ? barrioActual.nombre : 'Sin') + '_' + fecha;
+  } else if (tabMatrizActivo === 'eais') {
+    hoja = equipoActual;
+    archivo = 'EAIS_' + equipoActual + '_' + fecha;
+  } else {
+    hoja = 'Todos';
+    archivo = 'TODOS_' + fecha;
+  }
+  XLSX.utils.book_append_sheet(wb, ws, hoja);
+  XLSX.writeFile(wb, archivo.replace(/[^a-z0-9_\-]/gi, '_') + '.xlsx');
+  mostrarToast('✅ Excel descargado', 'success');
+}
+
+// ==================== EXPORTAR / IMPORTAR ====================
+function exportarDatos() {
+  if (!equipoActual) { mostrarToast('Sin equipo', 'error'); return; }
+  const datos = recolectarTodosLosDatos();
+  const json = JSON.stringify(datos);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'catastro_' + equipoActual + '_' + new Date().toISOString().split('T')[0] + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  mostrarToast('✅ Exportado', 'success');
+}
+
+function importarDatos(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  if (!equipoActual) { mostrarToast('Sin equipo', 'error'); e.target.value = ''; return; }
+  if (!confirm('¿Reemplazar datos de ' + equipoActual + '?')) { e.target.value = ''; return; }
+  const r = new FileReader();
+  r.onload = function(ev) {
+    try {
+      const datos = JSON.parse(ev.target.result);
+      if (!datos.datos || !datos.barrios) throw new Error('Formato inválido');
+      restaurarTodosLosDatos(datos);
+      mostrarToast('✅ Importado. Recargando...', 'success');
+      setTimeout(() => location.reload(), 1500);
+    } catch(err) { mostrarToast('❌ ' + err.message, 'error'); }
+    e.target.value = '';
+  };
+  r.readAsText(f);
+}
+
+function recolectarTodosLosDatos() {
+  if (!equipoActual) return { version: '1.0', datos: {}, barrios: [] };
+  const datos = {
+    version: '1.0',
+    fecha: new Date().toISOString(),
+    equipo: equipoActual,
+    barrios: cargarBarriosLista(),
+    barrioActivo: barrioActual ? barrioActual.id : null,
+    datos: {}
+  };
+  const pref = P('');
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith(pref)) {
+      const sp = k.substring(pref.length);
+      if (sp.match(/^(mapa_|canvas_|ficha_|estado_|ts_)/)) {
+        datos.datos[sp] = localStorage.getItem(k);
+      }
+    }
+  }
+  return datos;
+}
+
+function restaurarTodosLosDatos(datos) {
+  if (!datos || !datos.datos || !datos.barrios) throw new Error('Formato inválido');
+  if (!equipoActual) throw new Error('Sin equipo');
+  const pref = P('');
+  const borrar = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith(pref)) borrar.push(k);
+  }
+  borrar.forEach(k => localStorage.removeItem(k));
+  for (const [sp, v] of Object.entries(datos.datos)) {
+    localStorage.setItem(P(sp), v);
+  }
+  localStorage.setItem(P('barrios'), JSON.stringify(datos.barrios));
+  if (datos.barrioActivo) localStorage.setItem(P('barrio_activo'), datos.barrioActivo);
+}
+
+function guardarMapa() {
+  if (aplicandoFiltros || !barrioActual || !equipoActual) return;
+  guardarCanvasActual();
+  marcarCambioPendiente(barrioActual.id);
+  programarSubida();
+}
+
+// ==================== INICIO ====================
+window.addEventListener('load', function() {
+  log('🚀 Iniciando...', 'info');
+  migrarDatosAntiguos();
+  equipoActual = cargarEquipoActivoGuardado();
+  try {
+    const manifest = {
+      name: "Catastro Médico", short_name: "Catastro", start_url: ".", display: "standalone",
+      background_color: "#2c3e50", theme_color: "#2c3e50",
+      icons: [{ src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgZmlsbD0iIzJjM2U1MCIgcng9IjMwIi8+PC9zdmc+", sizes: "192x192", type: "image/svg+xml" }]
+    };
+    const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+    const link = document.getElementById('manifest-placeholder');
+    if (link) link.href = URL.createObjectURL(blob);
+  } catch(e) {}
+  try {
+    canvas = new fabric.Canvas('c', {
+      selection: true, preserveObjectStacking: true,
+      backgroundColor: 'transparent', width: 800, height: 600,
+      allowTouchScrolling: true
+    });
+    configurarEventosCanvas();
+    log('Canvas OK', 'ok');
+  } catch(e) { log('Error canvas: ' + e.message, 'error'); }
+  inicializarGestosTactiles();
+  if (localStorage.getItem('instrucciones_cerradas') === '1') {
+    document.getElementById('instrucciones').classList.add('oculto');
+  }
+  actualizarUIEquipos();
+  actualizarTabsMatriz();
+  if (equipoActual) {
+    iniciarEquipo();
+  } else {
+    document.getElementById('sin-equipo').style.display = 'block';
+    document.getElementById('btn-matriz').disabled = true;
+  }
+  window.addEventListener('beforeunload', function() {
+    if (equipoActual) guardarTodoLocal();
+    guardarZoomScroll();
+  });
+  document.getElementById('mapa-wrapper').addEventListener('scroll', () => {
+    clearTimeout(window._scrollSaveTimer);
+    window._scrollSaveTimer = setTimeout(guardarZoomScroll, 500);
+  });
+  inicializarFirebase();
+  window.addEventListener('online', () => mostrarToast('🌐 Reconectado', 'info'));
+  window.addEventListener('offline', () => mostrarToast('📴 Sin conexión', 'warning'));
+});
+</script>
+</body>
+</html>
