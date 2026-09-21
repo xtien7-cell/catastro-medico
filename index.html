@@ -431,6 +431,7 @@ let ultimoCambioLocal = 0;
 let equipoActual = null;
 let tabMatrizActivo = 'barrio';
 let pacientesMatrizActuales = [];
+let cargandoCanvas = false;
 
 const coloresCondiciones = {
   'Embarazada': { fill: 'rgba(233, 30, 99, 0.7)', stroke: '#e91e63' },
@@ -776,7 +777,7 @@ function gestionarSync() {
   else if (confirm('¿Cerrar sesión?')) auth.signOut();
 }
 
-// ==================== FUSIÓN POR TIMESTAMP ====================
+// ==================== FUSIÓN POR TIMESTAMP (Solo para subir) ====================
 function fusionarDatosPorTimestamp(datosLocales, datosRemotos) {
   const tsLocales = {};
   const tsRemotos = {};
@@ -799,7 +800,6 @@ function fusionarDatosPorTimestamp(datosLocales, datosRemotos) {
     const tsR = tsRemotos[idBarrio] || 0;
     const usarLocal = tsL >= tsR;
     const fuente = usarLocal ? datosLocales : datosRemotos;
-    log('Barrio ' + idBarrio + ': local=' + tsL + ', remoto=' + tsR + ' → ' + (usarLocal ? 'LOCAL' : 'NUBE'));
     Object.keys(fuente).forEach(k => {
       const prefijosBarrio = [
         'mapa_' + idBarrio, 'canvas_' + idBarrio,
@@ -815,7 +815,7 @@ function fusionarDatosPorTimestamp(datosLocales, datosRemotos) {
   return fusionado;
 }
 
-// ==================== SUBIR CON FUSIÓN ====================
+// ==================== SUBIR ====================
 async function subirManualmente(silencioso = false) {
   if (!equipoActual) { if (!silencioso) mostrarToast('⚠️ Sin equipo', 'error'); return; }
   if (!usuarioActual) { if (!silencioso) mostrarToast('⚠️ Sin conexión', 'error'); return; }
@@ -864,33 +864,30 @@ async function subirManualmente(silencioso = false) {
   }
 }
 
-// ==================== BAJAR CON FUSIÓN ====================
+// ==================== BAJAR MANUAL ====================
 async function bajarManualmente() {
   if (!equipoActual) { mostrarToast('⚠️ Sin equipo', 'error'); return; }
   if (!usuarioActual) { mostrarToast('⚠️ Sin conexión', 'error'); return; }
-  if (!confirm('⚠️ BAJAR ' + equipoActual + ' de la nube?\n\nSe fusionará con tus datos locales.')) return;
+  if (!confirm('⚠️ BAJAR ' + equipoActual + ' de la nube?\n\nReemplazará tus datos locales con los de la nube.')) return;
   try {
     log('⬇️ Bajando ' + equipoActual + '...', 'info');
     const docSnap = await db.collection('catastros').doc(equipoActual).get();
     if (!docSnap.exists) { mostrarToast('⚠️ Sin datos en la nube', 'warning'); return; }
     const datosRemotos = docSnap.data();
-    const datosLocales = recolectarTodosLosDatos();
-    const datosFusionados = fusionarDatosPorTimestamp(datosLocales.datos || {}, datosRemotos.datos || {});
-    const barriosMap = new Map();
-    (datosRemotos.barrios || []).forEach(b => barriosMap.set(b.id, b));
-    (datosLocales.barrios || []).forEach(b => barriosMap.set(b.id, b));
-    const barriosFusionados = Array.from(barriosMap.values());
     const pref = P('');
     const borrar = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && k.startsWith(pref) && !k.startsWith(P('ts_'))) borrar.push(k);
+      if (k && k.startsWith(pref)) borrar.push(k);
     }
     borrar.forEach(k => localStorage.removeItem(k));
-    Object.entries(datosFusionados).forEach(([k, v]) => { localStorage.setItem(P(k), v); });
-    localStorage.setItem(P('barrios'), JSON.stringify(barriosFusionados));
+    Object.entries(datosRemotos.datos || {}).forEach(([k, v]) => {
+      localStorage.setItem(P(k), v);
+    });
+    localStorage.setItem(P('barrios'), JSON.stringify(datosRemotos.barrios || []));
+    if (datosRemotos.barrioActivo) localStorage.setItem(P('barrio_activo'), datosRemotos.barrioActivo);
     hayCambiosPendientes = false;
-    mostrarToast('⬇️ Datos fusionados. Recargando...', 'success');
+    mostrarToast('⬇️ Datos cargados. Recargando...', 'success');
     setTimeout(() => window.location.reload(), 1200);
   } catch(e) {
     log('❌ Error bajando: ' + e.message, 'error');
@@ -898,84 +895,86 @@ async function bajarManualmente() {
   }
 }
 
-// ==================== ESCUCHA TIEMPO REAL (AUTO-FUSIÓN) ====================
+// ==================== ESCUCHA TIEMPO REAL (CORREGIDA) ====================
 function iniciarEscuchaTiempoReal() {
   if (!usuarioActual || !equipoActual) return;
   if (unsubscribeListener) unsubscribeListener();
   const docRef = db.collection('catastros').doc(equipoActual);
-  log('Escuchando: ' + equipoActual, 'info');
+  log('👀 Escuchando cambios de compañeros...', 'info');
   
   unsubscribeListener = docRef.onSnapshot((snapshot) => {
     if (aplicandoCambiosRemotos) return;
     if (guardandoEnFirestore) return;
-    if (Date.now() - ultimoCambioLocal < 8000) return;
+    if (Date.now() - ultimoCambioLocal < 10000) return;
+    if (cargandoCanvas) return;
     
-    if (snapshot.exists) {
-      const datosRemotos = snapshot.data();
-      const datosLocales = recolectarTodosLosDatos();
-      const remotoStr = JSON.stringify(datosRemotos.datos || {});
-      const localStr = JSON.stringify(datosLocales.datos || {});
-      if (remotoStr === localStr) return;
-      
-      log('📥 Cambios de compañeros detectados. Aplicando automáticamente...', 'info');
-      const modalAbierto = document.getElementById('modal-ficha').style.display === 'block' || 
-                           document.getElementById('modal-matriz').style.display === 'block';
-      
-      // Fusionar por timestamp
-      const datosFusionados = fusionarDatosPorTimestamp(datosLocales.datos || {}, datosRemotos.datos || {});
-      const barriosMap = new Map();
-      (datosRemotos.barrios || []).forEach(b => barriosMap.set(b.id, b));
-      (datosLocales.barrios || []).forEach(b => barriosMap.set(b.id, b));
-      const barriosFusionados = Array.from(barriosMap.values());
-      
-      // Verificar si hay cambios reales
-      let cambiosReales = false;
-      Object.keys(datosFusionados).forEach(k => {
-        if ((datosLocales.datos || {})[k] !== datosFusionados[k]) cambiosReales = true;
-      });
-      if (JSON.stringify(datosLocales.barrios) !== JSON.stringify(barriosFusionados)) cambiosReales = true;
-      
-      if (!cambiosReales) return;
-      
-      // Aplicar los cambios (limpiar y reescribir)
-      aplicandoCambiosRemotos = true;
-      const zoomAntes = zoomActual;
-      const wrapper = document.getElementById('mapa-wrapper');
-      const scrollL = wrapper.scrollLeft;
-      const scrollT = wrapper.scrollTop;
-      
-      const pref = P('');
-      const borrar = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && k.startsWith(pref) && !k.startsWith(P('ts_'))) borrar.push(k);
-      }
-      borrar.forEach(k => localStorage.removeItem(k));
-      Object.entries(datosFusionados).forEach(([k, v]) => { localStorage.setItem(P(k), v); });
-      localStorage.setItem(P('barrios'), JSON.stringify(barriosFusionados));
-      
-      if (modalAbierto) {
-        mostrarToast('📥 Cambios aplicados. Cierra los modales para verlos.', 'success');
-        aplicandoCambiosRemotos = false;
-      } else {
-        actualizarMapaDesdeDatos(function() {
-          zoomActual = zoomAntes;
-          aplicarZoom();
-          setTimeout(() => { wrapper.scrollLeft = scrollL; wrapper.scrollTop = scrollT; }, 100);
-          mostrarToast('✅ Cambios de compañeros aplicados', 'success');
-          aplicandoCambiosRemotos = false;
-        });
-      }
+    if (!snapshot.exists) return;
+    
+    const datosRemotos = snapshot.data();
+    const datosLocales = recolectarTodosLosDatos();
+    
+    if (JSON.stringify(datosRemotos.datos || {}) === JSON.stringify(datosLocales.datos || {})) {
+      return;
     }
+    
+    // Si hay cambios locales pendientes, NO sobreescribir. Avisar.
+    if (hayCambiosPendientes) {
+      log('⚠️ Hay cambios en la nube pero tienes cambios locales pendientes', 'info');
+      mostrarToast('📥 Hay cambios nuevos. Súbelos antes de bajar.', 'warning');
+      return;
+    }
+    
+    log('📥 Cambios de compañeros detectados. Aplicando...', 'info');
+    aplicandoCambiosRemotos = true;
+    const zoomAntes = zoomActual;
+    const wrapper = document.getElementById('mapa-wrapper');
+    const scrollL = wrapper.scrollLeft;
+    const scrollT = wrapper.scrollTop;
+    
+    const barrioActivoAntes = barrioActual ? barrioActual.id : null;
+    
+    const pref = P('');
+    const borrar = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(pref)) borrar.push(k);
+    }
+    borrar.forEach(k => localStorage.removeItem(k));
+    
+    Object.entries(datosRemotos.datos || {}).forEach(([k, v]) => {
+      localStorage.setItem(P(k), v);
+    });
+    localStorage.setItem(P('barrios'), JSON.stringify(datosRemotos.barrios || []));
+    
+    const nuevaListaBarrios = datosRemotos.barrios || [];
+    if (barrioActivoAntes && nuevaListaBarrios.find(b => b.id === barrioActivoAntes)) {
+      localStorage.setItem(P('barrio_activo'), barrioActivoAntes);
+      barrioActual = nuevaListaBarrios.find(b => b.id === barrioActivoAntes);
+    } else if (nuevaListaBarrios.length > 0) {
+      barrioActual = nuevaListaBarrios[0];
+      localStorage.setItem(P('barrio_activo'), barrioActual.id);
+    }
+    
+    actualizarSelectorBarrios();
+    
+    actualizarMapaDesdeDatos(function() {
+      zoomActual = zoomAntes;
+      aplicarZoom();
+      setTimeout(() => { wrapper.scrollLeft = scrollL; wrapper.scrollTop = scrollT; }, 100);
+      mostrarToast('✅ Cambios de compañeros aplicados', 'success');
+      aplicandoCambiosRemotos = false;
+    });
   }, (error) => log('Listener: ' + error.message, 'error'));
 }
 
+// ==================== ACTUALIZAR MAPA DESDE DATOS (CORREGIDA) ====================
 function actualizarMapaDesdeDatos(callback) {
+  cargandoCanvas = true;
   actualizarSelectorBarrios();
   if (barrioActual) {
     const dataURL = localStorage.getItem(P('mapa_' + barrioActual.id));
     const canvasJSON = localStorage.getItem(P('canvas_' + barrioActual.id));
-    if (!dataURL) { if (callback) callback(); return; }
+    if (!dataURL) { cargandoCanvas = false; if (callback) callback(); return; }
     const nuevoImg = new Image();
     nuevoImg.onload = function() {
       canvas.clear();
@@ -995,27 +994,32 @@ function actualizarMapaDesdeDatos(callback) {
             restaurarEstadosObjetos();
             canvas.renderAll();
             canvas.calcOffset();
-            if (callback) callback();
+            setTimeout(() => { cargandoCanvas = false; if (callback) callback(); }, 100);
           });
-        } catch(e) { canvas.renderAll(); if (callback) callback(); }
+        } catch(e) { canvas.renderAll(); cargandoCanvas = false; if (callback) callback(); }
       } else {
         canvas.renderAll();
+        cargandoCanvas = false;
         if (callback) callback();
       }
     };
-    nuevoImg.onerror = function() { if (callback) callback(); };
+    nuevoImg.onerror = function() { cargandoCanvas = false; if (callback) callback(); };
     nuevoImg.src = dataURL;
   } else {
+    cargandoCanvas = false;
     if (callback) callback();
   }
 }
 
-// ==================== VERIFICAR DATOS AL INICIAR (AUTO-FUSIÓN) ====================
+// ==================== VERIFICAR DATOS AL INICIAR (CORREGIDA) ====================
 async function verificarDatosRemotos() {
   if (!usuarioActual || !equipoActual) return;
   try {
+    log('🔍 Verificando datos en la nube...', 'info');
     const docSnap = await db.collection('catastros').doc(equipoActual).get();
+    
     if (!docSnap.exists) {
+      log('📤 Nube vacía. Subiendo datos locales...', 'info');
       if (Object.keys(recolectarTodosLosDatos().datos || {}).length > 0) {
         await subirManualmente(true);
       }
@@ -1030,43 +1034,41 @@ async function verificarDatosRemotos() {
       return;
     }
     
-    log('🔄 Fusionando datos al iniciar...', 'info');
+    const hayLocales = Object.keys(datosLocales.datos || {}).length > 0;
+    const hayRemotos = Object.keys(datosRemotos.datos || {}).length > 0;
+    const cambioLocalPendiente = hayCambiosPendientes && hayLocales;
     
-    const datosFusionados = fusionarDatosPorTimestamp(datosLocales.datos || {}, datosRemotos.datos || {});
-    
-    const barriosMap = new Map();
-    (datosRemotos.barrios || []).forEach(b => barriosMap.set(b.id, b));
-    (datosLocales.barrios || []).forEach(b => barriosMap.set(b.id, b));
-    const barriosFusionados = Array.from(barriosMap.values());
-    
-    let cambiosReales = 0;
-    Object.keys(datosFusionados).forEach(k => {
-      const localVal = (datosLocales.datos || {})[k];
-      const fusionVal = datosFusionados[k];
-      if (localVal !== fusionVal) cambiosReales++;
-    });
-    
-    if (cambiosReales === 0 && JSON.stringify(datosLocales.barrios) === JSON.stringify(barriosFusionados)) {
-      log('✅ Nada que fusionar', 'ok');
-      return;
+    if (cambioLocalPendiente) {
+      const bajar = confirm(
+        '⚠️ Tienes cambios locales sin subir.\n\n' +
+        '· Aceptar = BAJAR los de la nube (perderás los locales)\n' +
+        '· Cancelar = SUBIR los locales (reemplazarás la nube)\n\n' +
+        '¿Bajar de la nube?'
+      );
+      if (!bajar) {
+        await subirManualmente(true);
+        return;
+      }
     }
     
-    log('🔄 ' + cambiosReales + ' elementos cambiaron desde la nube', 'info');
+    log('⬇️ Bajando datos de la nube...', 'info');
     
     const pref = P('');
     const borrar = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && k.startsWith(pref) && !k.startsWith(P('ts_'))) borrar.push(k);
+      if (k && k.startsWith(pref)) borrar.push(k);
     }
     borrar.forEach(k => localStorage.removeItem(k));
     
-    Object.entries(datosFusionados).forEach(([k, v]) => {
+    Object.entries(datosRemotos.datos || {}).forEach(([k, v]) => {
       localStorage.setItem(P(k), v);
     });
-    localStorage.setItem(P('barrios'), JSON.stringify(barriosFusionados));
+    localStorage.setItem(P('barrios'), JSON.stringify(datosRemotos.barrios || []));
+    if (datosRemotos.barrioActivo) localStorage.setItem(P('barrio_activo'), datosRemotos.barrioActivo);
     
-    mostrarToast('⬇️ Datos actualizados desde la nube. Recargando...', 'success');
+    hayCambiosPendientes = false;
+    mostrarToast('⬇️ Datos cargados desde la nube. Recargando...', 'success');
     setTimeout(() => window.location.reload(), 1500);
     
   } catch(e) { log('Error verificar: ' + e.message, 'error'); }
@@ -1498,8 +1500,8 @@ document.addEventListener('keydown', function(e) {
 
 function configurarEventosCanvas() {
   canvas.on('object:modified', guardarMapa);
-  canvas.on('object:added', function() { if (!aplicandoFiltros) guardarMapa(); });
-  canvas.on('object:removed', function() { if (!aplicandoFiltros) guardarMapa(); });
+  canvas.on('object:added', function() { if (!aplicandoFiltros && !cargandoCanvas) guardarMapa(); });
+  canvas.on('object:removed', function() { if (!aplicandoFiltros && !cargandoCanvas) guardarMapa(); });
   canvas.on('mouse:down', function(options) {
     const target = options.target;
     if (target && target.type === 'group' && target.selectable === false && target.idCasa) {
@@ -1979,7 +1981,9 @@ function restaurarTodosLosDatos(datos) {
   if (datos.barrioActivo) localStorage.setItem(P('barrio_activo'), datos.barrioActivo);
 }
 
+// ==================== GUARDAR MAPA (CORREGIDA - EVITAR MARCAR AL CARGAR) ====================
 function guardarMapa() {
+  if (cargandoCanvas) return;
   if (aplicandoFiltros || !barrioActual || !equipoActual) return;
   guardarCanvasActual();
   marcarCambioPendiente(barrioActual.id);
