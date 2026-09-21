@@ -1639,6 +1639,33 @@ function limpiarFiltros() {
 }
 
 // ==================== FICHA ====================
+function escaparHTML(valor) {
+  return String(valor || '').replace(/[&<>'"]/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  })[c]);
+}
+
+function alertasParaVisita(integrante) {
+  const etiquetas = {
+    'Embarazada': 'Embarazada',
+    'Niños menores de 2 años': 'Niño menor de 2 años',
+    'Discapacidad': 'Discapacidad',
+    'Hipertensión': 'Hipertenso/a',
+    'Diabetes': 'Diabetes',
+    'Salud mental': 'Salud mental',
+    'VIH': 'VIH',
+    'Tuberculosis': 'Tuberculosis',
+    'Desnutrición': 'Desnutrición',
+    'Cuidados paliativos': 'Cuidados paliativos'
+  };
+  const alertas = (integrante.condiciones || []).map(c => etiquetas[c] || c);
+  if (integrante.vacunasCompletas === 'No') alertas.push('Vacunas incompletas');
+  if (integrante.eventoSalud && integrante.eventoSalud.trim()) {
+    alertas.push(integrante.eventoSalud.trim());
+  }
+  return alertas;
+}
+
 function abrirResumenFamiliar(idCasa) {
   idCasaActual = idCasa;
   document.getElementById('sidebar-id-casa').innerText = idCasa;
@@ -1655,13 +1682,14 @@ function abrirResumenFamiliar(idCasa) {
       integrantes.forEach(int => {
         const grupo = int.grupoDispensarial || '1';
         const colores = { '1': '#2ecc71', '2': '#f1c40f', '3': '#e74c3c', '4': '#3498db' };
+        const alertas = alertasParaVisita(int);
         html += '<div class="resumen-integrante" style="border-left-color:' + (colores[grupo] || '#bdc3c7') + ';">' +
-          '<h4>' + (int.nombre || 'Sin nombre') + '</h4>' +
-          '<p><strong>Edad:</strong> ' + (int.edad || 'N/A') + ' | <strong>Sexo:</strong> ' + (int.sexo || 'N/A') + '</p>' +
-          '<p><strong>📞</strong> ' + (int.contacto || 'No registrado') + '</p>' +
-          '<p><strong>Grupo:</strong> ' + grupo + '</p>' +
-          '<p><strong>Enf:</strong> ' + (int.enfermedades || 'Ninguna') + '</p>' +
-          (int.condiciones && int.condiciones.length > 0 ? '<div>' + int.condiciones.map(c => '<span class="tag-condicion" style="background:' + ((coloresCondiciones[c]||{}).stroke||'#e74c3c') + '">' + c + '</span>').join('') + '</div>' : '') +
+          '<h4>' + escaparHTML(int.nombre || 'Sin nombre') + ' · ' + escaparHTML(int.edad || 'N/A') + ' años</h4>' +
+          '<p><strong>Cédula:</strong> ' + escaparHTML(int.cedula || 'No registrada') + '</p>' +
+          '<p><strong>📞</strong> ' + escaparHTML(int.contacto || 'No registrado') + '</p>' +
+          '<p><strong>Medicamento:</strong> ' + escaparHTML(int.medicamentos || 'Sin medicación registrada') + '</p>' +
+          '<p><strong>Enfermedad:</strong> ' + escaparHTML(int.enfermedades || 'Ninguna registrada') + '</p>' +
+          (alertas.length > 0 ? '<div>' + alertas.map(a => '<span class="tag-condicion" style="background:' + ((coloresCondiciones[a]||{}).stroke||'#e74c3c') + '">' + escaparHTML(a) + '</span>').join('') + '</div>' : '') +
           '</div>';
       });
       lista.innerHTML = html;
