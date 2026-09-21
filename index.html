@@ -225,30 +225,24 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
 <div id="overlay-sidebar" onclick="toggleSidebarMovil()"></div>
 
 <div id="sidebar-filtros">
-  <!-- EQUIPO DE SALUD -->
   <div class="sidebar-section-header equipo abierto" onclick="toggleSeccion('seccion-equipo', this)">
     <span>🏥 Equipo de Salud</span><span class="flecha">▼</span>
   </div>
   <div class="sidebar-section-content abierto" id="seccion-equipo">
     <div class="seccion-inner">
       <div class="sync-estado equipo" id="equipo-actual-caja">🏥 Sin equipo seleccionado</div>
-      
       <label>Crear nuevo equipo:</label>
       <input type="text" id="nuevo-equipo-nombre" placeholder="Ej: EU06, EU07..." maxlength="20">
       <button class="btn-sync-inner btn-crear-equipo" onclick="crearNuevoEquipo()">➕ CREAR EQUIPO</button>
-      
       <label style="margin-top:15px;">Mis equipos:</label>
       <div class="lista-equipos" id="lista-equipos">
         <div style="padding:15px; text-align:center; color:#7f8c8d; font-size:12px;">Sin equipos creados</div>
       </div>
-      
       <button class="btn-sync-inner btn-eliminar-equipo" onclick="eliminarEquipoActual()" style="margin-top:10px;">🗑️ Eliminar equipo actual</button>
-      
       <p class="sync-info">Cada equipo tiene sus datos aislados.</p>
     </div>
   </div>
 
-  <!-- NUBE -->
   <div class="sidebar-section-header" onclick="toggleSeccion('seccion-nube', this)">
     <span>☁️ Nube (Google)</span><span class="flecha">▼</span>
   </div>
@@ -263,19 +257,16 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
         </svg>
         <span id="btn-google-texto">Conectar con Google</span>
       </button>
-      
       <div id="controles-firebase" style="display:none;">
         <button class="btn-sync-inner btn-subir-drive" onclick="subirManualmente()" style="margin-top:15px;">⬆️ SUBIR EQUIPO ACTUAL</button>
         <button class="btn-sync-inner btn-bajar-drive" onclick="bajarManualmente()">⬇️ BAJAR EQUIPO ACTUAL</button>
         <div class="sync-estado" id="sync-estado-caja" style="margin-top:10px;">Sin sincronizar</div>
         <button class="btn-sync-inner" onclick="mostrarLogs()" style="background:#34495e; margin-top:8px;">🔍 Ver registro</button>
       </div>
-      
       <p class="sync-info" id="sync-info-texto" style="margin-top:10px;">Conecta tu cuenta.</p>
     </div>
   </div>
 
-  <!-- BARRIOS -->
   <div class="sidebar-section-header" onclick="toggleSeccion('seccion-barrios', this)">
     <span>📍 Barrios</span><span class="flecha">▼</span>
   </div>
@@ -285,14 +276,12 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; over
       <select id="selector-barrio" onchange="cambiarBarrio(this.value)">
         <option value="">-- Sin barrios --</option>
       </select>
-      
       <label style="margin-top:15px;">Crear nuevo barrio:</label>
       <input type="text" id="nombre-barrio" placeholder="Ej. Chorlavi...">
       <label>Imagen del Mapa:</label>
       <input type="file" id="archivo-mapa" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,image/*">
       <button class="btn-cargar" onclick="cargarNuevoMapa()">✅ Cargar Mapa</button>
       <button class="btn-eliminar-barrio" onclick="eliminarBarrioActual()">🗑️ Eliminar Barrio</button>
-      
       <div class="sync-separador">
         <span class="sync-titulo">💾 Respaldo Local</span>
         <button class="btn-sync-inner btn-export-inner" onclick="exportarDatos()">📤 Exportar JSON</button>
@@ -487,6 +476,66 @@ function guardarListaEquipos(lista) { localStorage.setItem(listaEquiposKey(), JS
 function cargarEquipoActivoGuardado() { return localStorage.getItem(equipoActivoKey()) || null; }
 function guardarEquipoActivo(id) { localStorage.setItem(equipoActivoKey(), id); }
 
+// ==================== LISTA DE EQUIPOS EN NUBE ====================
+async function subirListaEquiposANube() {
+  if (!usuarioActual) return;
+  try {
+    const lista = cargarListaEquipos();
+    const ids = lista.map(e => e.id);
+    await db.collection('config').doc('equipos').set({ 
+      lista: ids,
+      actualizado: new Date().toISOString(),
+      actualizadoPor: usuarioActual.email || ''
+    });
+    log('Lista de equipos subida: ' + ids.join(', '), 'ok');
+  } catch(e) {
+    log('Error subiendo lista equipos: ' + e.message, 'error');
+  }
+}
+
+async function bajarListaEquiposDeNube() {
+  if (!usuarioActual) return;
+  try {
+    const docRef = db.collection('config').doc('equipos');
+    const docSnap = await docRef.get();
+    
+    if (docSnap.exists) {
+      const data = docSnap.data();
+      const idsRemotos = data.lista || [];
+      
+      const listaLocal = cargarListaEquipos();
+      const idsLocales = listaLocal.map(e => e.id);
+      
+      let cambios = false;
+      idsRemotos.forEach(id => {
+        if (!idsLocales.includes(id)) {
+          listaLocal.push({ id, fecha: new Date().toISOString() });
+          cambios = true;
+        }
+      });
+      
+      if (idsLocales.some(id => !idsRemotos.includes(id))) {
+        await subirListaEquiposANube();
+        cambios = true;
+      }
+      
+      if (cambios) {
+        guardarListaEquipos(listaLocal);
+        log('Equipos actualizados desde la nube', 'ok');
+        actualizarUIEquipos();
+      } else {
+        log('Equipos ya sincronizados', 'info');
+      }
+    } else {
+      if (cargarListaEquipos().length > 0) {
+        await subirListaEquiposANube();
+      }
+    }
+  } catch(e) {
+    log('Error bajando lista equipos: ' + e.message, 'error');
+  }
+}
+
 // ==================== MIGRACIÓN ====================
 function migrarDatosAntiguos() {
   if (cargarListaEquipos().length > 0) return;
@@ -632,6 +681,7 @@ function crearNuevoEquipo() {
   
   lista.push({ id: nombreLimpio, fecha: new Date().toISOString() });
   guardarListaEquipos(lista);
+  subirListaEquiposANube();
   guardarEquipoActivo(nombreLimpio);
   equipoActual = nombreLimpio;
   input.value = '';
@@ -668,6 +718,7 @@ function eliminarEquipoActual() {
   
   const lista = cargarListaEquipos().filter(e => e.id !== idEliminar);
   guardarListaEquipos(lista);
+  subirListaEquiposANube();
   
   if (usuarioActual) {
     db.collection('catastros').doc(idEliminar).delete()
@@ -748,10 +799,14 @@ function inicializarFirebase() {
         caja.innerHTML = '✅ Conectado';
       }
       
-      if (equipoActual) {
-        iniciarEscuchaTiempoReal();
-        setTimeout(verificarDatosRemotos, 1500);
-      }
+      // NUEVO: Bajar lista de equipos de la nube primero
+      setTimeout(async () => {
+        await bajarListaEquiposDeNube();
+        if (equipoActual) {
+          iniciarEscuchaTiempoReal();
+          setTimeout(verificarDatosRemotos, 1500);
+        }
+      }, 500);
     } else {
       usuarioActual = null;
       document.getElementById('btn-google-texto').innerText = 'Conectar con Google';
@@ -1898,7 +1953,6 @@ window.addEventListener('load', function() {
   migrarDatosAntiguos();
   equipoActual = cargarEquipoActivoGuardado();
   
-  // PWA manifest
   try {
     const manifest = {
       name: "Catastro Médico", short_name: "Catastro", start_url: ".", display: "standalone",
