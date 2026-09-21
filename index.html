@@ -298,7 +298,6 @@ input,select,textarea{font-family:inherit}
         <small id="uo-detalle-display">Sin configurar</small>
       </div>
 
-      <!-- UNIDAD OPERATIVA: solo resumen, sin botón de edición -->
       <div class="side-section collapsed" data-key="uo">
         <button class="side-header" onclick="toggleSection(this)">
           <span>🏢 Unidad Operativa</span><span class="chev">▼</span>
@@ -309,7 +308,6 @@ input,select,textarea{font-family:inherit}
         </div>
       </div>
 
-      <!-- EQUIPO DE SALUD: solo selección, sin eliminar -->
       <div class="side-section collapsed" data-key="equipo">
         <button class="side-header" onclick="toggleSection(this)">
           <span>🏥 Equipo de Salud</span><span class="chev">▼</span>
@@ -321,8 +319,7 @@ input,select,textarea{font-family:inherit}
               <div style="padding:12px;text-align:center;color:#617886;font-size:11.5px">Sin equipos</div>
             </div>
           </div>
-          <button class="btn btn-violet" onclick="crearEquipoPrueba()">🧪 Equipo de prueba (TEST)</button>
-          <p class="side-hint">Selecciona un EAIS para trabajar. Se guarda automáticamente el último usado. La eliminación de equipos está restringida a la Unidad Operativa.</p>
+          <p class="side-hint">Selecciona un EAIS para trabajar. Se guarda automáticamente el último usado.</p>
         </div>
       </div>
 
@@ -381,6 +378,7 @@ input,select,textarea{font-family:inherit}
         </button>
         <div class="side-body">
           <button class="btn btn-orange" onclick="abrirModalUnidad()">🏢 Editar Unidad Operativa</button>
+          <button class="btn btn-violet" onclick="abrirModalTest()">🧪 Equipos de prueba (TEST)</button>
           <button class="btn btn-blue" onclick="abrirBusqueda()">🔍 Búsqueda rápida</button>
           <button class="btn btn-blue" onclick="abrirMatriz('eais')">📊 Pacientes del EAIS</button>
           <button class="btn btn-gray" onclick="exportarJSON()">📤 Exportar JSON</button>
@@ -479,6 +477,26 @@ input,select,textarea{font-family:inherit}
       <button style="background:#147a68" onclick="guardarUnidadOperativa()">💾 Guardar</button>
       <button style="background:#3a5261" onclick="cerrarModal('modal-unidad')">Cancelar</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL TEST -->
+<div class="modal" id="modal-test">
+  <div class="modal-content" style="max-width:620px">
+    <button class="modal-close" onclick="cerrarModal('modal-test')">×</button>
+    <h2>🧪 Equipos de prueba (TEST)</h2>
+    <p style="color:#8ba5b5;font-size:12.5px;line-height:1.6;margin-bottom:14px">
+      Los equipos TEST son espacios aislados para ensayar cambios, importaciones y trabajo simultáneo sin afectar a los EAIS reales.
+    </p>
+
+    <h3>Crear nuevo</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Nombre</label><input id="test-nombre" placeholder="Ej: Ensayo, Prueba1..." maxlength="20"></div>
+    </div>
+    <button class="btn btn-violet" onclick="crearEquipoPruebaDesdeModal()">➕ Crear equipo TEST</button>
+
+    <h3 style="margin-top:22px">Equipos TEST existentes</h3>
+    <div id="test-lista"></div>
   </div>
 </div>
 
@@ -635,6 +653,10 @@ const CONDICIONES_COLOR = {
 };
 const ESTADOS_HEX = {Pendiente:'#bd4b42',Visitada:'#147a68',Fallida:'#bd8822',Cerrada:'#3a5261',Abandonada:'#1e3a4d'};
 
+/* Timers para destacado */
+let _destacarTimer = null;
+let _destacarFinTimer = null;
+
 /* =========================================================
    UTILIDADES
    ========================================================= */
@@ -705,37 +727,40 @@ function renderEAISManage(){
   }).join('');
 }
 
-function eliminarEAIS(idEAIS){
-  // Verificación 1: diálogo
-  if(!confirm('⚠️ ELIMINAR EAIS '+idEAIS+'?\n\nSe borrarán TODAS las casas, fichas, visitas, historial y mapas de este EAIS.\n\n¿Continuar?'))return;
-  // Verificación 2: escribir nombre exacto
-  const typed = prompt('Para confirmar, escribe exactamente: '+idEAIS);
-  if(typed === null)return;
-  if(typed.trim() !== idEAIS){
-    toast('Nombre incorrecto. Eliminación cancelada.','error');
-    return;
+/* Borrado genérico: doble confirmación para EAIS, simple para TEST */
+function eliminarEquipoCompleto(idEquipo, dobleConfirmacion){
+  if(dobleConfirmacion){
+    if(!confirm('⚠️ ELIMINAR '+idEquipo+'?\n\nSe borrarán TODAS las casas, fichas, visitas, historial y mapas de este EAIS.\n\n¿Continuar?'))return false;
+    const typed = prompt('Para confirmar, escribe exactamente: '+idEquipo);
+    if(typed === null)return false;
+    if(typed.trim() !== idEquipo){
+      toast('Nombre incorrecto. Eliminación cancelada.','error');
+      return false;
+    }
+  } else {
+    if(!confirm('¿Eliminar '+idEquipo+'?\n\nSe borrarán sus casas, fichas y visitas.'))return false;
   }
   // Borrar local
   const keysABorrar = [];
   for(let i=0;i<localStorage.length;i++){
     const k = localStorage.key(i);
-    if(k && k.startsWith('cat_v2_'+idEAIS+'_')) keysABorrar.push(k);
+    if(k && k.startsWith('cat_v2_'+idEquipo+'_')) keysABorrar.push(k);
   }
   keysABorrar.forEach(k=>localStorage.removeItem(k));
   // Quitar de la lista
-  const lista = cargarEquipos().filter(e=>e.id!==idEAIS);
+  const lista = cargarEquipos().filter(e=>e.id!==idEquipo);
   guardarEquipos(lista);
-  // Borrar en Firestore (cascade manual)
+  // Borrar en Firestore
   if(S.usuario){
-    const ref = db.collection('catastros').doc(idEAIS);
+    const ref = db.collection('catastros').doc(idEquipo);
     Promise.all(['casas','fichas','visitas','historial','mapas','respaldos'].map(col=>
       ref.collection(col).get().then(s=>Promise.all(s.docs.map(d=>d.ref.delete())))
     )).then(()=>ref.delete()).catch(e=>log('Error borrando nube: '+e.message,'error'));
   }
-  toast('EAIS '+idEAIS+' eliminado','success');
-  log('EAIS eliminado: '+idEAIS,'ok');
+  toast(idEquipo+' eliminado','success');
+  log('Equipo eliminado: '+idEquipo,'ok');
   // Si era el activo, cambiar al primero disponible
-  if(S.equipo === idEAIS){
+  if(S.equipo === idEquipo){
     const visibles = equiposVisibles();
     if(visibles.length > 0){
       S.equipo = visibles[0].id;
@@ -746,10 +771,14 @@ function eliminarEAIS(idEAIS){
     }
     iniciarEquipo();
   }
-  // Refrescar lista en el modal
-  renderEAISManage();
   actualizarUIEquipos();
   actualizarTopbar();
+  return true;
+}
+
+function eliminarEAIS(idEAIS){
+  const ok = eliminarEquipoCompleto(idEAIS, true);
+  if(ok) renderEAISManage();
 }
 
 function guardarUnidadOperativa(){
@@ -842,6 +871,59 @@ function equiposVisibles(){
     if(!t.id.startsWith('EAIS')) permitidos.add(t.id);
   });
   return todos.filter(t=>permitidos.has(t.id));
+}
+
+/* =========================================================
+   TEST MODAL
+   ========================================================= */
+function abrirModalTest(){
+  document.getElementById('test-nombre').value = '';
+  renderTestLista();
+  abrirModal('modal-test');
+}
+
+function renderTestLista(){
+  const cont = document.getElementById('test-lista');
+  const lista = cargarEquipos().filter(e => e.id.startsWith('TEST'));
+  if(lista.length === 0){
+    cont.innerHTML = '<div style="text-align:center;color:#8ba5b5;font-size:12px;padding:14px">Sin equipos de prueba.</div>';
+    return;
+  }
+  cont.innerHTML = lista.map(e => {
+    const activo = e.id === S.equipo;
+    return '<div class="eais-item' + (activo ? ' activo' : '') + '" style="margin-bottom:6px">' +
+      '<span>' + (activo ? '<span class="badge">ACTIVO</span>' : '') + '🧪 ' + escapeHTML(e.id) + '</span>' +
+      '<button onclick="eliminarTest(\'' + e.id + '\')">🗑️ Eliminar</button>' +
+    '</div>';
+  }).join('');
+}
+
+function crearEquipoPruebaDesdeModal(){
+  const inp = document.getElementById('test-nombre');
+  let base = inp.value.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+  if(!base) base = 'TEST';
+  if(!base.startsWith('TEST')) base = 'TEST_' + base;
+  const lista = cargarEquipos();
+  let n = base, i = 1;
+  while(lista.find(e => e.id === n)) { n = base + '_' + (i++); }
+  lista.push({ id: n, fecha: nowISO(), test: true });
+  guardarEquipos(lista);
+  if(S.equipo) guardarTodoLocal();
+  S.equipo = n;
+  guardarEquipoActivo(n);
+  iniciarEquipo();
+  inp.value = '';
+  renderTestLista();
+  actualizarUIEquipos();
+  actualizarTopbar();
+  toast('Equipo TEST ' + n + ' creado. Ahora trabajas en él.', 'success');
+  log('TEST creado: ' + n, 'ok');
+}
+
+function eliminarTest(idTest){
+  if(!idTest.startsWith('TEST')){toast('Solo se pueden eliminar equipos TEST','error');return;}
+  const ok = eliminarEquipoCompleto(idTest, false);
+  if(ok) renderTestLista();
 }
 
 /* =========================================================
@@ -956,17 +1038,6 @@ function actualizarUIEquipos(){
   }
   actualizarTopbar();
 }
-function crearEquipoPrueba(){
-  const lista=cargarEquipos();
-  let n='TEST',i=1;
-  while(lista.find(e=>e.id===n)){n='TEST_'+i++;}
-  lista.push({id:n,fecha:nowISO(),test:true});
-  guardarEquipos(lista);
-  if(S.equipo)guardarTodoLocal();
-  S.equipo=n;guardarEquipoActivo(n);
-  iniciarEquipo();
-  toast('Equipo de prueba '+n+' creado','success');
-}
 function seleccionarEquipo(id){
   if(id===S.equipo)return;
   if(!confirm('¿Cambiar al equipo '+id+'?'))return;
@@ -975,6 +1046,7 @@ function seleccionarEquipo(id){
 }
 
 function iniciarEquipo(){
+  cancelarDestacado();
   desconectarListeners();
   S.barrio=null;S.casas={};S.fichas={};S.visitas={};S.historial={};S.mapas={};
   S.barrios=S.equipo?lsGet(keyBarrios(S.equipo),[]):[];
@@ -1076,6 +1148,7 @@ function eliminarBarrio(){
 }
 function cambiarBarrio(id){
   if(!id)return;
+  cancelarDestacado();
   const b=S.barrios.find(x=>x.id===id);if(!b)return;
   S.barrio=b;localStorage.setItem('cat_v2_'+S.equipo+'_barrio_activo',id);
   document.getElementById('selector-barrio').value=id;
@@ -1088,7 +1161,7 @@ function cambiarBarrio(id){
     if(!S.canvas)return;
     S.canvas.setWidth(img.width);S.canvas.setHeight(img.height);
     S.canvas.backgroundColor='transparent';S.canvas.setZoom(1);S.canvas.calcOffset();
-    renderCasas();actualizarStats();
+    renderCasas();actualizarStats();aplicarZoom();
   };
   img.src=mapa.dataURL;img.width=mapa.w;img.height=mapa.h;
   actualizarZoomUI();
@@ -1109,13 +1182,14 @@ function initCanvas(){
       selectionBorderColor:'#147a68',
       selectionLineWidth:2
     });
+    // Controles: círculos verdes TRANSPARENTES (para ver dónde ubicas la casa)
     fabric.Object.prototype.set({
       cornerStyle:'circle',
-      cornerColor:'#147a68',
-      cornerStrokeColor:'#0a1520',
+      cornerColor:'rgba(20,122,104,0.35)',      // verde translúcido (relleno)
+      cornerStrokeColor:'#147a68',               // borde verde sólido
       cornerSize:16,
       transparentCorners:false,
-      borderColor:'#147a68',
+      borderColor:'rgba(20,122,104,0.55)',       // marco de selección translúcido
       borderScaleFactor:2,
       padding:4
     });
@@ -1161,10 +1235,15 @@ function renderCasas(){
   });
   aplicarModo();aplicarFiltrosVisuales();
   S.canvas.renderAll();S.canvas.calcOffset();
+  // Re-aplicar destacado si sigue activo
+  if(_destacarTimer && S.seleccion){
+    // no hacer nada especial; el timer repinta
+  }
 }
 function construirGrupoCasa(c){
-  const ancho=c.ancho||70,alto=c.alto||50;
-  const fuente=Math.max(10,Math.min(14,ancho/6));
+  // Casas más pequeñas por defecto
+  const ancho=c.ancho||44,alto=c.alto||28;
+  const fuente=Math.max(8,Math.min(12,ancho/5));
   const rect=new fabric.Rect({
     width:ancho, height:alto,
     fill:'rgba(189,75,66,0.35)', stroke:'#bd4b42',
@@ -1198,7 +1277,8 @@ function crearCasa(){
   const rw=wrap.getBoundingClientRect(),rc=cont.getBoundingClientRect();
   const cx=(rw.left+rw.width/2-rc.left)/S.zoom,cy=(rw.top+rw.height/2-rc.top)/S.zoom;
   const idCasa='CASA-'+uid();
-  const casa={idCasa,barrioId:S.barrio.id,nomenclatura:idCasa,left:cx-35,top:cy-25,ancho:70,alto:50,angulo:0,estado:'Pendiente',eliminado:false,actualizadoEn:nowISO(),actualizadoPor:S.usuario?(S.usuario.displayName||S.usuario.email):'local'};
+  // Casa más pequeña al crearla
+  const casa={idCasa,barrioId:S.barrio.id,nomenclatura:idCasa,left:cx-22,top:cy-14,ancho:44,alto:28,angulo:0,estado:'Pendiente',eliminado:false,actualizadoEn:nowISO(),actualizadoPor:S.usuario?(S.usuario.displayName||S.usuario.email):'local'};
   S.casas[idCasa]=casa;lsSet(keyCasa(S.equipo,idCasa),casa);
   const g=construirGrupoCasa(casa);S.canvas.add(g);
   if(!S.modoEdicion){S.modoEdicion=true;aplicarModo();actualizarBotonEditar();}
@@ -1274,7 +1354,7 @@ function aplicarModo(){
       o.evented=true;o.hoverCursor='pointer';
     }
     o.setCoords();
-    aplicarColorEstado(o);
+    if(!o._destacada) aplicarColorEstado(o);
   });
   S.canvas.renderAll();
   const wrap = document.getElementById('mapa-wrapper');
@@ -1296,6 +1376,7 @@ function eliminarSeleccionado(){
 }
 function aplicarColorEstado(obj){
   if(!obj.idCasa)return;
+  if(obj._destacada) return; // no pisar el destacado
   const casa=S.casas[obj.idCasa];if(!casa)return;
   const rect=obj._objects.find(o=>o.type==='rect');if(!rect)return;
   const color=ESTADOS_HEX[casa.estado]||'#bd4b42';
@@ -1308,8 +1389,117 @@ function hexToRgba(hex,a){
 }
 function cambiarZoom(d){S.zoom=Math.max(0.2,Math.min(3,S.zoom+d));aplicarZoom();}
 function resetZoom(){S.zoom=1;aplicarZoom();}
-function aplicarZoom(){document.getElementById('canvas-zoom').style.transform='scale('+S.zoom+')';actualizarZoomUI();}
+function aplicarZoom(){
+  const zd=document.getElementById('canvas-zoom');
+  const c=document.getElementById('canvas-zoom-container');
+  const m=document.getElementById('mapa-imagen');
+  zd.style.transform='scale('+S.zoom+')';
+  if(m && m.width && m.height){
+    c.style.width=(m.width*S.zoom)+'px';
+    c.style.height=(m.height*S.zoom)+'px';
+  }
+  actualizarZoomUI();
+}
 function actualizarZoomUI(){document.getElementById('zoom-nivel').textContent=Math.round(S.zoom*100)+'%';}
+
+/* =========================================================
+   DESTACAR CASA BUSCADA (brillo pulsante + auto-scroll)
+   ========================================================= */
+function cancelarDestacado(){
+  if(_destacarTimer){ clearInterval(_destacarTimer); _destacarTimer = null; }
+  if(_destacarFinTimer){ clearTimeout(_destacarFinTimer); _destacarFinTimer = null; }
+  if(!S.canvas) return;
+  S.canvas.forEachObject(o=>{
+    if(o._destacada){
+      o._destacada = false;
+      o.set({opacity:1});
+      aplicarColorEstado(o);
+      const rect = o._objects.find(x=>x.type==='rect');
+      if(rect) rect.set('shadow', null);
+    }
+  });
+  S.canvas.renderAll();
+}
+
+function destacarCasa(idCasa){
+  cancelarDestacado();
+  // Esperar a que el canvas y el barrio estén listos
+  intentarDestacar(idCasa, 0);
+}
+
+function intentarDestacar(idCasa, intentos){
+  intentos = intentos || 0;
+  if(intentos > 25) return;
+  const casa = S.casas[idCasa];
+  if(!casa) return;
+  if(!S.barrio || S.barrio.id !== casa.barrioId){
+    setTimeout(()=>intentarDestacar(idCasa, intentos+1), 200);
+    return;
+  }
+  if(!S.canvas){
+    setTimeout(()=>intentarDestacar(idCasa, intentos+1), 200);
+    return;
+  }
+  const obj = S.canvas.getObjects().find(o=>o.idCasa === idCasa);
+  if(!obj){
+    setTimeout(()=>intentarDestacar(idCasa, intentos+1), 200);
+    return;
+  }
+  // Centrar vista en la casa
+  centrarEnCasa(casa);
+  // Aplicar pulso dorado
+  let fase = 0;
+  const aplicar = () => {
+    if(!obj.canvas) { cancelarDestacado(); return; }
+    obj._destacada = true;
+    const rect = obj._objects.find(x=>x.type==='rect');
+    const t = obj._objects.find(x=>x.type==='textbox'||x.type==='text');
+    if(rect){
+      // Alterna entre dos tonos dorados y sombra pulsante
+      const intensidad = fase % 2 === 0 ? 1 : 0.55;
+      rect.set({
+        fill: 'rgba(255, 215, 0, '+(0.35*intensidad+0.15)+')',
+        stroke: '#ffd700',
+        strokeWidth: (4 + intensidad*2)/S.zoom,
+        shadow: new fabric.Shadow({
+          color: 'rgba(255,215,0,'+(0.9*intensidad)+')',
+          blur: 25 + 15*intensidad,
+          offsetX: 0,
+          offsetY: 0
+        })
+      });
+    }
+    obj.set('opacity', 1);
+    if(S.canvas) S.canvas.renderAll();
+    fase++;
+  };
+  aplicar();
+  _destacarTimer = setInterval(aplicar, 450);
+  // Auto-detener a los 6 segundos
+  _destacarFinTimer = setTimeout(()=>{
+    cancelarDestacado();
+  }, 6000);
+}
+
+function centrarEnCasa(casa){
+  const wrap = document.getElementById('mapa-wrapper');
+  if(!wrap) return;
+  const cont = document.getElementById('canvas-zoom-container');
+  if(!cont) return;
+  // Centro de la casa en coordenadas del canvas
+  const cx = (casa.left + (casa.ancho||44)/2) * S.zoom;
+  const cy = (casa.top + (casa.alto||28)/2) * S.zoom;
+  const contLeft = cont.offsetLeft || 0;
+  const contTop = cont.offsetTop || 0;
+  const targetScrollL = contLeft + cx - wrap.clientWidth/2;
+  const targetScrollT = contTop + cy - wrap.clientHeight/2;
+  try {
+    wrap.scrollTo({left: Math.max(0, targetScrollL), top: Math.max(0, targetScrollT), behavior: 'smooth'});
+  } catch(e){
+    wrap.scrollLeft = Math.max(0, targetScrollL);
+    wrap.scrollTop = Math.max(0, targetScrollT);
+  }
+}
 
 /* =========================================================
    PANEL CASA
@@ -1461,11 +1651,12 @@ function limpiarFiltros(){S.filtrosActivos=[];document.querySelectorAll('#filtro
 function aplicarFiltrosVisuales(){
   if(!S.canvas)return;
   if(S.filtrosActivos.length===0){
-    S.canvas.forEachObject(o=>{if(o.type==='group'&&o.idCasa){o.set('opacity',1);aplicarColorEstado(o);}});
+    S.canvas.forEachObject(o=>{if(o.type==='group'&&o.idCasa&&!o._destacada){o.set('opacity',1);aplicarColorEstado(o);}});
     S.canvas.renderAll();return;
   }
   S.canvas.forEachObject(o=>{
     if(o.type!=='group'||!o.idCasa)return;
+    if(o._destacada) return;
     const ficha=S.fichas[o.idCasa];let encontrada=null;
     if(ficha&&ficha.integrantes){
       for(const int of ficha.integrantes){
@@ -1508,8 +1699,16 @@ function ejecutarBusqueda(q){
 function irACasa(idCasa){
   const c=S.casas[idCasa];if(!c)return;
   cerrarModal('modal-busqueda');
-  if(S.barrio&&S.barrio.id!==c.barrioId){cambiarBarrio(c.barrioId);setTimeout(()=>abrirPanelCasa(idCasa),300);}
-  else abrirPanelCasa(idCasa);
+  if(S.barrio && S.barrio.id !== c.barrioId){
+    cambiarBarrio(c.barrioId);
+    setTimeout(()=>{
+      abrirPanelCasa(idCasa);
+      destacarCasa(idCasa);
+    }, 400);
+  } else {
+    abrirPanelCasa(idCasa);
+    destacarCasa(idCasa);
+  }
 }
 
 /* =========================================================
@@ -1572,7 +1771,7 @@ function descargarExcel(){
 }
 
 /* =========================================================
-   FIREBASE AUTH (con soporte móvil)
+   FIREBASE AUTH
    ========================================================= */
 function initFirebaseAuth(){
   auth.onAuthStateChanged(user=>{
@@ -1611,13 +1810,11 @@ function conectarGoogle(){
   const provider=new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({prompt:'select_account'});
 
-  // En móvil usamos redirect (popup falla en Safari/Chrome móvil)
   if(ES_MOVIL){
     toast('Redirigiendo a Google...','info');
     auth.signInWithRedirect(provider).catch(e=>{
       log('Error redirect: '+e.message,'error');
       toast('Error: '+e.message,'error');
-      // Fallback a popup si falla
       auth.signInWithPopup(provider).catch(e2=>{
         log('Error popup fallback: '+e2.message,'error');
         toast('No se pudo conectar: '+e2.message,'error');
@@ -1625,7 +1822,6 @@ function conectarGoogle(){
     });
     return;
   }
-  // Escritorio: popup
   auth.signInWithPopup(provider).then(r=>{
     toast('Conectado: '+(r.user.displayName||r.user.email),'success');
     log('Sesión: '+r.user.email,'ok');
