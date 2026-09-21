@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#2c3e50">
 <title>Catastro Médico</title>
+<link rel="manifest" id="manifest-placeholder">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -12,209 +13,419 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <style>
 * { -webkit-tap-highlight-color: transparent; }
-body { font-family: Arial, sans-serif; margin: 0; background: #2c3e50; overflow: hidden; user-select: none; }
+body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #2c3e50; overflow: hidden; user-select: none; }
 
-#toolbar { background: #34495e; color: white; padding: 10px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-#toolbar button { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; color: white; }
-.btn-crear { background: #3498db; }
-.btn-nomen { background: #f39c12; }
-.btn-editar { background: #27ae60; }
-.btn-fijar { background: #e74c3c; }
-.btn-eliminar { background: #c0392b; }
-.btn-zoom { background: #16a085; min-width: 40px; }
-#zoom-info { font-size: 12px; font-weight: bold; padding: 0 8px; }
-#estado { margin-left: auto; font-size: 12px; font-weight: bold; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 4px; }
+#toolbar { background: #34495e; color: white; padding: 8px 15px; display: flex; gap: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 100; position: relative; flex-wrap: wrap; align-items: center; }
+#toolbar button { padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 12px; display: flex; align-items: center; gap: 4px; font-family: inherit; white-space: nowrap; }
+.btn-crear { background: #3498db; color: white; }
+.btn-nomenclatura { background: #f39c12; color: white; }
+.btn-editar { background: #27ae60; color: white; }
+.btn-fijar { background: #e74c3c; color: white; }
+.btn-eliminar-sel { background: #c0392b; color: white; }
+.zoom-group { display: flex; gap: 3px; background: #0f171e; padding: 3px; border-radius: 6px; border: 2px solid #0a0f13; }
+.btn-zoom { background: #fff !important; color: #0f171e !important; padding: 6px 10px !important; font-size: 14px !important; border: 2px solid #fff !important; min-width: 36px; justify-content: center; }
+#zoom-nivel { color: #fff; font-size: 12px; padding: 0 6px; align-self: center; font-weight: bold; min-width: 45px; text-align: center; }
+#equipo-info { margin-left: auto; font-size: 12px; font-weight: bold; background: rgba(243, 156, 18, 0.3); padding: 6px 12px; border-radius: 5px; }
+#modo-indicador { font-size: 11px; font-weight: bold; padding: 5px 10px; border-radius: 4px; margin-left: 5px; }
+#modo-indicador.bloqueado { background: #e74c3c; color: white; }
+#modo-indicador.editando { background: #27ae60; color: white; }
+#sync-indicador { font-size: 11px; font-weight: bold; padding: 5px 10px; border-radius: 4px; margin-left: 5px; cursor: pointer; }
+#sync-indicador.desconectado { background: #7f8c8d; color: white; }
+#sync-indicador.sincronizado { background: #27ae60; color: white; }
+#sync-indicador.pendiente { background: #e67e22; color: white; }
+#sync-indicador.error { background: #e74c3c; color: white; }
+#btn-hamburguesa { display: none; background: #2c3e50; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 18px; }
 
-#sidebar { position: fixed; left: 0; top: 50px; width: 260px; height: calc(100vh - 50px); background: white; overflow-y: auto; border-right: 2px solid #bdc3c7; z-index: 90; }
-.seccion { border-bottom: 2px solid #bdc3c7; }
-.seccion-titulo { background: #2c3e50; color: white; padding: 14px; font-weight: bold; font-size: 14px; cursor: pointer; display: flex; justify-content: space-between; }
-.seccion-titulo.naranja { background: #d35400; }
-.seccion-contenido { display: none; padding: 12px; }
-.seccion-contenido.abierto { display: block; }
-.seccion-contenido label { display: block; font-size: 12px; font-weight: bold; color: #2c3e50; margin: 8px 0 4px 0; }
-.seccion-contenido input, .seccion-contenido select { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 13px; }
-.seccion-contenido button { width: 100%; box-sizing: border-box; margin-top: 8px; padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; color: white; }
-.b-verde { background: #27ae60; }
-.b-rojo { background: #e74c3c; }
-.b-azul { background: #3498db; }
-.b-naranja { background: #d35400; }
-.b-morado { background: #8e44ad; }
-.info-box { font-size: 11px; padding: 10px; border-radius: 4px; margin-top: 8px; text-align: center; font-weight: bold; background: #ecf0f1; color: #2c3e50; }
-.info-box.ok { background: #d4edda; color: #155724; }
-.info-box.error { background: #f8d7da; color: #721c24; }
-.lista { max-height: 200px; overflow-y: auto; border: 1px solid #bdc3c7; border-radius: 4px; background: #f8f9fa; margin-top: 8px; }
-.item-lista { padding: 10px; border-bottom: 1px solid #ecf0f1; cursor: pointer; font-size: 13px; }
-.item-lista:hover { background: #ecf0f1; }
-.item-lista.activo { background: #d35400; color: white; font-weight: bold; }
+#sidebar-filtros { position: fixed; left: 0; top: 56px; width: 260px; height: calc(100vh - 56px); background: #fff; box-shadow: 3px 0 10px rgba(0,0,0,0.15); z-index: 90; overflow-y: auto; border-right: 2px solid #bdc3c7; transition: left 0.3s; }
+.sidebar-section-header { background: #2c3e50; color: white; padding: 14px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #bdc3c7; }
+.sidebar-section-header.equipo { background: #d35400; }
+.sidebar-section-header .flecha { transition: transform 0.3s; font-size: 11px; }
+.sidebar-section-header.abierto .flecha { transform: rotate(0deg); }
+.sidebar-section-header:not(.abierto) .flecha { transform: rotate(-90deg); }
+.sidebar-section-content { max-height: 0; overflow: hidden; transition: max-height 0.35s ease-out; background: #fff; border-bottom: 2px solid #bdc3c7; }
+.sidebar-section-content.abierto { max-height: 3000px; overflow-y: auto; }
+.btn-matriz { display: block; width: 100%; background: #2c3e50; color: white; border: none; padding: 14px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid #bdc3c7; font-family: inherit; text-align: left; }
+.seccion-inner { padding: 12px; }
+.seccion-inner label { display: block; font-size: 12px; font-weight: bold; color: #2c3e50; margin-bottom: 5px; margin-top: 8px; }
+.seccion-inner label:first-child { margin-top: 0; }
+.seccion-inner input[type="text"], .seccion-inner input[type="file"], .seccion-inner select { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 13px; font-family: inherit; background: white; }
+.seccion-inner button { width: 100%; box-sizing: border-box; margin-top: 8px; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; font-family: inherit; color: white; }
+.btn-cargar { background: #27ae60; }
+.btn-eliminar-barrio { background: #e74c3c; }
+.btn-limpiar-filtros { background: #95a5a6; }
+.btn-sync-inner { width: 100%; box-sizing: border-box; margin-top: 6px; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; font-family: inherit; color: white; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.btn-export-inner { background: #16a085; }
+.btn-import-inner { background: #8e44ad; }
+.btn-google { background: #fff; color: #444; border: 2px solid #dadce0 !important; padding: 10px !important; }
+.btn-google.conectado { background: #e8f5e9; border-color: #27ae60 !important; color: #1e7e34; }
+.btn-subir-drive { background: #16a085 !important; padding: 12px !important; font-size: 14px !important; }
+.btn-bajar-drive { background: #d35400 !important; padding: 12px !important; font-size: 14px !important; }
+.btn-crear-equipo { background: #d35400 !important; padding: 12px !important; font-size: 14px !important; }
+.btn-eliminar-equipo { background: #c0392b !important; padding: 10px !important; font-size: 12px !important; }
+.google-icon { width: 18px; height: 18px; }
+.sync-separador { margin-top: 15px; padding-top: 12px; border-top: 2px dashed #bdc3c7; }
+.sync-titulo { text-align: center; color: #2c3e50; font-size: 12px; margin-bottom: 8px; display: block; font-weight: bold; }
+.sync-info { font-size: 10px; color: #7f8c8d; text-align: center; margin-top: 6px; line-height: 1.4; }
+.sync-estado { font-size: 11px; padding: 8px; border-radius: 4px; margin-top: 8px; text-align: center; font-weight: bold; background: #ecf0f1; color: #2c3e50; line-height: 1.5; }
+.sync-estado.pendiente { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+.sync-estado.ok { background: #d4edda; color: #155724; border: 1px solid #27ae60; }
+.sync-estado.error { background: #f8d7da; color: #721c24; border: 1px solid #e74c3c; }
+.sync-estado.equipo { background: #ffe5cc; color: #8a3d00; border: 1px solid #d35400; }
+.lista-equipos { max-height: 250px; overflow-y: auto; margin-top: 8px; border: 1px solid #bdc3c7; border-radius: 4px; background: #f8f9fa; }
+.equipo-item { padding: 12px; border-bottom: 1px solid #ecf0f1; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.equipo-item:hover { background: #fff3cd; }
+.equipo-item.activo { background: #d35400; color: white; font-weight: bold; }
+.equipo-item:last-child { border-bottom: none; }
+.filtro-hint { font-size: 11px; color: #7f8c8d; padding: 0 0 8px 0; margin: 0; font-style: italic; }
+.filtro-item { display: flex; align-items: center; gap: 8px; padding: 8px 6px; margin-bottom: 2px; border-radius: 5px; cursor: pointer; font-size: 13px; }
+.filtro-item:hover { background: #ecf0f1; }
+.color-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; border: 2px solid #fff; box-shadow: 0 0 0 1px #bdc3c7; }
+.btn-matriz:disabled { background: #95a5a6; cursor: not-allowed; }
 
-#mapa-wrapper { position: fixed; left: 260px; top: 50px; right: 0; bottom: 0; overflow: auto; background: #bdc3c7; padding: 20px; }
-#canvas-container { position: relative; display: inline-block; }
-#mapa-img { display: block; }
-#canvas-zoom-container { position: absolute; top: 0; left: 0; transform-origin: top left; }
+#mapa-wrapper { position: relative; margin-left: 260px; width: calc(100vw - 260px); height: calc(100vh - 56px); overflow: auto; background: #bdc3c7; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; padding: 20px; box-sizing: border-box; }
+#mapa-wrapper::-webkit-scrollbar { width: 14px; height: 14px; }
+#mapa-wrapper::-webkit-scrollbar-track { background: #95a5a6; border-radius: 7px; }
+#mapa-wrapper::-webkit-scrollbar-thumb { background: #2c3e50; border-radius: 7px; border: 2px solid #95a5a6; }
+#canvas-zoom-container { position: relative; display: inline-block; }
+#canvas-zoom { position: absolute; top: 0; left: 0; transform-origin: top left; box-shadow: 0 0 20px rgba(0,0,0,0.5); background: white; }
+#mapa-imagen { display: block; position: relative; user-select: none; pointer-events: none; z-index: 1; max-width: none; }
+#canvas-fabric { position: absolute; top: 0; left: 0; z-index: 2; }
+#sin-equipo { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #7f8c8d; background: white; padding: 40px; border-radius: 12px; max-width: 90vw; z-index: 11; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+#sin-equipo h2 { color: #d35400; margin-top: 0; }
+#sin-barrio { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #7f8c8d; background: white; padding: 30px; border-radius: 12px; max-width: 90vw; z-index: 10; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+#sin-barrio h2 { color: #2980b9; margin-top: 0; }
 
-#mensaje-centro { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 40px; border-radius: 12px; text-align: center; color: #7f8c8d; z-index: 5; max-width: 90%; }
-#mensaje-centro h2 { color: #d35400; margin-top: 0; }
+#instrucciones { position: fixed; bottom: 15px; left: 280px; background: rgba(255,255,255,0.98); padding: 15px 18px; border-radius: 10px; font-size: 13px; max-width: 330px; z-index: 50; box-shadow: 0 4px 15px rgba(0,0,0,0.25); border-left: 4px solid #3498db; display: flex; flex-direction: column; gap: 7px; }
+#instrucciones.oculto { display: none; }
+#instrucciones strong { color: #2c3e50; font-size: 14px; padding-right: 20px; }
+#instrucciones .instruccion-item { display: flex; gap: 8px; align-items: flex-start; color: #34495e; font-size: 12.5px; line-height: 1.3; }
+#instrucciones .btn-cerrar-instr { position: absolute; top: 6px; right: 8px; background: none; border: none; color: #95a5a6; font-size: 16px; cursor: pointer; padding: 2px 6px; font-weight: bold; }
 
-#modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; overflow-y: auto; }
-#modal.abierto { display: block; }
-.modal-box { background: white; max-width: 800px; margin: 20px auto; padding: 20px; border-radius: 10px; position: relative; }
-.modal-box h2 { margin-top: 0; font-size: 18px; }
-.cerrar { position: absolute; right: 15px; top: 10px; font-size: 28px; cursor: pointer; color: #aaa; background: none; border: none; font-weight: bold; }
-.form-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+#sidebar-resumen { position: fixed; right: -400px; top: 56px; width: 350px; height: calc(100vh - 56px); background: white; box-shadow: -5px 0 15px rgba(0,0,0,0.2); transition: right 0.3s; z-index: 500; display: flex; flex-direction: column; }
+#sidebar-resumen.abierto { right: 0; }
+.sidebar-header { background: #2c3e50; color: white; padding: 14px; display: flex; justify-content: space-between; align-items: center; }
+.sidebar-header h3 { margin: 0; font-size: 16px; }
+.btn-cerrar-sidebar { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+.sidebar-content { padding: 15px; overflow-y: auto; flex: 1; }
+.estado-visita-badge { text-align: center; font-weight: bold; padding: 10px; border-radius: 5px; margin-bottom: 15px; color: white; font-size: 14px; }
+.estado-Pendiente { background: #e74c3c; }
+.estado-Visitada { background: #27ae60; }
+.estado-Fallida { background: #f1c40f; color: #333; }
+.estado-Cerrada { background: #95a5a6; }
+.estado-Abandonada { background: #34495e; }
+.btn-agregar-ficha { background: #3498db; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
+.resumen-integrante { background: #f8f9fa; border-left: 6px solid #bdc3c7; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+.resumen-integrante h4 { margin: 0 0 5px 0; color: #2c3e50; font-size: 14px; }
+.resumen-integrante p { margin: 2px 0; font-size: 12px; color: #555; }
+.tag-condicion { display: inline-block; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-right: 4px; margin-top: 4px; }
+.sin-datos { text-align: center; color: #7f8c8d; font-style: italic; margin-top: 20px; font-size: 13px; }
+
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); overflow-y: auto; }
+.modal-content { background: #fefefe; margin: 20px auto; padding: 18px; border-radius: 10px; width: 90%; max-width: 800px; position: relative; }
+.close { color: #aaa; position: absolute; right: 15px; top: 10px; font-size: 28px; font-weight: bold; cursor: pointer; background: none; border: none; }
+.modal-content.matriz { max-width: 98%; width: 98%; }
+.tabla-matriz { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tabla-matriz th { background: #2c3e50; color: white; padding: 6px; text-align: left; position: sticky; top: 0; }
+.tabla-matriz td { padding: 5px 6px; border-bottom: 1px solid #ecf0f1; }
+.tabla-matriz tr:nth-child(even) { background: #f8f9fa; }
+.estado-tag { padding: 2px 5px; border-radius: 4px; font-size: 10px; color: white; font-weight: bold; }
+.matriz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; padding-right: 50px; border-bottom: 2px solid #ecf0f1; flex-wrap: wrap; gap: 10px; }
+.matriz-info { font-size: 12px; color: #7f8c8d; }
+.tabs-matriz { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+.tab-matriz { padding: 10px 20px; border: 2px solid #bdc3c7; background: white; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; color: #2c3e50; display: flex; align-items: center; gap: 6px; font-family: inherit; }
+.tab-matriz:hover { background: #ecf0f1; }
+.tab-matriz.activo { color: white; }
+#tab-barrio.activo { background: #16a085; border-color: #16a085; }
+#tab-eais.activo { background: #2980b9; border-color: #2980b9; }
+#tab-total.activo { background: #8e44ad; border-color: #8e44ad; }
+.btn-excel { background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.tabla-scroll { max-height: 60vh; overflow-y: auto; }
+
+.estado-visita-section { background: #ecf0f1; padding: 12px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #34495e; }
+.estado-visita-section label { font-weight: bold; display: block; margin-bottom: 8px; color: #2c3e50; font-size: 13px; }
+.btn-estado { padding: 7px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-right: 6px; margin-bottom: 5px; font-size: 12px; }
+.btn-estado.activo { box-shadow: inset 0 3px 5px rgba(0,0,0,0.3); border: 2px solid #2c3e50; }
+.btn-pendiente { background: #e74c3c; color: white; }
+.btn-visitada { background: #27ae60; color: white; }
+.btn-fallida { background: #f1c40f; color: #333; }
+.btn-cerrada { background: #95a5a6; color: white; }
+.btn-abandonada { background: #34495e; color: white; }
+
+.integrante-card { background: #f8f9fa; border: 1px solid #dee2e6; border-left: 6px solid #bdc3c7; border-radius: 8px; padding: 12px; margin-bottom: 12px; position: relative; }
+.integrante-card h4 { margin-top: 0; color: #2980b9; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px; font-size: 14px; }
+.grupo-1 { border-left-color: #2ecc71; }
+.grupo-2 { border-left-color: #f1c40f; }
+.grupo-3 { border-left-color: #e74c3c; }
+.grupo-4 { border-left-color: #3498db; }
+.form-row { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
 .form-group { flex: 1; min-width: 130px; display: flex; flex-direction: column; }
 .form-group label { font-size: 11px; font-weight: bold; color: #7f8c8d; margin-bottom: 3px; }
-.form-group input, .form-group select, .form-group textarea { padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 13px; font-family: inherit; }
-.tarjeta { border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; margin-bottom: 12px; position: relative; }
-.btn-x { position: absolute; top: 8px; right: 8px; background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+.form-group input, .form-group select, .form-group textarea { padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; font-family: inherit; font-size: 13px; }
+.form-group textarea { resize: vertical; height: 50px; }
+.condiciones-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; margin-top: 5px; }
+.condicion-item { display: flex; align-items: center; gap: 5px; font-size: 12px; background: #e8f4f8; padding: 5px; border-radius: 4px; }
+.btn-eliminar-integrante { position: absolute; top: 8px; right: 8px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; padding: 4px 8px; font-size: 11px; }
+.modal-footer { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 12px; border-top: 2px solid #ecf0f1; gap: 10px; flex-wrap: wrap; }
+.btn-guardar { background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; flex: 1; min-width: 130px; }
+.btn-agregar { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; flex: 1; min-width: 130px; }
 
-#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #2c3e50; color: white; padding: 12px 24px; border-radius: 8px; font-weight: bold; z-index: 3000; opacity: 0; transition: 0.3s; pointer-events: none; }
-#toast.ver { opacity: 1; }
-#toast.ok { background: #27ae60; }
-#toast.err { background: #e74c3c; }
+#overlay-sidebar { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 199; }
+#overlay-sidebar.visible { display: block; }
+
+#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: #2c3e50; color: white; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: bold; z-index: 3000; opacity: 0; transition: all 0.3s; max-width: 90vw; text-align: center; pointer-events: none; }
+#toast.visible { transform: translateX(-50%) translateY(0); opacity: 1; }
+#toast.success { background: #27ae60; }
+#toast.error { background: #e74c3c; }
+#toast.info { background: #3498db; }
+#toast.warning { background: #e67e22; }
+
+#log-panel { position: fixed; bottom: 100px; right: 20px; background: rgba(0,0,0,0.9); color: #0f0; font-family: monospace; font-size: 11px; padding: 10px; border-radius: 6px; max-width: 350px; max-height: 200px; overflow-y: auto; z-index: 2500; display: none; }
+#log-panel.visible { display: block; }
+#log-panel .log-linea { margin: 2px 0; word-break: break-all; }
+#log-panel .log-error { color: #f66; }
+#log-panel .log-ok { color: #6f6; }
+#log-panel .log-info { color: #6cf; }
 
 @media (max-width: 768px) {
-  #sidebar { width: 100%; left: -100%; transition: 0.3s; z-index: 200; }
-  #sidebar.abierto { left: 0; }
-  #mapa-wrapper { left: 0; }
-  #btn-menu { display: block !important; }
+  #toolbar button { padding: 6px 8px; font-size: 11px; }
+  #toolbar button span.texto-largo { display: none; }
+  #btn-hamburguesa { display: block; }
+  #modo-indicador { display: none; }
+  #sidebar-filtros { left: -280px; width: 280px; z-index: 200; }
+  #sidebar-filtros.abierto { left: 0; }
+  #mapa-wrapper { margin-left: 0; width: 100vw; padding: 10px; }
+  #sidebar-resumen { width: 100vw; right: -100vw; }
+  #instrucciones { display: none; }
+  .form-group { min-width: 100%; }
+  .tabs-matriz { flex-direction: column; }
+  .tab-matriz { width: 100%; justify-content: center; }
 }
-#btn-menu { display: none; }
 </style>
 </head>
 <body>
 
 <div id="toolbar">
-  <button id="btn-menu" onclick="toggleMenu()">☰</button>
-  <button class="btn-crear" onclick="crearCasa()">➕ Casa</button>
-  <button class="btn-nomen" onclick="ponerNomenclatura()">✍️ Nomen</button>
-  <button class="btn-editar" onclick="modoEdicion()">🖱️ Editar</button>
-  <button class="btn-fijar" onclick="fijarCasas()">📌 Fijar</button>
-  <button class="btn-eliminar" onclick="eliminarSeleccionado()">🗑️ Borrar</button>
-  <button class="btn-zoom" onclick="cambiarZoom(-0.2)">➖</button>
-  <span id="zoom-info">100%</span>
-  <button class="btn-zoom" onclick="cambiarZoom(0.2)">➕</button>
-  <button class="btn-zoom" onclick="resetZoom()">🔄</button>
-  <span id="estado">📍 Sin barrio</span>
+  <button id="btn-hamburguesa" onclick="toggleSidebarMovil()">☰</button>
+  <button class="btn-crear" onclick="crearCasa()">➕ <span class="texto-largo">Casa</span></button>
+  <button class="btn-nomenclatura" onclick="ponerNomenclatura()">✍️ <span class="texto-largo">Nomen.</span></button>
+  <button class="btn-editar" onclick="modoEdicion()">🖱️ <span class="texto-largo">Editar</span></button>
+  <button class="btn-fijar" onclick="fijarCasas()">📌 <span class="texto-largo">Fijar</span></button>
+  <button class="btn-eliminar-sel" onclick="eliminarSeleccionado()">🗑️</button>
+  <div class="zoom-group">
+    <button class="btn-zoom" onclick="cambiarZoom(-0.2)">➖</button>
+    <span id="zoom-nivel">100%</span>
+    <button class="btn-zoom" onclick="cambiarZoom(0.2)">➕</button>
+    <button class="btn-zoom" onclick="resetZoom()">🔄</button>
+  </div>
+  <span id="modo-indicador" class="bloqueado">📌 Bloqueado</span>
+  <span id="sync-indicador" class="desconectado" onclick="gestionarSync()">☁️ Sin conexión</span>
+  <span id="equipo-info">🏥 Sin equipo</span>
 </div>
 
-<div id="sidebar">
-  <!-- EQUIPO -->
-  <div class="seccion">
-    <div class="seccion-titulo naranja" onclick="toggleSeccion('sec-equipo')">
-      <span>🏥 Equipo de Salud</span><span id="flecha-equipo">▼</span>
-    </div>
-    <div class="seccion-contenido abierto" id="sec-equipo">
-      <div class="info-box" id="equipo-activo">Sin equipo</div>
-      <label>Nombre del equipo:</label>
-      <input type="text" id="nuevo-equipo" placeholder="Ej: EU01, EU02">
-      <button class="b-naranja" onclick="crearEquipo()">➕ CREAR EQUIPO</button>
-      <label>Mis equipos:</label>
-      <div class="lista" id="lista-equipos"></div>
-      <button class="b-rojo" onclick="eliminarEquipoActual()">🗑️ Eliminar equipo actual</button>
+<div id="overlay-sidebar" onclick="toggleSidebarMovil()"></div>
+
+<div id="sidebar-filtros">
+  <!-- EQUIPO DE SALUD -->
+  <div class="sidebar-section-header equipo abierto" onclick="toggleSeccion('seccion-equipo', this)">
+    <span>🏥 Equipo de Salud</span><span class="flecha">▼</span>
+  </div>
+  <div class="sidebar-section-content abierto" id="seccion-equipo">
+    <div class="seccion-inner">
+      <div class="sync-estado equipo" id="equipo-actual-caja">🏥 Sin equipo seleccionado</div>
+      
+      <label>Crear nuevo equipo:</label>
+      <input type="text" id="nuevo-equipo-nombre" placeholder="Ej: EU06, EU07..." maxlength="20">
+      <button class="btn-sync-inner btn-crear-equipo" onclick="crearNuevoEquipo()">➕ CREAR EQUIPO</button>
+      
+      <label style="margin-top:15px;">Mis equipos:</label>
+      <div class="lista-equipos" id="lista-equipos">
+        <div style="padding:15px; text-align:center; color:#7f8c8d; font-size:12px;">Sin equipos creados</div>
+      </div>
+      
+      <button class="btn-sync-inner btn-eliminar-equipo" onclick="eliminarEquipoActual()" style="margin-top:10px;">🗑️ Eliminar equipo actual</button>
+      
+      <p class="sync-info">Cada equipo tiene sus datos aislados.</p>
     </div>
   </div>
 
   <!-- NUBE -->
-  <div class="seccion">
-    <div class="seccion-titulo" onclick="toggleSeccion('sec-nube')">
-      <span>☁️ Nube (Google)</span><span id="flecha-nube">▼</span>
-    </div>
-    <div class="seccion-contenido" id="sec-nube">
-      <button class="b-azul" id="btn-google" onclick="conectarGoogle()">🔗 Conectar con Google</button>
-      <div class="info-box" id="estado-nube">Sin conectar</div>
-      <button class="b-verde" onclick="subirNube()">⬆️ SUBIR TODO</button>
-      <button class="b-naranja" onclick="bajarNube()">⬇️ BAJAR TODO</button>
+  <div class="sidebar-section-header" onclick="toggleSeccion('seccion-nube', this)">
+    <span>☁️ Nube (Google)</span><span class="flecha">▼</span>
+  </div>
+  <div class="sidebar-section-content" id="seccion-nube">
+    <div class="seccion-inner">
+      <button id="btn-google" class="btn-sync-inner btn-google" onclick="conectarConGoogle()">
+        <svg class="google-icon" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        <span id="btn-google-texto">Conectar con Google</span>
+      </button>
+      
+      <div id="controles-firebase" style="display:none;">
+        <button class="btn-sync-inner btn-subir-drive" onclick="subirManualmente()" style="margin-top:15px;">⬆️ SUBIR EQUIPO ACTUAL</button>
+        <button class="btn-sync-inner btn-bajar-drive" onclick="bajarManualmente()">⬇️ BAJAR EQUIPO ACTUAL</button>
+        <div class="sync-estado" id="sync-estado-caja" style="margin-top:10px;">Sin sincronizar</div>
+        <button class="btn-sync-inner" onclick="mostrarLogs()" style="background:#34495e; margin-top:8px;">🔍 Ver registro</button>
+      </div>
+      
+      <p class="sync-info" id="sync-info-texto" style="margin-top:10px;">Conecta tu cuenta.</p>
     </div>
   </div>
 
   <!-- BARRIOS -->
-  <div class="seccion">
-    <div class="seccion-titulo" onclick="toggleSeccion('sec-barrios')">
-      <span>📍 Barrios</span><span id="flecha-barrios">▼</span>
-    </div>
-    <div class="seccion-contenido" id="sec-barrios">
-      <label>Barrio actual:</label>
-      <select id="select-barrio" onchange="cambiarBarrio(this.value)">
+  <div class="sidebar-section-header" onclick="toggleSeccion('seccion-barrios', this)">
+    <span>📍 Barrios</span><span class="flecha">▼</span>
+  </div>
+  <div class="sidebar-section-content" id="seccion-barrios">
+    <div class="seccion-inner">
+      <label>Seleccionar Barrio:</label>
+      <select id="selector-barrio" onchange="cambiarBarrio(this.value)">
         <option value="">-- Sin barrios --</option>
       </select>
-      <label>Crear nuevo barrio:</label>
-      <input type="text" id="nuevo-barrio" placeholder="Ej: Chorlavi">
-      <label>Imagen del mapa:</label>
-      <input type="file" id="archivo-mapa" accept="image/*">
-      <button class="b-verde" onclick="cargarBarrio()">✅ CARGAR BARRIO</button>
-      <button class="b-rojo" onclick="eliminarBarrio()">🗑️ Eliminar barrio actual</button>
-      <button class="b-morado" onclick="exportarJSON()">📤 Exportar JSON</button>
-      <button class="b-morado" onclick="document.getElementById('import-file').click()">📥 Importar JSON</button>
-      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importarJSON(event)">
+      
+      <label style="margin-top:15px;">Crear nuevo barrio:</label>
+      <input type="text" id="nombre-barrio" placeholder="Ej. Chorlavi...">
+      <label>Imagen del Mapa:</label>
+      <input type="file" id="archivo-mapa" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,image/*">
+      <button class="btn-cargar" onclick="cargarNuevoMapa()">✅ Cargar Mapa</button>
+      <button class="btn-eliminar-barrio" onclick="eliminarBarrioActual()">🗑️ Eliminar Barrio</button>
+      
+      <div class="sync-separador">
+        <span class="sync-titulo">💾 Respaldo Local</span>
+        <button class="btn-sync-inner btn-export-inner" onclick="exportarDatos()">📤 Exportar JSON</button>
+        <button class="btn-sync-inner btn-import-inner" onclick="document.getElementById('input-importar').click()">📥 Importar JSON</button>
+        <input type="file" id="input-importar" accept=".json" style="display:none" onchange="importarDatos(event)">
+      </div>
     </div>
   </div>
 
-  <!-- PACIENTES -->
-  <div class="seccion">
-    <div class="seccion-titulo" onclick="toggleSeccion('sec-pacientes')">
-      <span>📊 Pacientes</span><span id="flecha-pacientes">▼</span>
-    </div>
-    <div class="seccion-contenido" id="sec-pacientes">
-      <button class="b-azul" onclick="abrirMatriz('barrio')">📍 Barrio actual</button>
-      <button class="b-azul" onclick="abrirMatriz('eais')">🏥 Todo mi EAIS</button>
-      <button class="b-morado" onclick="abrirMatriz('total')">🌎 TODOS los EAIS</button>
-    </div>
-  </div>
+  <button class="btn-matriz" onclick="abrirMatriz('barrio')" id="btn-matriz">📊 Pacientes</button>
 
-  <!-- FILTROS -->
-  <div class="seccion">
-    <div class="seccion-titulo" onclick="toggleSeccion('sec-filtros')">
-      <span>🔍 Filtrar</span><span id="flecha-filtros">▼</span>
-    </div>
-    <div class="seccion-contenido" id="sec-filtros">
-      <label><input type="checkbox" value="Embarazada" onchange="aplicarFiltros()"> Embarazada</label>
-      <label><input type="checkbox" value="Niños menores de 2 años" onchange="aplicarFiltros()"> Niños &lt; 2 años</label>
-      <label><input type="checkbox" value="Discapacidad" onchange="aplicarFiltros()"> Discapacidad</label>
-      <label><input type="checkbox" value="Hipertensión" onchange="aplicarFiltros()"> Hipertensión</label>
-      <label><input type="checkbox" value="Diabetes" onchange="aplicarFiltros()"> Diabetes</label>
-      <label><input type="checkbox" value="Salud mental" onchange="aplicarFiltros()"> Salud mental</label>
-      <label><input type="checkbox" value="VIH" onchange="aplicarFiltros()"> VIH</label>
-      <label><input type="checkbox" value="Tuberculosis" onchange="aplicarFiltros()"> Tuberculosis</label>
-      <label><input type="checkbox" value="Desnutrición" onchange="aplicarFiltros()"> Desnutrición</label>
-      <label><input type="checkbox" value="Vacunas incompletas" onchange="aplicarFiltros()"> Vacunas incompletas</label>
-      <label><input type="checkbox" value="Evento de salud" onchange="aplicarFiltros()"> Evento de salud</label>
-      <label><input type="checkbox" value="Cuidados paliativos" onchange="aplicarFiltros()"> Cuidados paliativos</label>
-      <button class="b-rojo" onclick="limpiarFiltros()">Limpiar filtros</button>
+  <div class="sidebar-section-header" onclick="toggleSeccion('seccion-filtro', this)">
+    <span>🔍 Filtrar por Condición</span><span class="flecha">▼</span>
+  </div>
+  <div class="sidebar-section-content" id="seccion-filtro">
+    <div class="seccion-inner">
+      <p class="filtro-hint">Selecciona condiciones para resaltar.</p>
+      <label class="filtro-item"><input type="checkbox" value="Embarazada" onchange="aplicarFiltros()"><span class="color-dot" style="background:#e91e63;"></span> Embarazada</label>
+      <label class="filtro-item"><input type="checkbox" value="Niños menores de 2 años" onchange="aplicarFiltros()"><span class="color-dot" style="background:#ff9800;"></span> Niños &lt; 2 años</label>
+      <label class="filtro-item"><input type="checkbox" value="Discapacidad" onchange="aplicarFiltros()"><span class="color-dot" style="background:#9c27b0;"></span> Discapacidad</label>
+      <label class="filtro-item"><input type="checkbox" value="Hipertensión" onchange="aplicarFiltros()"><span class="color-dot" style="background:#f44336;"></span> Hipertensión</label>
+      <label class="filtro-item"><input type="checkbox" value="Diabetes" onchange="aplicarFiltros()"><span class="color-dot" style="background:#795548;"></span> Diabetes</label>
+      <label class="filtro-item"><input type="checkbox" value="Salud mental" onchange="aplicarFiltros()"><span class="color-dot" style="background:#00bcd4;"></span> Salud mental</label>
+      <label class="filtro-item"><input type="checkbox" value="VIH" onchange="aplicarFiltros()"><span class="color-dot" style="background:#212121;"></span> VIH</label>
+      <label class="filtro-item"><input type="checkbox" value="Tuberculosis" onchange="aplicarFiltros()"><span class="color-dot" style="background:#4caf50;"></span> Tuberculosis</label>
+      <label class="filtro-item"><input type="checkbox" value="Desnutrición" onchange="aplicarFiltros()"><span class="color-dot" style="background:#009688;"></span> Desnutrición</label>
+      <label class="filtro-item"><input type="checkbox" value="Vacunas incompletas" onchange="aplicarFiltros()"><span class="color-dot" style="background:#06b6d4;"></span> Vacunas incompletas</label>
+      <label class="filtro-item"><input type="checkbox" value="Evento de salud" onchange="aplicarFiltros()"><span class="color-dot" style="background:#dc2626;"></span> Evento de salud</label>
+      <label class="filtro-item"><input type="checkbox" value="Cuidados paliativos" onchange="aplicarFiltros()"><span class="color-dot" style="background:#636e72;"></span> Cuidados paliativos</label>
+      <button class="btn-limpiar-filtros" onclick="limpiarFiltros()">🗑️ Limpiar Filtros</button>
     </div>
   </div>
 </div>
 
 <div id="mapa-wrapper">
-  <div id="mensaje-centro">
+  <div id="sin-equipo">
     <h2>🏥 Selecciona un Equipo</h2>
-    <p>Abre "Equipo de Salud" en el menú izquierdo</p>
-    <p>y crea uno (ej: EU01).</p>
+    <p>Crea o selecciona un equipo de salud en el menú izquierdo.</p>
+    <p style="font-size:12px; color:#e67e22;"><strong>Ejemplo:</strong> EU01, EU02, EU06...</p>
   </div>
-  <div id="canvas-container" style="display:none;">
-    <img id="mapa-img" src="" alt="">
-    <div id="canvas-zoom-container">
-      <canvas id="canvas"></canvas>
+  <div id="sin-barrio" style="display:none;">
+    <h2>📍 Sin barrios en este equipo</h2>
+    <p>Crea el primer barrio desde el menú izquierdo.</p>
+  </div>
+  <div id="canvas-zoom-container" style="display:none;">
+    <div id="canvas-zoom">
+      <img id="mapa-imagen" src="" alt="">
+      <div id="canvas-fabric"><canvas id="c"></canvas></div>
     </div>
   </div>
 </div>
 
-<div id="modal">
-  <div class="modal-box">
-    <button class="cerrar" onclick="cerrarModal()">×</button>
-    <h2 id="modal-titulo">Ficha</h2>
-    <div id="modal-contenido"></div>
-    <div style="margin-top:15px; display:flex; gap:10px;">
-      <button class="b-azul" style="flex:1;" onclick="agregarIntegrante()">+ Integrante</button>
-      <button class="b-verde" style="flex:1;" onclick="guardarFicha()">💾 Guardar</button>
+<div id="instrucciones">
+  <button class="btn-cerrar-instr" onclick="cerrarInstrucciones()">✕</button>
+  <strong>📖 Cómo usar la app</strong>
+  <div class="instruccion-item">🏥 <span>Crea o selecciona tu Equipo de Salud</span></div>
+  <div class="instruccion-item">📍 <span>Agrega barrios con sus mapas</span></div>
+  <div class="instruccion-item">➕ <span>Crea casas y arrástralas al mapa</span></div>
+  <div class="instruccion-item">✍️ <span>Ponles nomenclatura (ej. MZ14-C15)</span></div>
+  <div class="instruccion-item">📌 <span>Fija las casas cuando termines</span></div>
+  <div class="instruccion-item">👆 <span>Haz clic en una casa para ver su ficha</span></div>
+</div>
+
+<div id="sidebar-resumen">
+  <div class="sidebar-header">
+    <h3>Casa: <span id="sidebar-id-casa">---</span></h3>
+    <button class="btn-cerrar-sidebar" onclick="cerrarSidebar()">&times;</button>
+  </div>
+  <div class="sidebar-content">
+    <div id="sidebar-estado-visita" class="estado-visita-badge estado-Pendiente">Estado: Pendiente</div>
+    <button class="btn-agregar-ficha" onclick="abrirModalEdicion()">➕ Agregar / Editar Ficha</button>
+    <div id="sidebar-lista-integrantes"></div>
+  </div>
+</div>
+
+<div id="modal-ficha" class="modal">
+  <div class="modal-content">
+    <button class="close" onclick="cerrarModal()">&times;</button>
+    <h2 style="font-size:18px;">Ficha: <span id="modal-id-casa" style="color:#e74c3c;"></span></h2>
+    <div class="estado-visita-section">
+      <label>Estado de la Visita:</label>
+      <div>
+        <button class="btn-estado btn-pendiente" onclick="cambiarEstadoVisita('Pendiente')">Pendiente</button>
+        <button class="btn-estado btn-visitada" onclick="cambiarEstadoVisita('Visitada')">Visitada</button>
+        <button class="btn-estado btn-fallida" onclick="cambiarEstadoVisita('Fallida')">Fallida</button>
+        <button class="btn-estado btn-cerrada" onclick="cambiarEstadoVisita('Cerrada')">Cerrada</button>
+        <button class="btn-estado btn-abandonada" onclick="cambiarEstadoVisita('Abandonada')">Abandonada</button>
+      </div>
+    </div>
+    <div id="contenedor-integrantes"></div>
+    <div class="modal-footer">
+      <button class="btn-agregar" onclick="agregarIntegranteForm()">+ Integrante</button>
+      <button class="btn-guardar" onclick="guardarFicha()">💾 Guardar Ficha</button>
     </div>
   </div>
 </div>
 
+<div id="modal-matriz" class="modal">
+  <div class="modal-content matriz">
+    <button class="close" onclick="cerrarMatriz()">&times;</button>
+    <div class="matriz-header">
+      <div>
+        <h2 style="margin:0;font-size:16px;">📊 Pacientes</h2>
+        <div class="matriz-info" id="matriz-info">Cargando...</div>
+      </div>
+      <button class="btn-excel" onclick="descargarExcel()">📥 Descargar Excel</button>
+    </div>
+    <div class="tabs-matriz">
+      <button class="tab-matriz" onclick="cambiarTabMatriz('barrio')" id="tab-barrio">📍 Barrio</button>
+      <button class="tab-matriz" onclick="cambiarTabMatriz('eais')" id="tab-eais">🏥 EAIS</button>
+      <button class="tab-matriz" onclick="cambiarTabMatriz('total')" id="tab-total">🌎 Total</button>
+    </div>
+    <div class="tabla-scroll">
+      <table class="tabla-matriz">
+        <thead>
+          <tr>
+            <th>Casa</th><th>Estado</th><th>Nombre</th><th>Cédula</th><th>Edad</th><th>Sexo</th>
+            <th>Contacto</th><th>Escolaridad</th><th>Grupo</th><th>Vacunas</th><th>Enfermedades</th>
+            <th>Medicamentos</th><th>Evento</th><th>Condiciones</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-matriz"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="log-panel" onclick="this.classList.remove('visible')"></div>
 <div id="toast"></div>
 
 <script>
-// ==================== CONFIG ====================
-const FIREBASE_CONFIG = {
+// ==================== FIREBASE ====================
+const firebaseConfig = {
   apiKey: "AIzaSyA9ZDzrw1PFfQ49zom9uyvymz4uUh5Alzg",
   authDomain: "catastro-medico.firebaseapp.com",
   projectId: "catastro-medico",
@@ -222,179 +433,651 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "600952886375",
   appId: "1:600952886375:web:f738d3e0bfe11d28f670c2"
 };
-
-firebase.initializeApp(FIREBASE_CONFIG);
+firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+db.enablePersistence().catch((err) => console.log('Persistencia:', err.code));
 
 // ==================== VARIABLES ====================
 let canvas = null;
-let equipo = null;
 let barrioActual = null;
 let idCasaActual = null;
-let zoom = 1;
-let usuario = null;
-let unsubscribe = null;
-let guardando = false;
+let estadoVisitaActual = 'Pendiente';
+let aplicandoFiltros = false;
+let zoomActual = 1;
+let modoActivo = 'bloqueado';
+let usuarioActual = null;
+let unsubscribeListener = null;
+let aplicandoCambiosRemotos = false;
+let guardandoEnFirestore = false;
+let hayCambiosPendientes = false;
+let ultimoCambioLocal = 0;
+let equipoActual = null;
+let tabMatrizActivo = 'barrio';
+let pacientesMatrizActuales = [];
 
-// ==================== UTILS ====================
-function P(k) { return 'cat_' + (equipo || 'none') + '_' + k; }
-function toast(msg, tipo) {
-  const t = document.getElementById('toast');
-  t.innerText = msg;
-  t.className = 'ver ' + (tipo || '');
-  setTimeout(() => { t.className = ''; }, 2500);
+const coloresCondiciones = {
+  'Embarazada': { fill: 'rgba(233, 30, 99, 0.7)', stroke: '#e91e63' },
+  'Niños menores de 2 años': { fill: 'rgba(255, 152, 0, 0.7)', stroke: '#ff9800' },
+  'Discapacidad': { fill: 'rgba(156, 39, 176, 0.7)', stroke: '#9c27b0' },
+  'Hipertensión': { fill: 'rgba(244, 67, 54, 0.7)', stroke: '#f44336' },
+  'Diabetes': { fill: 'rgba(121, 85, 72, 0.8)', stroke: '#795548' },
+  'Salud mental': { fill: 'rgba(0, 188, 212, 0.7)', stroke: '#00bcd4' },
+  'VIH': { fill: 'rgba(33, 33, 33, 0.8)', stroke: '#212121' },
+  'Tuberculosis': { fill: 'rgba(76, 175, 80, 0.7)', stroke: '#4caf50' },
+  'Desnutrición': { fill: 'rgba(0, 150, 136, 0.7)', stroke: '#009688' },
+  'Vacunas incompletas': { fill: 'rgba(6, 182, 212, 0.7)', stroke: '#06b6d4' },
+  'Evento de salud': { fill: 'rgba(220, 38, 38, 0.7)', stroke: '#dc2626' },
+  'Cuidados paliativos': { fill: 'rgba(99, 110, 114, 0.7)', stroke: '#636e72' }
+};
+const estadosColoresHex = {
+  'Pendiente': '#e74c3c', 'Visitada': '#27ae60', 'Fallida': '#f1c40f',
+  'Cerrada': '#95a5a6', 'Abandonada': '#34495e'
+};
+
+// ==================== PREFIJO ====================
+function P(key) { return 'cat_' + (equipoActual || 'none') + '_' + key; }
+function listaEquiposKey() { return 'cat_equipos_lista'; }
+function equipoActivoKey() { return 'cat_equipo_activo'; }
+
+function cargarListaEquipos() {
+  try { return JSON.parse(localStorage.getItem(listaEquiposKey()) || '[]'); } catch(e) { return []; }
 }
-function log(msg) { console.log('[Cat] ' + msg); }
+function guardarListaEquipos(lista) { localStorage.setItem(listaEquiposKey(), JSON.stringify(lista)); }
+function cargarEquipoActivoGuardado() { return localStorage.getItem(equipoActivoKey()) || null; }
+function guardarEquipoActivo(id) { localStorage.setItem(equipoActivoKey(), id); }
 
-function toggleSeccion(id) {
+// ==================== MIGRACIÓN ====================
+function migrarDatosAntiguos() {
+  if (cargarListaEquipos().length > 0) return;
+  const tieneViejos = localStorage.getItem('catastro_barrios') || 
+    Object.keys(localStorage).some(k => k.startsWith('catastro_mapa_') || k.startsWith('catastro_ficha_'));
+  if (!tieneViejos) {
+    guardarListaEquipos([{ id: 'EU01', fecha: new Date().toISOString() }]);
+    return;
+  }
+  console.log('Migrando a EU01...');
+  guardarListaEquipos([{ id: 'EU01', fecha: new Date().toISOString() }]);
+  const viejas = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('catastro_') && 
+        !k.startsWith('catastro_equipos_lista') && 
+        !k.startsWith('catastro_equipo_activo') &&
+        !k.startsWith('catastro_EU') &&
+        k.match(/^catastro_(barrios|barrio_activo|mapa_|canvas_|ficha_|estado_|zoom_|scroll)/)) {
+      viejas.push(k);
+    }
+  }
+  viejas.forEach(k => {
+    localStorage.setItem('cat_EU01_' + k.replace('catastro_', ''), localStorage.getItem(k));
+    localStorage.removeItem(k);
+  });
+  guardarEquipoActivo('EU01');
+}
+
+// ==================== LOGS / TOAST ====================
+function log(msg, tipo = 'info') {
+  console.log(msg);
+  const panel = document.getElementById('log-panel');
+  if (!panel) return;
+  const hora = new Date().toTimeString().substring(0,8);
+  const linea = document.createElement('div');
+  linea.className = 'log-linea log-' + tipo;
+  linea.innerText = '[' + hora + '] ' + msg;
+  panel.appendChild(linea);
+  panel.scrollTop = panel.scrollHeight;
+  while (panel.children.length > 100) panel.removeChild(panel.firstChild);
+}
+
+function mostrarLogs() {
+  const panel = document.getElementById('log-panel');
+  if (panel) panel.classList.toggle('visible');
+}
+
+function mostrarToast(mensaje, tipo) {
+  const toast = document.getElementById('toast');
+  toast.innerText = mensaje;
+  toast.className = 'visible ' + (tipo || 'info');
+  setTimeout(() => { toast.className = ''; }, 3500);
+}
+
+function toggleSidebarMovil() {
+  document.getElementById('sidebar-filtros').classList.toggle('abierto');
+  document.getElementById('overlay-sidebar').classList.toggle('visible');
+}
+
+function cerrarInstrucciones() {
+  document.getElementById('instrucciones').classList.add('oculto');
+  localStorage.setItem('instrucciones_cerradas', '1');
+}
+
+function toggleSeccion(id, header) {
   const el = document.getElementById(id);
-  const flecha = document.getElementById('flecha-' + id.replace('sec-', ''));
   el.classList.toggle('abierto');
-  if (flecha) flecha.innerText = el.classList.contains('abierto') ? '▼' : '▶';
+  header.classList.toggle('abierto');
 }
 
-function toggleMenu() {
-  document.getElementById('sidebar').classList.toggle('abierto');
+function actualizarIndicadorSync(estado, texto) {
+  const ind = document.getElementById('sync-indicador');
+  if (ind) {
+    ind.className = estado;
+    ind.innerText = texto;
+  }
 }
 
-// ==================== EQUIPOS ====================
-function listaEquipos() {
-  try { return JSON.parse(localStorage.getItem('cat_equipos') || '[]'); } catch(e) { return []; }
+function marcarCambioPendiente() {
+  if (!equipoActual) return;
+  hayCambiosPendientes = true;
+  ultimoCambioLocal = Date.now();
+  if (usuarioActual) {
+    actualizarIndicadorSync('pendiente', '⏳ Sin subir');
+    const caja = document.getElementById('sync-estado-caja');
+    if (caja) {
+      caja.className = 'sync-estado pendiente';
+      caja.innerHTML = '⚠️ Cambios sin subir.';
+    }
+  }
 }
-function guardarEquipos(l) { localStorage.setItem('cat_equipos', JSON.stringify(l)); }
 
+// ==================== UI EQUIPOS ====================
 function actualizarUIEquipos() {
-  const lista = listaEquipos();
-  const div = document.getElementById('lista-equipos');
-  const caja = document.getElementById('equipo-activo');
+  const lista = cargarListaEquipos();
+  const listaDiv = document.getElementById('lista-equipos');
+  const equipoCaja = document.getElementById('equipo-actual-caja');
+  const equipoInfo = document.getElementById('equipo-info');
   
   if (lista.length === 0) {
-    div.innerHTML = '<div style="padding:15px; text-align:center; color:#7f8c8d; font-size:12px;">Sin equipos</div>';
-    caja.innerText = 'Sin equipo';
-    caja.className = 'info-box';
+    listaDiv.innerHTML = '<div style="padding:15px; text-align:center; color:#7f8c8d; font-size:12px;">Sin equipos creados</div>';
+    equipoCaja.className = 'sync-estado error';
+    equipoCaja.innerHTML = '🏥 Sin equipo seleccionado';
+    equipoInfo.innerText = '🏥 Sin equipo';
     return;
   }
   
   let html = '';
-  lista.forEach(e => {
-    html += '<div class="item-lista ' + (e === equipo ? 'activo' : '') + '" onclick="cambiarEquipo(\'' + e + '\')">🏥 ' + e + '</div>';
+  lista.forEach(eq => {
+    const activo = eq.id === equipoActual ? ' activo' : '';
+    html += '<div class="equipo-item' + activo + '" onclick="seleccionarEquipo(\'' + eq.id + '\')">' +
+      '<span>🏥 ' + eq.id + '</span></div>';
   });
-  div.innerHTML = html;
+  listaDiv.innerHTML = html;
   
-  if (equipo) {
-    caja.innerText = '✅ Equipo: ' + equipo;
-    caja.className = 'info-box ok';
+  if (equipoActual) {
+    equipoCaja.className = 'sync-estado equipo';
+    equipoCaja.innerHTML = '✅ Equipo activo: <strong>' + equipoActual + '</strong>';
+    equipoInfo.innerText = '🏥 ' + equipoActual;
+  } else {
+    equipoCaja.className = 'sync-estado error';
+    equipoCaja.innerHTML = '🏥 Selecciona un equipo';
+    equipoInfo.innerText = '🏥 Sin equipo';
   }
 }
 
-function crearEquipo() {
-  const input = document.getElementById('nuevo-equipo');
-  let nombre = input.value.trim().toUpperCase();
-  if (!nombre) { toast('Escribe un nombre', 'err'); return; }
-  nombre = nombre.replace(/[^A-Z0-9_]/g, '_');
+function crearNuevoEquipo() {
+  const input = document.getElementById('nuevo-equipo-nombre');
+  let nombreInput = input.value.trim().toUpperCase();
+  if (!nombreInput) { mostrarToast('⚠️ Escribe un nombre', 'error'); return; }
+  const nombreLimpio = nombreInput.replace(/[^A-Z0-9_]/g, '_');
   
-  const lista = listaEquipos();
-  if (lista.includes(nombre)) { toast('Ya existe', 'err'); return; }
-  if (!confirm('Crear equipo ' + nombre + '?')) return;
+  const lista = cargarListaEquipos();
+  if (lista.find(e => e.id === nombreLimpio)) {
+    mostrarToast('⚠️ Ya existe ' + nombreLimpio, 'error');
+    return;
+  }
   
-  lista.push(nombre);
-  guardarEquipos(lista);
+  if (!confirm('🏥 CREAR EQUIPO: ' + nombreLimpio + '\n\n¿Continuar?')) return;
+  
+  if (equipoActual) guardarTodoLocal();
+  
+  lista.push({ id: nombreLimpio, fecha: new Date().toISOString() });
+  guardarListaEquipos(lista);
+  guardarEquipoActivo(nombreLimpio);
+  equipoActual = nombreLimpio;
   input.value = '';
-  toast('Equipo ' + nombre + ' creado', 'ok');
   
-  cambiarEquipo(nombre);
+  log('Equipo creado: ' + nombreLimpio, 'ok');
+  mostrarToast('✅ Equipo ' + nombreLimpio + ' creado', 'success');
+  
+  iniciarEquipo();
 }
 
-function cambiarEquipo(nombre) {
-  if (!nombre) return;
-  if (equipo === nombre) return;
+function seleccionarEquipo(id) {
+  if (id === equipoActual) return;
+  if (!confirm('🏥 CAMBIAR A EQUIPO: ' + id + '\n\n¿Continuar?')) return;
+  if (equipoActual) guardarTodoLocal();
+  equipoActual = id;
+  guardarEquipoActivo(id);
+  log('Cambiando a: ' + id, 'info');
+  mostrarToast('✅ Equipo: ' + id, 'success');
+  iniciarEquipo();
+}
+
+function eliminarEquipoActual() {
+  if (!equipoActual) { mostrarToast('⚠️ Sin equipo', 'error'); return; }
+  if (!confirm('⚠️ ELIMINAR EQUIPO: ' + equipoActual + '\n\nSe borrarán TODOS sus datos.\n\n¿Continuar?')) return;
+  if (!confirm('⚠️ CONFIRMACIÓN FINAL\n\n¿Realmente eliminar ' + equipoActual + '?')) return;
   
-  if (equipo && canvas) guardarCanvas();
+  const idEliminar = equipoActual;
+  const keysABorrar = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('cat_' + idEliminar + '_')) keysABorrar.push(k);
+  }
+  keysABorrar.forEach(k => localStorage.removeItem(k));
   
-  equipo = nombre;
-  localStorage.setItem('cat_equipo_activo', nombre);
+  const lista = cargarListaEquipos().filter(e => e.id !== idEliminar);
+  guardarListaEquipos(lista);
+  
+  if (usuarioActual) {
+    db.collection('catastros').doc(idEliminar).delete()
+      .then(() => log('Borrado de nube', 'ok'))
+      .catch(e => log('Error nube: ' + e.message, 'error'));
+  }
+  
+  log('Equipo eliminado: ' + idEliminar, 'info');
+  mostrarToast('✅ Equipo eliminado', 'success');
+  
+  if (lista.length > 0) {
+    equipoActual = lista[0].id;
+    guardarEquipoActivo(equipoActual);
+  } else {
+    equipoActual = null;
+    localStorage.removeItem(equipoActivoKey());
+  }
+  iniciarEquipo();
+}
+
+function iniciarEquipo() {
   barrioActual = null;
   if (canvas) canvas.clear();
   
   actualizarUIEquipos();
-  actualizarSelectBarrios();
+  actualizarSelectorBarrios();
+  actualizarTabsMatriz();
   
-  log('Equipo: ' + nombre);
-  
-  const lista = cargarBarrios();
-  if (lista.length > 0) {
-    document.getElementById('mensaje-centro').style.display = 'none';
-    cambiarBarrio(lista[0].id);
-  } else {
-    document.getElementById('mensaje-centro').style.display = 'block';
-    document.getElementById('mensaje-centro').innerHTML = '<h2>📍 Sin barrios</h2><p>Crea el primer barrio en el menú izquierdo.</p>';
-    document.getElementById('canvas-container').style.display = 'none';
+  if (!equipoActual) {
+    document.getElementById('sin-equipo').style.display = 'block';
+    document.getElementById('sin-barrio').style.display = 'none';
+    document.getElementById('canvas-zoom-container').style.display = 'none';
+    document.getElementById('btn-matriz').disabled = true;
+    document.getElementById('mapa-imagen').src = '';
+    return;
   }
   
-  document.getElementById('estado').innerText = '🏥 ' + nombre;
+  document.getElementById('sin-equipo').style.display = 'none';
+  document.getElementById('btn-matriz').disabled = false;
   
-  if (usuario) {
-    if (unsubscribe) unsubscribe();
-    iniciarEscucha();
+  const lista = cargarBarriosLista();
+  if (lista.length === 0) {
+    document.getElementById('sin-barrio').style.display = 'block';
+    document.getElementById('canvas-zoom-container').style.display = 'none';
+    document.getElementById('mapa-imagen').src = '';
+  } else {
+    const activoGuardado = localStorage.getItem(P('barrio_activo'));
+    const barrioId = (activoGuardado && lista.find(b => b.id === activoGuardado)) ? activoGuardado : lista[0].id;
+    document.getElementById('sin-barrio').style.display = 'none';
+    cambiarBarrio(barrioId);
+  }
+  
+  if (usuarioActual) {
+    if (unsubscribeListener) unsubscribeListener();
+    iniciarEscuchaTiempoReal();
   }
 }
 
-function eliminarEquipoActual() {
-  if (!equipo) { toast('Sin equipo', 'err'); return; }
-  if (!confirm('Eliminar equipo ' + equipo + ' y TODOS sus datos?')) return;
-  if (!confirm('¿Estás seguro? Esto no se puede deshacer.')) return;
-  
-  const prefijo = 'cat_' + equipo + '_';
-  const borrar = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith(prefijo)) borrar.push(k);
+function guardarTodoLocal() {
+  if (barrioActual && canvas) guardarCanvasActual();
+}
+
+// ==================== FIREBASE AUTH ====================
+function inicializarFirebase() {
+  auth.onAuthStateChanged((user) => {
+    if (user) {
+      usuarioActual = user;
+      log('Sesión: ' + user.displayName, 'ok');
+      document.getElementById('btn-google-texto').innerText = '✅ ' + (user.displayName || user.email);
+      document.getElementById('btn-google').classList.add('conectado');
+      document.getElementById('controles-firebase').style.display = 'block';
+      document.getElementById('sync-info-texto').innerText = 'Conectado.';
+      actualizarIndicadorSync('sincronizado', '☁️ ' + (user.displayName || 'OK').substring(0, 12));
+      
+      const caja = document.getElementById('sync-estado-caja');
+      if (caja) {
+        caja.className = 'sync-estado ok';
+        caja.innerHTML = '✅ Conectado';
+      }
+      
+      if (equipoActual) {
+        iniciarEscuchaTiempoReal();
+        setTimeout(verificarDatosRemotos, 1500);
+      }
+    } else {
+      usuarioActual = null;
+      document.getElementById('btn-google-texto').innerText = 'Conectar con Google';
+      document.getElementById('btn-google').classList.remove('conectado');
+      document.getElementById('controles-firebase').style.display = 'none';
+      document.getElementById('sync-info-texto').innerText = 'Conecta tu cuenta.';
+      actualizarIndicadorSync('desconectado', '☁️ Sin conexión');
+      if (unsubscribeListener) { unsubscribeListener(); unsubscribeListener = null; }
+    }
+  });
+}
+
+function conectarConGoogle() {
+  if (usuarioActual) {
+    if (confirm('¿Cerrar sesión?')) auth.signOut();
+    return;
   }
-  borrar.forEach(k => localStorage.removeItem(k));
+  actualizarIndicadorSync('pendiente', '🔗 Conectando...');
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider)
+    .then((r) => {
+      log('Sesión: ' + r.user.displayName, 'ok');
+      mostrarToast('✅ ' + r.user.displayName, 'success');
+    })
+    .catch((e) => {
+      log('Error: ' + e.message, 'error');
+      mostrarToast('❌ ' + e.message, 'error');
+      actualizarIndicadorSync('error', '❌ Error');
+    });
+}
+
+function gestionarSync() {
+  if (!usuarioActual) conectarConGoogle();
+  else if (confirm('¿Cerrar sesión?')) auth.signOut();
+}
+
+// ==================== ESCUCHA TIEMPO REAL ====================
+function iniciarEscuchaTiempoReal() {
+  if (!usuarioActual || !equipoActual) return;
+  if (unsubscribeListener) unsubscribeListener();
   
-  const lista = listaEquipos().filter(e => e !== equipo);
-  guardarEquipos(lista);
+  const docRef = db.collection('catastros').doc(equipoActual);
+  log('Escuchando: ' + equipoActual, 'info');
   
-  if (usuario) {
-    db.collection('catastros').doc(equipo).delete().catch(e => console.log(e));
-  }
-  
-  equipo = null;
-  localStorage.removeItem('cat_equipo_activo');
-  
-  if (lista.length > 0) {
-    cambiarEquipo(lista[0]);
+  unsubscribeListener = docRef.onSnapshot((snapshot) => {
+    if (aplicandoCambiosRemotos) return;
+    if (guardandoEnFirestore) return;
+    if (Date.now() - ultimoCambioLocal < 5000) return;
+    
+    if (snapshot.exists) {
+      const datosRemotos = snapshot.data();
+      const datosLocales = recolectarTodosLosDatos();
+      const remotoStr = JSON.stringify(datosRemotos.datos || {});
+      const localStr = JSON.stringify(datosLocales.datos || {});
+      if (remotoStr === localStr) return;
+      
+      log('Cambios externos detectados', 'info');
+      const modalAbierto = document.getElementById('modal-ficha').style.display === 'block' || 
+                           document.getElementById('modal-matriz').style.display === 'block';
+      if (modalAbierto) {
+        mostrarToast('📥 Hay cambios. Guarda y espera.', 'warning');
+        return;
+      }
+      
+      aplicandoCambiosRemotos = true;
+      const zoomAntes = zoomActual;
+      const wrapper = document.getElementById('mapa-wrapper');
+      const scrollL = wrapper.scrollLeft;
+      const scrollT = wrapper.scrollTop;
+      
+      restaurarTodosLosDatos(datosRemotos);
+      
+      actualizarMapaDesdeDatos(function() {
+        zoomActual = zoomAntes;
+        aplicarZoom();
+        setTimeout(() => {
+          wrapper.scrollLeft = scrollL;
+          wrapper.scrollTop = scrollT;
+        }, 100);
+        mostrarToast('⬇️ Cambios de compañeros aplicados', 'success');
+        aplicandoCambiosRemotos = false;
+      });
+    }
+  }, (error) => log('Listener: ' + error.message, 'error'));
+}
+
+function actualizarMapaDesdeDatos(callback) {
+  actualizarSelectorBarrios();
+  if (barrioActual) {
+    const dataURL = localStorage.getItem(P('mapa_' + barrioActual.id));
+    const canvasJSON = localStorage.getItem(P('canvas_' + barrioActual.id));
+    if (!dataURL) { if (callback) callback(); return; }
+    
+    const nuevoImg = new Image();
+    nuevoImg.onload = function() {
+      canvas.clear();
+      canvas.setWidth(nuevoImg.width);
+      canvas.setHeight(nuevoImg.height);
+      canvas.backgroundColor = 'transparent';
+      canvas.setZoom(1);
+      
+      const mapaImg = document.getElementById('mapa-imagen');
+      mapaImg.src = dataURL;
+      mapaImg.width = nuevoImg.width;
+      mapaImg.height = nuevoImg.height;
+      
+      document.getElementById('canvas-zoom-container').style.width = nuevoImg.width + 'px';
+      document.getElementById('canvas-zoom-container').style.height = nuevoImg.height + 'px';
+      
+      if (canvasJSON) {
+        try {
+          canvas.loadFromJSON(canvasJSON, function() {
+            restaurarEstadosObjetos();
+            canvas.renderAll();
+            canvas.calcOffset();
+            if (callback) callback();
+          });
+        } catch(e) { canvas.renderAll(); if (callback) callback(); }
+      } else {
+        canvas.renderAll();
+        if (callback) callback();
+      }
+    };
+    nuevoImg.onerror = function() { if (callback) callback(); };
+    nuevoImg.src = dataURL;
   } else {
-    actualizarUIEquipos();
-    document.getElementById('mensaje-centro').style.display = 'block';
-    document.getElementById('mensaje-centro').innerHTML = '<h2>🏥 Selecciona un Equipo</h2><p>Crea uno nuevo en el menú.</p>';
-    document.getElementById('canvas-container').style.display = 'none';
-    document.getElementById('estado').innerText = '📍 Sin barrio';
+    if (callback) callback();
   }
+}
+
+async function verificarDatosRemotos() {
+  if (!usuarioActual || !equipoActual) return;
+  try {
+    const docRef = db.collection('catastros').doc(equipoActual);
+    const docSnap = await docRef.get();
+    
+    if (docSnap.exists) {
+      const datosRemotos = docSnap.data();
+      const datosLocales = recolectarTodosLosDatos();
+      if (JSON.stringify(datosRemotos.datos || {}) === JSON.stringify(datosLocales.datos || {})) return;
+      
+      const hayLocales = Object.keys(datosLocales.datos || {}).length > 0;
+      const hayRemotos = Object.keys(datosRemotos.datos || {}).length > 0;
+      
+      if (!hayLocales && hayRemotos) {
+        restaurarTodosLosDatos(datosRemotos);
+        setTimeout(() => window.location.reload(), 1000);
+      } else if (hayLocales && !hayRemotos) {
+        await subirManualmente(true);
+      }
+    } else {
+      if (Object.keys(recolectarTodosLosDatos().datos || {}).length > 0) {
+        await subirManualmente(true);
+      }
+    }
+  } catch(e) { log('Error verificar: ' + e.message, 'error'); }
+}
+
+// ==================== SUBIR / BAJAR ====================
+async function subirManualmente(silencioso = false) {
+  if (!equipoActual) { if (!silencioso) mostrarToast('⚠️ Sin equipo', 'error'); return; }
+  if (!usuarioActual) { if (!silencioso) mostrarToast('⚠️ Sin conexión', 'error'); return; }
+  if (!silencioso && !confirm('📤 SUBIR ' + equipoActual + '?\n\n¿Continuar?')) return;
   
-  toast('Equipo eliminado', 'ok');
+  try {
+    guardandoEnFirestore = true;
+    log('Subiendo ' + equipoActual, 'info');
+    await db.collection('catastros').doc(equipoActual).set(recolectarTodosLosDatos());
+    const hora = new Date().toTimeString().substring(0,5);
+    localStorage.setItem('ultima_sync_hora', hora);
+    hayCambiosPendientes = false;
+    
+    const caja = document.getElementById('sync-estado-caja');
+    if (caja) {
+      caja.className = 'sync-estado ok';
+      caja.innerHTML = '✅ Subida: ' + hora;
+    }
+    actualizarIndicadorSync('sincronizado', '☁️ ' + hora);
+    log('Subida OK', 'ok');
+    if (!silencioso) mostrarToast('✅ Subido', 'success');
+    setTimeout(() => { guardandoEnFirestore = false; }, 3000);
+  } catch(e) {
+    guardandoEnFirestore = false;
+    log('Error subida: ' + e.message, 'error');
+    actualizarIndicadorSync('error', '❌ Error');
+    if (!silencioso) mostrarToast('❌ ' + e.message, 'error');
+  }
+}
+
+async function bajarManualmente() {
+  if (!equipoActual) { mostrarToast('⚠️ Sin equipo', 'error'); return; }
+  if (!usuarioActual) { mostrarToast('⚠️ Sin conexión', 'error'); return; }
+  if (!confirm('⚠️ BAJAR ' + equipoActual + ' de la nube?\n\nReemplaza datos locales.')) return;
+  
+  try {
+    log('Bajando ' + equipoActual, 'info');
+    const docSnap = await db.collection('catastros').doc(equipoActual).get();
+    if (!docSnap.exists) { mostrarToast('⚠️ Sin datos en la nube', 'warning'); return; }
+    restaurarTodosLosDatos(docSnap.data());
+    hayCambiosPendientes = false;
+    mostrarToast('⬇️ Cargado', 'success');
+    setTimeout(() => window.location.reload(), 1200);
+  } catch(e) {
+    log('Error bajando: ' + e.message, 'error');
+    mostrarToast('❌ ' + e.message, 'error');
+  }
+}
+
+function programarSubida() {
+  if (!equipoActual) return;
+  clearTimeout(window._syncTimer);
+  window._syncTimer = setTimeout(async () => {
+    if (!usuarioActual || !hayCambiosPendientes) return;
+    await subirManualmente(true);
+  }, 4000);
+}
+
+// ==================== ZOOM / SCROLL ====================
+function guardarZoomScroll() {
+  if (!barrioActual || !equipoActual) return;
+  try {
+    localStorage.setItem(P('zoom_' + barrioActual.id), zoomActual.toString());
+    const w = document.getElementById('mapa-wrapper');
+    localStorage.setItem(P('scrollL_' + barrioActual.id), w.scrollLeft.toString());
+    localStorage.setItem(P('scrollT_' + barrioActual.id), w.scrollTop.toString());
+  } catch(e) {}
+}
+
+function restaurarZoomScroll() {
+  if (!barrioActual || !equipoActual) return;
+  const sZ = parseFloat(localStorage.getItem(P('zoom_' + barrioActual.id)));
+  const sL = parseInt(localStorage.getItem(P('scrollL_' + barrioActual.id)));
+  const sT = parseInt(localStorage.getItem(P('scrollT_' + barrioActual.id)));
+  if (!isNaN(sZ) && sZ > 0.1 && sZ < 4) { zoomActual = sZ; aplicarZoom(); }
+  setTimeout(() => {
+    const w = document.getElementById('mapa-wrapper');
+    if (!isNaN(sL)) w.scrollLeft = sL;
+    if (!isNaN(sT)) w.scrollTop = sT;
+  }, 200);
+}
+
+// ==================== GESTOS ====================
+function inicializarGestosTactiles() {
+  const wrapper = document.getElementById('mapa-wrapper');
+  let pinch = { activo: false, distIni: 0, zoomIni: 1, cx: 0, cy: 0, sl: 0, st: 0 };
+  wrapper.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      pinch = {
+        activo: true, distIni: Math.hypot(dx, dy), zoomIni: zoomActual,
+        cx: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        cy: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+        sl: wrapper.scrollLeft, st: wrapper.scrollTop
+      };
+    }
+  }, { passive: true });
+  wrapper.addEventListener('touchmove', function(e) {
+    if (e.touches.length === 2 && pinch.activo) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const distAct = Math.hypot(dx, dy);
+      const factor = distAct / pinch.distIni;
+      const nZ = Math.max(0.2, Math.min(3, pinch.zoomIni * factor));
+      if (Math.abs(nZ - zoomActual) > 0.01) {
+        zoomActual = nZ;
+        aplicarZoom();
+        requestAnimationFrame(() => {
+          const ratio = zoomActual / pinch.zoomIni;
+          wrapper.scrollLeft = (pinch.sl + pinch.cx) * ratio - pinch.cx;
+          wrapper.scrollTop = (pinch.st + pinch.cy) * ratio - pinch.cy;
+        });
+      }
+    }
+  }, { passive: false });
+  wrapper.addEventListener('touchend', function(e) {
+    if (e.touches.length < 2) pinch.activo = false;
+  });
+  wrapper.addEventListener('wheel', function(e) {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      cambiarZoom(e.deltaY < 0 ? 0.1 : -0.1);
+    }
+  }, { passive: false });
+}
+
+function cambiarZoom(d) { zoomActual = Math.max(0.2, Math.min(3, zoomActual + d)); aplicarZoom(); guardarZoomScroll(); }
+function resetZoom() { zoomActual = 1; aplicarZoom(); guardarZoomScroll(); }
+function aplicarZoom() {
+  const zd = document.getElementById('canvas-zoom');
+  const c = document.getElementById('canvas-zoom-container');
+  const m = document.getElementById('mapa-imagen');
+  zd.style.transform = 'scale(' + zoomActual + ')';
+  if (m && m.width && m.height) {
+    c.style.width = (m.width * zoomActual) + 'px';
+    c.style.height = (m.height * zoomActual) + 'px';
+  }
+  document.getElementById('zoom-nivel').innerText = Math.round(zoomActual * 100) + '%';
+}
+
+function actualizarIndicadorModo(modo) {
+  modoActivo = modo;
+  const ind = document.getElementById('modo-indicador');
+  if (modo === 'editando') { ind.className = 'editando'; ind.innerText = '✏️ Editando'; }
+  else { ind.className = 'bloqueado'; ind.innerText = '📌 Bloqueado'; }
 }
 
 // ==================== BARRIOS ====================
-function cargarBarrios() {
-  if (!equipo) return [];
+function cargarBarriosLista() {
+  if (!equipoActual) return [];
   try { return JSON.parse(localStorage.getItem(P('barrios')) || '[]'); } catch(e) { return []; }
 }
-function guardarBarrios(l) {
-  if (!equipo) return;
-  localStorage.setItem(P('barrios'), JSON.stringify(l));
+function guardarBarriosLista(lista) { 
+  if (!equipoActual) return;
+  localStorage.setItem(P('barrios'), JSON.stringify(lista)); 
 }
 
-function actualizarSelectBarrios() {
-  const sel = document.getElementById('select-barrio');
+function actualizarSelectorBarrios() {
+  const sel = document.getElementById('selector-barrio');
+  if (!sel) return;
   sel.innerHTML = '';
-  const l = cargarBarrios();
-  if (l.length === 0) {
-    sel.innerHTML = '<option value="">-- Sin barrios --</option>';
-    return;
-  }
-  l.forEach(b => {
+  if (!equipoActual) { sel.innerHTML = '<option value="">-- Sin equipo --</option>'; return; }
+  const lista = cargarBarriosLista();
+  if (lista.length === 0) { sel.innerHTML = '<option value="">-- Sin barrios --</option>'; return; }
+  lista.forEach(b => {
     const opt = document.createElement('option');
     opt.value = b.id;
     opt.textContent = b.nombre;
@@ -403,12 +1086,12 @@ function actualizarSelectBarrios() {
   if (barrioActual) sel.value = barrioActual.id;
 }
 
-function cargarBarrio() {
-  if (!equipo) { toast('Primero crea un equipo', 'err'); return; }
-  const nombre = document.getElementById('nuevo-barrio').value.trim();
-  const file = document.getElementById('archivo-mapa').files[0];
-  if (!nombre) { toast('Escribe un nombre', 'err'); return; }
-  if (!file) { toast('Selecciona una imagen', 'err'); return; }
+function cargarNuevoMapa() {
+  if (!equipoActual) { mostrarToast('⚠️ Primero un equipo', 'error'); return; }
+  const nombre = document.getElementById('nombre-barrio').value.trim();
+  const fileInput = document.getElementById('archivo-mapa');
+  if (!nombre) { mostrarToast('⚠️ Ponle un nombre', 'error'); return; }
+  if (!fileInput.files || !fileInput.files[0]) { mostrarToast('⚠️ Selecciona imagen', 'error'); return; }
   
   const reader = new FileReader();
   reader.onload = function(e) {
@@ -423,523 +1106,553 @@ function cargarBarrio() {
       ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, w, h);
       ctx.drawImage(img, 0, 0, w, h);
-      const data = tmp.toDataURL('image/jpeg', 0.6);
+      const dataURL = tmp.toDataURL('image/jpeg', 0.6);
+      const id = 'barrio_' + Date.now();
+      try { localStorage.setItem(P('mapa_' + id), dataURL); }
+      catch (err) { mostrarToast('❌ Imagen muy grande', 'error'); return; }
       
-      const id = 'b_' + Date.now();
-      try { localStorage.setItem(P('mapa_' + id), data); }
-      catch(err) { toast('Imagen muy grande', 'err'); return; }
+      const lista = cargarBarriosLista();
+      lista.push({ id, nombre });
+      guardarBarriosLista(lista);
       
-      const l = cargarBarrios();
-      l.push({ id, nombre });
-      guardarBarrios(l);
-      
-      document.getElementById('nuevo-barrio').value = '';
+      document.getElementById('nombre-barrio').value = '';
       document.getElementById('archivo-mapa').value = '';
       
-      actualizarSelectBarrios();
       cambiarBarrio(id);
-      toast('Barrio ' + nombre + ' creado', 'ok');
+      actualizarSelectorBarrios();
+      mostrarToast('✅ Barrio ' + nombre, 'success');
+      marcarCambioPendiente();
       programarSubida();
     };
     img.src = e.target.result;
   };
-  reader.readAsDataURL(file);
+  reader.readAsDataURL(fileInput.files[0]);
 }
 
 function cambiarBarrio(id) {
-  if (!id || !equipo) return;
-  if (barrioActual) guardarCanvas();
-  
-  const l = cargarBarrios();
-  const b = l.find(x => x.id === id);
-  if (!b) return;
+  if (!id || !equipoActual) return;
+  if (barrioActual) guardarCanvasActual();
+  const lista = cargarBarriosLista();
+  const b = lista.find(x => x.id === id);
+  if (!b) { mostrarToast('Barrio no encontrado', 'error'); return; }
   
   barrioActual = b;
   localStorage.setItem(P('barrio_activo'), id);
-  document.getElementById('select-barrio').value = id;
-  document.getElementById('estado').innerText = '📍 ' + b.nombre;
-  document.getElementById('mensaje-centro').style.display = 'none';
-  document.getElementById('canvas-container').style.display = 'inline-block';
+  document.getElementById('selector-barrio').value = id;
+  document.getElementById('btn-matriz').disabled = false;
   
   const dataURL = localStorage.getItem(P('mapa_' + id));
   const canvasJSON = localStorage.getItem(P('canvas_' + id));
+  if (!dataURL) { mostrarToast('Sin imagen', 'error'); return; }
   
-  if (!dataURL) { toast('Sin imagen', 'err'); return; }
+  document.getElementById('sin-barrio').style.display = 'none';
+  document.getElementById('canvas-zoom-container').style.display = 'inline-block';
   
-  const img = new Image();
-  img.onload = function() {
-    const mImg = document.getElementById('mapa-img');
-    mImg.src = dataURL;
-    mImg.width = img.width;
-    mImg.height = img.height;
-    
-    canvas.setWidth(img.width);
-    canvas.setHeight(img.height);
-    canvas.setBackgroundColor(null, canvas.renderAll.bind(canvas));
+  const nuevoImg = new Image();
+  nuevoImg.onload = function() {
+    const mapaImg = document.getElementById('mapa-imagen');
+    mapaImg.src = dataURL;
+    mapaImg.width = nuevoImg.width;
+    mapaImg.height = nuevoImg.height;
+    canvas.setWidth(nuevoImg.width);
+    canvas.setHeight(nuevoImg.height);
+    canvas.backgroundColor = 'transparent';
     canvas.setZoom(1);
+    canvas.calcOffset();
     
     if (canvasJSON) {
+      canvas.clear();
+      canvas.setWidth(nuevoImg.width);
+      canvas.setHeight(nuevoImg.height);
+      canvas.backgroundColor = 'transparent';
       try {
         canvas.loadFromJSON(canvasJSON, function() {
-          canvas.forEachObject(function(o) {
-            if (o.type === 'group') {
-              o.selectable = false;
-              o.evented = true;
-              o.hasControls = false;
-              o.hasBorders = false;
-              o.hoverCursor = 'pointer';
-              o.setCoords();
-            }
-          });
+          restaurarEstadosObjetos();
           canvas.renderAll();
           canvas.calcOffset();
+          setTimeout(restaurarZoomScroll, 300);
         });
-      } catch(e) { canvas.renderAll(); }
+      } catch(e) { 
+        canvas.renderAll();
+        setTimeout(restaurarZoomScroll, 300);
+      }
     } else {
       canvas.clear();
-      canvas.setWidth(img.width);
-      canvas.setHeight(img.height);
+      canvas.setWidth(nuevoImg.width);
+      canvas.setHeight(nuevoImg.height);
+      canvas.backgroundColor = 'transparent';
       canvas.renderAll();
+      setTimeout(restaurarZoomScroll, 300);
     }
-    setTimeout(() => { canvas.calcOffset(); canvas.renderAll(); }, 100);
   };
-  img.src = dataURL;
+  nuevoImg.src = dataURL;
+  actualizarIndicadorModo('bloqueado');
 }
 
-function eliminarBarrio() {
-  if (!barrioActual) { toast('Sin barrio', 'err'); return; }
-  if (!confirm('Eliminar barrio ' + barrioActual.nombre + '?')) return;
-  
-  const id = barrioActual.id;
-  localStorage.removeItem(P('mapa_' + id));
-  localStorage.removeItem(P('canvas_' + id));
-  
-  const borrar = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && (k.startsWith(P('ficha_' + id + '_')) || k.startsWith(P('estado_' + id + '_')))) {
-      borrar.push(k);
+function restaurarEstadosObjetos() {
+  if (!canvas) return;
+  canvas.forEachObject(function(obj) {
+    if (obj.type !== 'group') return;
+    obj.evented = true;
+    if (modoActivo === 'editando') {
+      obj.selectable = true; obj.hasControls = true; obj.hasBorders = true;
+      obj.lockMovementX = false; obj.lockMovementY = false;
+    } else {
+      obj.selectable = false; obj.hasControls = false; obj.hasBorders = false;
+      obj.lockMovementX = true; obj.lockMovementY = true;
     }
-  }
-  borrar.forEach(k => localStorage.removeItem(k));
-  
-  const l = cargarBarrios().filter(b => b.id !== id);
-  guardarBarrios(l);
-  actualizarSelectBarrios();
-  
-  barrioActual = null;
-  canvas.clear();
-  document.getElementById('canvas-container').style.display = 'none';
-  document.getElementById('mensaje-centro').style.display = 'block';
-  document.getElementById('mensaje-centro').innerHTML = '<h2>📍 Sin barrios</h2><p>Crea uno nuevo.</p>';
-  document.getElementById('estado').innerText = '🏥 ' + equipo;
-  
-  toast('Barrio eliminado', 'ok');
-  programarSubida();
-}
-
-// ==================== FIREBASE AUTH ====================
-auth.onAuthStateChanged(function(u) {
-  if (u) {
-    usuario = u;
-    document.getElementById('btn-google').innerText = '✅ ' + (u.displayName || u.email);
-    document.getElementById('estado-nube').innerText = '✅ Conectado';
-    document.getElementById('estado-nube').className = 'info-box ok';
-    log('Sesión: ' + u.displayName);
-    if (equipo) iniciarEscucha();
-  } else {
-    usuario = null;
-    document.getElementById('btn-google').innerText = '🔗 Conectar con Google';
-    document.getElementById('estado-nube').innerText = 'Sin conectar';
-    document.getElementById('estado-nube').className = 'info-box';
-    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
-  }
-});
-
-function conectarGoogle() {
-  if (usuario) {
-    if (confirm('¿Cerrar sesión?')) auth.signOut();
-    return;
-  }
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider)
-    .then(r => toast('✅ ' + r.user.displayName, 'ok'))
-    .catch(e => toast('❌ ' + e.message, 'err'));
-}
-
-// ==================== SUBIR / BAJAR ====================
-function recolectar() {
-  if (!equipo) return { datos: {}, barrios: [] };
-  const datos = {
-    version: '1.0',
-    fecha: new Date().toISOString(),
-    equipo: equipo,
-    barrios: cargarBarrios(),
-    barrioActivo: barrioActual ? barrioActual.id : null,
-    datos: {}
-  };
-  const pref = P('');
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith(pref)) {
-      const sinPref = k.substring(pref.length);
-      if (/^(mapa_|canvas_|ficha_|estado_)/.test(sinPref)) {
-        datos.datos[sinPref] = localStorage.getItem(k);
-      }
-    }
-  }
-  return datos;
-}
-
-function restaurar(datos) {
-  if (!datos || !datos.datos || !datos.barrios) throw new Error('Datos inválidos');
-  if (!equipo) throw new Error('Sin equipo');
-  
-  const pref = P('');
-  const borrar = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith(pref)) borrar.push(k);
-  }
-  borrar.forEach(k => localStorage.removeItem(k));
-  
-  for (const [k, v] of Object.entries(datos.datos)) {
-    localStorage.setItem(P(k), v);
-  }
-  localStorage.setItem(P('barrios'), JSON.stringify(datos.barrios));
-  if (datos.barrioActivo) localStorage.setItem(P('barrio_activo'), datos.barrioActivo);
-}
-
-async function subirNube(silencioso) {
-  if (!equipo) { if (!silencioso) toast('Sin equipo', 'err'); return; }
-  if (!usuario) { if (!silencioso) toast('Conecta con Google', 'err'); return; }
-  if (guardando) return;
-  
-  if (!silencioso && !confirm('Subir equipo ' + equipo + ' a la nube?')) return;
-  
-  try {
-    guardando = true;
-    await db.collection('catastros').doc(equipo).set(recolectar());
-    if (!silencioso) toast('✅ Subido', 'ok');
-    document.getElementById('estado-nube').innerText = '✅ Subido: ' + new Date().toTimeString().substring(0,5);
-    document.getElementById('estado-nube').className = 'info-box ok';
-    setTimeout(() => { guardando = false; }, 2000);
-  } catch(e) {
-    guardando = false;
-    if (!silencioso) toast('❌ ' + e.message, 'err');
-  }
-}
-
-async function bajarNube() {
-  if (!equipo) { toast('Sin equipo', 'err'); return; }
-  if (!usuario) { toast('Conecta con Google', 'err'); return; }
-  if (!confirm('Esto reemplazará los datos locales.\n\n¿Continuar?')) return;
-  
-  try {
-    const doc = await db.collection('catastros').doc(equipo).get();
-    if (!doc.exists) { toast('Sin datos en la nube', 'err'); return; }
-    restaurar(doc.data());
-    toast('Bajado. Recargando...', 'ok');
-    setTimeout(() => location.reload(), 1000);
-  } catch(e) { toast('❌ ' + e.message, 'err'); }
-}
-
-function programarSubida() {
-  if (!equipo || !usuario) return;
-  clearTimeout(window._subTimer);
-  window._subTimer = setTimeout(() => subirNube(true), 3000);
-}
-
-// ==================== TIEMPO REAL ====================
-function iniciarEscucha() {
-  if (!usuario || !equipo) return;
-  if (unsubscribe) unsubscribe();
-  
-  log('Escuchando: ' + equipo);
-  unsubscribe = db.collection('catastros').doc(equipo).onSnapshot(function(snap) {
-    if (guardando) return;
-    if (!snap.exists) return;
-    const remote = snap.data();
-    const local = recolectar();
-    if (JSON.stringify(remote.datos || {}) === JSON.stringify(local.datos || {})) return;
-    
-    log('Cambios externos');
-    if (confirm('Hay cambios de tus compañeros.\n\n¿Bajar datos?')) {
-      restaurar(remote);
-      location.reload();
-    }
+    obj.setCoords();
+    if (obj.idCasa) aplicarColorEstado(obj);
   });
 }
 
-// ==================== CANVAS ====================
-function guardarCanvas() {
-  if (!barrioActual || !canvas || !equipo) return;
+function eliminarBarrioActual() {
+  if (!barrioActual) { mostrarToast('Sin barrio', 'error'); return; }
+  if (!confirm('¿Eliminar "' + barrioActual.nombre + '"?')) return;
+  const id = barrioActual.id;
+  localStorage.removeItem(P('mapa_' + id));
+  localStorage.removeItem(P('canvas_' + id));
+  localStorage.removeItem(P('zoom_' + id));
+  localStorage.removeItem(P('scrollL_' + id));
+  localStorage.removeItem(P('scrollT_' + id));
+  
+  const borrar = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && (k.startsWith(P('ficha_' + id + '_')) || k.startsWith(P('estado_' + id + '_')))) borrar.push(k);
+  }
+  borrar.forEach(k => localStorage.removeItem(k));
+  
+  guardarBarriosLista(cargarBarriosLista().filter(b => b.id !== id));
+  barrioActual = null;
+  localStorage.removeItem(P('barrio_activo'));
+  if (canvas) canvas.clear();
+  document.getElementById('canvas-zoom-container').style.display = 'none';
+  document.getElementById('sin-barrio').style.display = 'block';
+  document.getElementById('btn-matriz').disabled = true;
+  actualizarSelectorBarrios();
+  mostrarToast('✅ Eliminado', 'success');
+  marcarCambioPendiente();
+  programarSubida();
+}
+
+function guardarCanvasActual() {
+  if (!barrioActual || !canvas || !equipoActual) return;
   try {
     localStorage.setItem(P('canvas_' + barrioActual.id), JSON.stringify(canvas.toJSON(['idCasa'])));
   } catch(e) {}
 }
 
-function guardarMapa() {
-  guardarCanvas();
-  programarSubida();
+function getFichaKey(idCasa) { 
+  if (!barrioActual || !equipoActual) return 'temp'; 
+  return P('ficha_' + barrioActual.id + '_' + idCasa); 
+}
+function getEstadoKey(idCasa) { 
+  if (!barrioActual || !equipoActual) return 'temp'; 
+  return P('estado_' + barrioActual.id + '_' + idCasa); 
 }
 
+// ==================== CASAS ====================
 function crearCasa() {
-  if (!canvas || !barrioActual || !equipo) { toast('Selecciona barrio', 'err'); return; }
+  if (!canvas || !barrioActual || !equipoActual) { mostrarToast('Selecciona equipo y barrio', 'error'); return; }
   
   const wrapper = document.getElementById('mapa-wrapper');
-  const cont = document.getElementById('canvas-container');
+  const cont = document.getElementById('canvas-zoom-container');
   const rw = wrapper.getBoundingClientRect();
   const rc = cont.getBoundingClientRect();
-  const cx = (rw.left + rw.width/2 - rc.left) / zoom;
-  const cy = (rw.top + rw.height/2 - rc.top) / zoom;
+  const cx = (rw.left + rw.width/2 - rc.left) / zoomActual;
+  const cy = (rw.top + rw.height/2 - rc.top) / zoomActual;
   
-  const ancho = 60 / zoom;
-  const alto = 50 / zoom;
-  const fuente = 12 / zoom;
+  const ancho = 60 / zoomActual;
+  const alto = 50 / zoomActual;
+  const fuente = 12 / zoomActual;
   
   const rect = new fabric.Rect({
     width: ancho, height: alto,
-    fill: 'rgba(231, 76, 60, 0.5)', stroke: '#c0392b',
-    strokeWidth: 2/zoom, rx: 5/zoom, ry: 5/zoom
+    fill: 'rgba(231, 76, 60, 0.4)', stroke: '#c0392b',
+    strokeWidth: 2/zoomActual, rx: 5/zoomActual, ry: 5/zoomActual
   });
-  const txt = new fabric.Textbox('', {
-    fontSize: fuente, fill: '#2c3e50', textAlign: 'center',
-    width: ancho, top: alto * 0.3, left: 0, fontWeight: 'bold'
+  const text = new fabric.Textbox('', {
+    fontSize: fuente, fontFamily: 'Arial', fill: '#2c3e50',
+    textAlign: 'center', width: ancho, top: alto * 0.3, left: 0,
+    fontWeight: 'bold', splitByGrapheme: true
   });
-  const g = new fabric.Group([rect, txt], {
+  const grupo = new fabric.Group([rect, text], {
     left: cx - ancho/2, top: cy - alto/2,
     hasControls: true, hasBorders: true, selectable: true, evented: true
   });
-  g.set('idCasa', 'nueva_' + Date.now());
-  g.setCoords();
-  canvas.add(g);
-  canvas.setActiveObject(g);
+  grupo.set('idCasa', 'Nueva-' + Date.now());
+  grupo.setCoords();
+  canvas.add(grupo);
+  canvas.setActiveObject(grupo);
   canvas.renderAll();
   guardarMapa();
-  toast('Casa creada', 'ok');
+  mostrarToast('Casa creada en el centro', 'info');
 }
 
 function ponerNomenclatura() {
-  const o = canvas.getActiveObject();
-  if (!o || o.type !== 'group') { toast('Selecciona una casa', 'err'); return; }
-  const n = prompt('Nomenclatura (ej: MZ14-C15):');
-  if (n && n.trim()) {
-    const t = o._objects.find(x => x.type === 'textbox' || x.type === 'text');
-    if (t) t.set('text', n);
-    o.set('idCasa', n);
-    o.setCoords();
+  if (!canvas) return;
+  const obj = canvas.getActiveObject();
+  if (!obj || obj.type !== 'group') { mostrarToast('Selecciona una casa', 'error'); return; }
+  const nombre = prompt("Nomenclatura (ej. MZ14-C15):");
+  if (nombre && nombre.trim()) {
+    const t = obj._objects.find(o => o.type === 'textbox' || o.type === 'text');
+    if (t) t.set('text', nombre);
+    obj.set('idCasa', nombre);
+    obj.setCoords();
     canvas.renderAll();
     guardarMapa();
   }
 }
 
-function modoEdicion() {
+function fijarCasas() {
+  if (!canvas) return;
   canvas.discardActiveObject();
-  canvas.selection = true;
-  canvas.forEachObject(function(o) {
-    if (o.type === 'group') {
-      o.selectable = true; o.evented = true;
-      o.hasControls = true; o.hasBorders = true;
-      o.lockMovementX = false; o.lockMovementY = false;
-      o.hoverCursor = 'move';
-      o.setCoords();
+  canvas.selection = false;
+  canvas.forEachObject(function(obj) {
+    if (obj.type === 'group') {
+      obj.selectable = false; obj.evented = true;
+      obj.hasControls = false; obj.hasBorders = false;
+      obj.lockMovementX = true; obj.lockMovementY = true;
+      obj.hoverCursor = 'pointer';
+      obj.setCoords();
+      if (obj.idCasa) aplicarColorEstado(obj);
     }
   });
   canvas.renderAll();
-  toast('Modo edición', 'ok');
+  aplicarFiltros();
+  guardarMapa();
+  actualizarIndicadorModo('bloqueado');
+  mostrarToast('Casas fijadas', 'success');
 }
 
-function fijarCasas() {
+function modoEdicion() {
+  if (!canvas) return;
   canvas.discardActiveObject();
-  canvas.selection = false;
-  canvas.forEachObject(function(o) {
-    if (o.type === 'group') {
-      o.selectable = false; o.evented = true;
-      o.hasControls = false; o.hasBorders = false;
-      o.lockMovementX = true; o.lockMovementY = true;
-      o.hoverCursor = 'pointer';
-      o.setCoords();
+  canvas.selection = true;
+  canvas.skipTargetFind = false;
+  canvas.forEachObject(function(obj) {
+    if (obj.type === 'group') {
+      obj.selectable = true; obj.evented = true;
+      obj.hasControls = true; obj.hasBorders = true;
+      obj.lockMovementX = false; obj.lockMovementY = false;
+      obj.lockScalingX = false; obj.lockScalingY = false;
+      obj.lockRotation = false;
+      obj.hoverCursor = 'move';
+      obj.setCoords();
+      obj.set('opacity', 1);
+      if (obj.idCasa) aplicarColorEstado(obj);
     }
   });
   canvas.renderAll();
   guardarMapa();
-  toast('Fijadas', 'ok');
+  actualizarIndicadorModo('editando');
 }
 
 function eliminarSeleccionado() {
-  const o = canvas.getActiveObject();
-  if (!o) { toast('Selecciona algo', 'err'); return; }
-  let id = null;
-  if (o.type === 'group' && o.idCasa) id = o.idCasa;
-  if (!confirm('¿Eliminar?')) return;
-  if (id) {
-    localStorage.removeItem(P('ficha_' + barrioActual.id + '_' + id));
-    localStorage.removeItem(P('estado_' + barrioActual.id + '_' + id));
+  if (!canvas) return;
+  const obj = canvas.getActiveObject();
+  if (!obj) { mostrarToast('Selecciona algo', 'error'); return; }
+  let mensaje = "¿Eliminar?";
+  let idCasa = null;
+  if (obj.type === 'group' && obj.idCasa) {
+    idCasa = obj.idCasa;
+    mensaje = localStorage.getItem(getFichaKey(idCasa))
+      ? "⚠️ Casa '" + idCasa + "' tiene datos. ¿Eliminar?"
+      : "¿Eliminar casa '" + idCasa + "'?";
   }
-  canvas.remove(o);
+  if (!confirm(mensaje)) return;
+  if (idCasa) {
+    localStorage.removeItem(getFichaKey(idCasa));
+    localStorage.removeItem(getEstadoKey(idCasa));
+  }
+  canvas.remove(obj);
   canvas.discardActiveObject();
   canvas.renderAll();
   guardarMapa();
 }
 
-canvas = new fabric.Canvas('canvas', {
-  selection: true,
-  preserveObjectStacking: true,
-  backgroundColor: 'transparent'
-});
-
-canvas.on('object:modified', guardarMapa);
-canvas.on('object:added', function() { programarSubida(); });
-canvas.on('object:removed', function() { programarSubida(); });
-canvas.on('mouse:down', function(opt) {
-  const t = opt.target;
-  if (t && t.type === 'group' && t.selectable === false && t.idCasa) {
-    abrirFicha(t.idCasa);
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Delete' || e.key === 'Supr') {
+    if (!canvas) return;
+    const obj = canvas.getActiveObject();
+    const tag = document.activeElement.tagName;
+    if (obj && obj.selectable && tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+      e.preventDefault();
+      eliminarSeleccionado();
+    }
   }
 });
 
-// ==================== ZOOM ====================
-function cambiarZoom(d) {
-  zoom = Math.max(0.3, Math.min(3, zoom + d));
-  aplicarZoom();
-}
-function resetZoom() { zoom = 1; aplicarZoom(); }
-function aplicarZoom() {
-  document.getElementById('canvas-zoom-container').style.transform = 'scale(' + zoom + ')';
-  document.getElementById('zoom-info').innerText = Math.round(zoom * 100) + '%';
-}
-
-// ==================== FICHA ====================
-function abrirFicha(idCasa) {
-  idCasaActual = idCasa;
-  document.getElementById('modal-titulo').innerText = 'Casa: ' + idCasa;
-  const cont = document.getElementById('modal-contenido');
-  cont.innerHTML = '';
-  
-  const datos = localStorage.getItem(P('ficha_' + barrioActual.id + '_' + idCasa));
-  if (datos) {
-    try {
-      const arr = JSON.parse(datos);
-      arr.forEach(i => agregarIntegrante(i));
-    } catch(e) { agregarIntegrante(); }
-  } else {
-    agregarIntegrante();
-  }
-  
-  document.getElementById('modal').classList.add('abierto');
-}
-
-function cerrarModal() {
-  document.getElementById('modal').classList.remove('abierto');
-  idCasaActual = null;
-}
-
-function agregarIntegrante(datos) {
-  datos = datos || {};
-  const cont = document.getElementById('modal-contenido');
-  const div = document.createElement('div');
-  div.className = 'tarjeta';
-  div.innerHTML = 
-    '<button class="btn-x" onclick="this.parentElement.remove()">X</button>' +
-    '<div class="form-row">' +
-      '<div class="form-group"><label>Nombre</label><input type="text" class="i-nombre" value="' + (datos.nombre || '') + '"></div>' +
-      '<div class="form-group"><label>Cédula</label><input type="text" class="i-cedula" value="' + (datos.cedula || '') + '"></div>' +
-      '<div class="form-group" style="max-width:70px;"><label>Edad</label><input type="number" class="i-edad" value="' + (datos.edad || '') + '"></div>' +
-    '</div>' +
-    '<div class="form-row">' +
-      '<div class="form-group"><label>Sexo</label><select class="i-sexo">' +
-        '<option value="">--</option>' +
-        '<option value="M"' + (datos.sexo === 'M' ? ' selected' : '') + '>M</option>' +
-        '<option value="F"' + (datos.sexo === 'F' ? ' selected' : '') + '>F</option>' +
-        '<option value="Otro"' + (datos.sexo === 'Otro' ? ' selected' : '') + '>Otro</option>' +
-      '</select></div>' +
-      '<div class="form-group"><label>Contacto</label><input type="tel" class="i-contacto" value="' + (datos.contacto || '') + '"></div>' +
-    '</div>' +
-    '<div class="form-row">' +
-      '<div class="form-group"><label>Enfermedades</label><textarea class="i-enfermedades">' + (datos.enfermedades || '') + '</textarea></div>' +
-      '<div class="form-group"><label>Medicamentos</label><textarea class="i-medicamentos">' + (datos.medicamentos || '') + '</textarea></div>' +
-    '</div>' +
-    '<div class="form-group"><label>Condiciones:</label><div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; font-size:12px;">' +
-      ['Embarazada', 'Niños menores de 2 años', 'Discapacidad', 'Hipertensión', 'Diabetes', 'Salud mental', 'VIH', 'Tuberculosis', 'Desnutrición', 'Cuidados paliativos'].map(c => {
-        const ch = datos.condiciones && datos.condiciones.includes(c) ? 'checked' : '';
-        return '<label><input type="checkbox" class="i-cond" value="' + c + '" ' + ch + '> ' + c + '</label>';
-      }).join('') +
-    '</div></div>';
-  cont.appendChild(div);
-}
-
-function guardarFicha() {
-  if (!idCasaActual || !barrioActual) return;
-  const arr = [];
-  document.querySelectorAll('#modal-contenido .tarjeta').forEach(t => {
-    const n = t.querySelector('.i-nombre').value.trim();
-    if (n !== '') {
-      const cond = [];
-      t.querySelectorAll('.i-cond:checked').forEach(cb => cond.push(cb.value));
-      arr.push({
-        nombre: n,
-        cedula: t.querySelector('.i-cedula').value.trim(),
-        edad: t.querySelector('.i-edad').value.trim(),
-        sexo: t.querySelector('.i-sexo').value,
-        contacto: t.querySelector('.i-contacto').value.trim(),
-        enfermedades: t.querySelector('.i-enfermedades').value.trim(),
-        medicamentos: t.querySelector('.i-medicamentos').value.trim(),
-        condiciones: cond
-      });
+function configurarEventosCanvas() {
+  canvas.on('object:modified', guardarMapa);
+  canvas.on('object:added', function() { if (!aplicandoFiltros) guardarMapa(); });
+  canvas.on('object:removed', function() { if (!aplicandoFiltros) guardarMapa(); });
+  canvas.on('mouse:down', function(options) {
+    const target = options.target;
+    if (target && target.type === 'group' && target.selectable === false && target.idCasa) {
+      abrirResumenFamiliar(target.idCasa);
     }
   });
-  localStorage.setItem(P('ficha_' + barrioActual.id + '_' + idCasaActual), JSON.stringify(arr));
-  toast('✅ Guardada', 'ok');
-  cerrarModal();
-  programarSubida();
+}
+
+function aplicarColorEstado(obj) {
+  if (!obj.idCasa) return;
+  const estado = localStorage.getItem(getEstadoKey(obj.idCasa)) || 'Pendiente';
+  const rect = obj._objects.find(o => o.type === 'rect');
+  if (!rect) return;
+  rect.set('strokeWidth', 2 / zoomActual);
+  switch(estado) {
+    case 'Visitada': rect.set('fill', 'rgba(46, 204, 113, 0.4)'); rect.set('stroke', '#27ae60'); break;
+    case 'Fallida': rect.set('fill', 'rgba(241, 196, 15, 0.4)'); rect.set('stroke', '#f1c40f'); break;
+    case 'Cerrada': rect.set('fill', 'rgba(149, 165, 166, 0.4)'); rect.set('stroke', '#95a5a6'); break;
+    case 'Abandonada': rect.set('fill', 'rgba(52, 73, 94, 0.4)'); rect.set('stroke', '#34495e'); break;
+    default: rect.set('fill', 'rgba(231, 76, 60, 0.4)'); rect.set('stroke', '#c0392b'); break;
+  }
 }
 
 // ==================== FILTROS ====================
 function aplicarFiltros() {
   if (!canvas) return;
-  const act = [];
-  document.querySelectorAll('#sec-filtros input:checked').forEach(cb => act.push(cb.value));
-  canvas.forEachObject(function(o) {
-    if (o.type !== 'group' || !o.idCasa || !barrioActual) return;
-    let match = null;
-    if (act.length > 0) {
-      const dat = localStorage.getItem(P('ficha_' + barrioActual.id + '_' + o.idCasa));
-      if (dat) {
-        const arr = JSON.parse(dat);
-        for (let i of arr) {
-          if (i.condiciones) {
-            for (let c of i.condiciones) {
-              if (act.includes(c)) { match = c; break; }
-            }
+  const activas = [];
+  document.querySelectorAll('#seccion-filtro input[type="checkbox"]:checked').forEach(cb => activas.push(cb.value));
+  aplicandoFiltros = true;
+  if (activas.length === 0) { limpiarFiltros(); return; }
+  canvas.forEachObject(function(obj) {
+    if (obj.type !== 'group' || !obj.idCasa) return;
+    const datos = localStorage.getItem(getFichaKey(obj.idCasa));
+    let encontrada = null;
+    if (datos) {
+      const integrantes = JSON.parse(datos);
+      for (let int of integrantes) {
+        if (int.condiciones) {
+          for (let c of int.condiciones) {
+            if (activas.includes(c)) { encontrada = c; break; }
           }
-          if (match) break;
         }
+        if (!encontrada && activas.includes('Vacunas incompletas') && int.vacunasCompletas === 'No') encontrada = 'Vacunas incompletas';
+        if (!encontrada && activas.includes('Evento de salud') && int.eventoSalud && int.eventoSalud.trim()) encontrada = 'Evento de salud';
+        if (encontrada) break;
       }
     }
-    const rect = o._objects.find(x => x.type === 'rect');
-    if (match) {
-      o.set('opacity', 1);
-      if (rect) rect.set('strokeWidth', 4/zoom);
-    } else if (act.length > 0) {
-      o.set('opacity', 0.15);
-      if (rect) rect.set('strokeWidth', 2/zoom);
+    const rect = obj._objects.find(o => o.type === 'rect');
+    if (encontrada) {
+      const color = coloresCondiciones[encontrada];
+      obj.set('opacity', 1);
+      if (rect) { rect.set('fill', color.fill); rect.set('stroke', color.stroke); rect.set('strokeWidth', 4 / zoomActual); }
     } else {
-      o.set('opacity', 1);
-      if (rect) rect.set('strokeWidth', 2/zoom);
+      obj.set('opacity', 0.12);
+      if (rect) rect.set('strokeWidth', 2 / zoomActual);
     }
   });
   canvas.renderAll();
+  aplicandoFiltros = false;
 }
 
 function limpiarFiltros() {
-  document.querySelectorAll('#sec-filtros input').forEach(cb => cb.checked = false);
-  aplicarFiltros();
+  if (!canvas) return;
+  document.querySelectorAll('#seccion-filtro input[type="checkbox"]').forEach(cb => cb.checked = false);
+  aplicandoFiltros = true;
+  canvas.forEachObject(function(obj) {
+    if (obj.type === 'group' && obj.idCasa) {
+      obj.set('opacity', 1);
+      aplicarColorEstado(obj);
+    }
+  });
+  canvas.renderAll();
+  aplicandoFiltros = false;
+}
+
+// ==================== FICHA ====================
+function abrirResumenFamiliar(idCasa) {
+  idCasaActual = idCasa;
+  document.getElementById('sidebar-id-casa').innerText = idCasa;
+  estadoVisitaActual = localStorage.getItem(getEstadoKey(idCasa)) || 'Pendiente';
+  const badge = document.getElementById('sidebar-estado-visita');
+  badge.className = 'estado-visita-badge estado-' + estadoVisitaActual;
+  badge.innerText = 'Estado: ' + estadoVisitaActual;
+  const lista = document.getElementById('sidebar-lista-integrantes');
+  const datos = localStorage.getItem(getFichaKey(idCasa));
+  if (datos) {
+    const integrantes = JSON.parse(datos);
+    if (integrantes.length > 0) {
+      let html = '';
+      integrantes.forEach(int => {
+        const grupo = int.grupoDispensarial || '1';
+        const colores = { '1': '#2ecc71', '2': '#f1c40f', '3': '#e74c3c', '4': '#3498db' };
+        html += '<div class="resumen-integrante" style="border-left-color:' + (colores[grupo] || '#bdc3c7') + ';">' +
+          '<h4>' + (int.nombre || 'Sin nombre') + '</h4>' +
+          '<p><strong>Edad:</strong> ' + (int.edad || 'N/A') + ' | <strong>Sexo:</strong> ' + (int.sexo || 'N/A') + '</p>' +
+          '<p><strong>📞</strong> ' + (int.contacto || 'No registrado') + '</p>' +
+          '<p><strong>Grupo:</strong> ' + grupo + '</p>' +
+          '<p><strong>Enf:</strong> ' + (int.enfermedades || 'Ninguna') + '</p>' +
+          (int.condiciones && int.condiciones.length > 0 ? '<div>' + int.condiciones.map(c => '<span class="tag-condicion" style="background:' + ((coloresCondiciones[c]||{}).stroke||'#e74c3c') + '">' + c + '</span>').join('') + '</div>' : '') +
+          '</div>';
+      });
+      lista.innerHTML = html;
+    } else lista.innerHTML = '<p class="sin-datos">Sin integrantes.</p>';
+  } else lista.innerHTML = '<p class="sin-datos">Sin datos. Agrega ficha.</p>';
+  document.getElementById('sidebar-resumen').classList.add('abierto');
+}
+
+function cerrarSidebar() {
+  document.getElementById('sidebar-resumen').classList.remove('abierto');
+  idCasaActual = null;
+}
+
+function abrirModalEdicion() {
+  if (!idCasaActual) return;
+  document.getElementById('modal-id-casa').innerText = idCasaActual;
+  document.getElementById('contenedor-integrantes').innerHTML = '';
+  estadoVisitaActual = localStorage.getItem(getEstadoKey(idCasaActual)) || 'Pendiente';
+  actualizarBotonesEstado(estadoVisitaActual);
+  const datos = localStorage.getItem(getFichaKey(idCasaActual));
+  if (datos) {
+    const integrantes = JSON.parse(datos);
+    if (integrantes.length > 0) integrantes.forEach(i => agregarIntegranteForm(i));
+    else agregarIntegranteForm();
+  } else agregarIntegranteForm();
+  document.getElementById('modal-ficha').style.display = 'block';
+}
+
+function cerrarModal() {
+  document.getElementById('modal-ficha').style.display = 'none';
+  if (idCasaActual) abrirResumenFamiliar(idCasaActual);
+}
+
+function cambiarEstadoVisita(nuevoEstado) {
+  estadoVisitaActual = nuevoEstado;
+  actualizarBotonesEstado(nuevoEstado);
+  localStorage.setItem(getEstadoKey(idCasaActual), nuevoEstado);
+  if (canvas) {
+    const obj = canvas.getObjects().find(o => o.idCasa === idCasaActual);
+    if (obj) { aplicarColorEstado(obj); canvas.renderAll(); }
+  }
+  marcarCambioPendiente();
+  programarSubida();
+}
+
+function actualizarBotonesEstado(estado) {
+  document.querySelectorAll('.btn-estado').forEach(btn => {
+    btn.classList.remove('activo');
+    if (btn.innerText.includes(estado)) btn.classList.add('activo');
+  });
+}
+
+function agregarIntegranteForm(datos = {}) {
+  const contenedor = document.getElementById('contenedor-integrantes');
+  const index = contenedor.children.length;
+  const grupo = datos.grupoDispensarial || '1';
+  const div = document.createElement('div');
+  div.className = 'integrante-card grupo-' + grupo;
+  div.innerHTML = 
+    '<button class="btn-eliminar-integrante" onclick="this.parentElement.remove()">✕</button>' +
+    '<h4>Integrante ' + (index + 1) + '</h4>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label>Nombre</label><input type="text" class="int-nombre" value="' + (datos.nombre || '') + '"></div>' +
+      '<div class="form-group"><label>Cédula</label><input type="text" class="int-cedula" value="' + (datos.cedula || '') + '"></div>' +
+      '<div class="form-group" style="max-width:70px;"><label>Edad</label><input type="number" class="int-edad" value="' + (datos.edad || '') + '"></div>' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label>Sexo</label><select class="int-sexo">' +
+        '<option value="">--</option>' +
+        '<option value="Masculino"' + (datos.sexo === 'Masculino' ? ' selected' : '') + '>M</option>' +
+        '<option value="Femenino"' + (datos.sexo === 'Femenino' ? ' selected' : '') + '>F</option>' +
+        '<option value="Otro"' + (datos.sexo === 'Otro' ? ' selected' : '') + '>Otro</option>' +
+      '</select></div>' +
+      '<div class="form-group"><label>Contacto</label><input type="tel" class="int-contacto" value="' + (datos.contacto || '') + '"></div>' +
+      '<div class="form-group"><label>Escolaridad</label><select class="int-escolaridad">' +
+        '<option value="">--</option>' +
+        '<option value="Ninguna"' + (datos.escolaridad === 'Ninguna' ? ' selected' : '') + '>Ninguna</option>' +
+        '<option value="Primaria"' + (datos.escolaridad === 'Primaria' ? ' selected' : '') + '>Primaria</option>' +
+        '<option value="Secundaria"' + (datos.escolaridad === 'Secundaria' ? ' selected' : '') + '>Secundaria</option>' +
+        '<option value="Superior"' + (datos.escolaridad === 'Superior' ? ' selected' : '') + '>Superior</option>' +
+      '</select></div>' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label>Grupo</label><select class="int-grupo" onchange="cambiarColorGrupo(this)">' +
+        '<option value="1"' + (grupo == '1' ? ' selected' : '') + '>1 - Sano</option>' +
+        '<option value="2"' + (grupo == '2' ? ' selected' : '') + '>2 - Riesgo</option>' +
+        '<option value="3"' + (grupo == '3' ? ' selected' : '') + '>3 - Crónico</option>' +
+        '<option value="4"' + (grupo == '4' ? ' selected' : '') + '>4 - Discapacidad</option>' +
+      '</select></div>' +
+      '<div class="form-group"><label>Vacunas</label><select class="int-vacunas">' +
+        '<option value="">--</option>' +
+        '<option value="Si"' + (datos.vacunasCompletas === 'Si' ? ' selected' : '') + '>Completas</option>' +
+        '<option value="No"' + (datos.vacunasCompletas === 'No' ? ' selected' : '') + '>Incompletas</option>' +
+      '</select></div>' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label>Enfermedades</label><textarea class="int-enfermedades">' + (datos.enfermedades || '') + '</textarea></div>' +
+      '<div class="form-group"><label>Medicamentos</label><textarea class="int-medicamentos">' + (datos.medicamentos || '') + '</textarea></div>' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label>🚨 Evento</label><input type="text" class="int-evento" value="' + (datos.eventoSalud || '') + '"></div>' +
+    '</div>' +
+    '<div class="form-group"><label>Condiciones</label><div class="condiciones-grid">' +
+      ['Embarazada', 'Niños menores de 2 años', 'Discapacidad', 'Hipertensión', 'Diabetes', 'Salud mental', 'VIH', 'Tuberculosis', 'Desnutrición', 'Cuidados paliativos'].map(cond => {
+        const checked = datos.condiciones && datos.condiciones.includes(cond) ? 'checked' : '';
+        return '<label class="condicion-item"><input type="checkbox" class="int-condicion" value="' + cond + '" ' + checked + '> ' + cond + '</label>';
+      }).join('') +
+    '</div></div>';
+  contenedor.appendChild(div);
+}
+
+function cambiarColorGrupo(sel) {
+  const card = sel.closest('.integrante-card');
+  card.classList.remove('grupo-1', 'grupo-2', 'grupo-3', 'grupo-4');
+  card.classList.add('grupo-' + sel.value);
+}
+
+function guardarFicha() {
+  if (!idCasaActual || !barrioActual || !equipoActual) return;
+  const integrantes = [];
+  document.querySelectorAll('.integrante-card').forEach(t => {
+    const nombre = t.querySelector('.int-nombre').value.trim();
+    if (nombre !== '') {
+      const condiciones = [];
+      t.querySelectorAll('.int-condicion:checked').forEach(cb => condiciones.push(cb.value));
+      integrantes.push({
+        nombre: nombre,
+        cedula: t.querySelector('.int-cedula').value.trim(),
+        edad: t.querySelector('.int-edad').value.trim(),
+        sexo: t.querySelector('.int-sexo').value,
+        contacto: t.querySelector('.int-contacto').value.trim(),
+        escolaridad: t.querySelector('.int-escolaridad').value,
+        grupoDispensarial: t.querySelector('.int-grupo').value,
+        vacunasCompletas: t.querySelector('.int-vacunas').value,
+        enfermedades: t.querySelector('.int-enfermedades').value.trim(),
+        medicamentos: t.querySelector('.int-medicamentos').value.trim(),
+        eventoSalud: t.querySelector('.int-evento').value.trim(),
+        condiciones: condiciones
+      });
+    }
+  });
+  localStorage.setItem(getFichaKey(idCasaActual), JSON.stringify(integrantes));
+  mostrarToast('✅ Guardada', 'success');
+  cerrarModal();
+  const hayFiltros = Array.from(document.querySelectorAll('#seccion-filtro input[type="checkbox"]')).some(cb => cb.checked);
+  if (hayFiltros) aplicarFiltros();
+  marcarCambioPendiente();
+  programarSubida();
 }
 
 // ==================== MATRIZ ====================
+function actualizarTabsMatriz() {
+  document.getElementById('tab-barrio').classList.remove('activo');
+  document.getElementById('tab-eais').classList.remove('activo');
+  document.getElementById('tab-total').classList.remove('activo');
+  document.getElementById('tab-' + tabMatrizActivo).classList.add('activo');
+}
+
+function cambiarTabMatriz(tab) {
+  tabMatrizActivo = tab;
+  actualizarTabsMatriz();
+  abrirMatriz(tab);
+}
+
 function obtenerPacientesDeBarrio(idB, nombreB) {
-  if (!equipo) return [];
+  if (!equipoActual) return [];
   const arr = [];
   const pref = P('ficha_' + idB + '_');
   for (let i = 0; i < localStorage.length; i++) {
@@ -949,9 +1662,7 @@ function obtenerPacientesDeBarrio(idB, nombreB) {
       const est = localStorage.getItem(P('estado_' + idB + '_' + idCasa)) || 'Pendiente';
       try {
         const integ = JSON.parse(localStorage.getItem(k) || '[]');
-        integ.forEach(p => {
-          arr.push(Object.assign({ equipo: equipo, barrio: nombreB, casa: idCasa, estado: est }, p));
-        });
+        integ.forEach(p => arr.push(Object.assign({ equipo: equipoActual, barrio: nombreB, casa: idCasa, estado: est }, p)));
       } catch(e) {}
     }
   }
@@ -959,17 +1670,17 @@ function obtenerPacientesDeBarrio(idB, nombreB) {
 }
 
 function obtenerPacientesEquipo() {
-  if (!equipo) return [];
-  const l = cargarBarrios();
+  if (!equipoActual) return [];
+  const l = cargarBarriosLista();
   let todos = [];
   l.forEach(b => { todos = todos.concat(obtenerPacientesDeBarrio(b.id, b.nombre)); });
   return todos;
 }
 
 async function obtenerPacientesTodos() {
-  if (!usuario) { toast('Conecta con Google', 'err'); return []; }
+  if (!usuarioActual) { mostrarToast('⚠️ Conecta con Google', 'error'); return []; }
   try {
-    toast('Leyendo todos los equipos...', '');
+    mostrarToast('⏳ Leyendo todos los equipos...', 'info');
     const snap = await db.collection('catastros').get();
     let todos = [];
     snap.forEach(doc => {
@@ -996,135 +1707,249 @@ async function obtenerPacientesTodos() {
       });
     });
     return todos;
-  } catch(e) { toast('❌ ' + e.message, 'err'); return []; }
+  } catch(e) { log('Error todos: ' + e.message, 'error'); return []; }
 }
 
 async function abrirMatriz(tipo) {
-  if (!equipo) { toast('Sin equipo', 'err'); return; }
+  if (!equipoActual) { mostrarToast('Selecciona equipo', 'error'); return; }
+  if (!tipo) tipo = tabMatrizActivo;
+  tabMatrizActivo = tipo;
+  actualizarTabsMatriz();
+  
+  const tbody = document.getElementById('tbody-matriz');
+  const info = document.getElementById('matriz-info');
+  tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:20px;">Cargando...</td></tr>';
+  
   let pac = [];
   let titulo = '';
   
   if (tipo === 'barrio') {
-    if (!barrioActual) { toast('Sin barrio', 'err'); return; }
+    if (!barrioActual) {
+      tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:20px;color:#7f8c8d;">Sin barrio activo.</td></tr>';
+      info.innerText = 'Sin barrio';
+      document.getElementById('modal-matriz').style.display = 'block';
+      return;
+    }
     pac = obtenerPacientesDeBarrio(barrioActual.id, barrioActual.nombre);
-    titulo = '📍 ' + barrioActual.nombre + ' (' + equipo + ')';
+    titulo = '📍 ' + barrioActual.nombre + ' (' + equipoActual + ')';
   } else if (tipo === 'eais') {
     pac = obtenerPacientesEquipo();
-    titulo = '🏥 ' + equipo;
+    titulo = '🏥 ' + equipoActual + ' - Todos los barrios';
   } else {
     pac = await obtenerPacientesTodos();
-    titulo = '🌎 TODOS';
+    titulo = '🌎 TODOS los equipos';
   }
   
-  window._pacientesActuales = pac;
-  window._tituloActual = titulo;
-  
-  const cont = document.getElementById('modal-contenido');
-  document.getElementById('modal-titulo').innerText = titulo + ' (' + pac.length + ')';
+  pacientesMatrizActuales = pac;
+  tbody.innerHTML = '';
   
   if (pac.length === 0) {
-    cont.innerHTML = '<p style="text-align:center; padding:20px; color:#7f8c8d;">Sin pacientes.</p>';
+    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:20px;color:#7f8c8d;">Sin pacientes.</td></tr>';
+    info.innerText = titulo + ' | 0 pacientes';
   } else {
-    let html = '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:11px;">' +
-      '<thead><tr style="background:#2c3e50; color:white;">' +
-      '<th style="padding:5px;">Casa</th><th>Nombre</th><th>Cédula</th><th>Edad</th><th>Sexo</th><th>Enfermedades</th><th>Condiciones</th></tr></thead><tbody>';
+    let html = '';
     pac.forEach(p => {
-      html += '<tr style="border-bottom:1px solid #eee;">' +
-        '<td style="padding:5px;"><b>' + p.casa + '</b></td>' +
-        '<td>' + (p.nombre || '') + '</td>' +
-        '<td>' + (p.cedula || '') + '</td>' +
-        '<td>' + (p.edad || '') + '</td>' +
-        '<td>' + (p.sexo || '') + '</td>' +
-        '<td>' + (p.enfermedades || '') + '</td>' +
-        '<td>' + ((p.condiciones || []).join(', ')) + '</td>' +
-        '</tr>';
+      const color = estadosColoresHex[p.estado] || '#95a5a6';
+      html += '<tr>' +
+        '<td><strong>' + p.casa + '</strong></td>' +
+        '<td><span class="estado-tag" style="background:' + color + ';">' + p.estado + '</span></td>' +
+        '<td>' + (p.nombre || '') + '</td><td>' + (p.cedula || '') + '</td><td>' + (p.edad || '') + '</td><td>' + (p.sexo || '') + '</td>' +
+        '<td>' + (p.contacto || '') + '</td><td>' + (p.escolaridad || '') + '</td><td>' + (p.grupoDispensarial || '') + '</td>' +
+        '<td>' + (p.vacunasCompletas || '') + '</td><td>' + (p.enfermedades || '') + '</td><td>' + (p.medicamentos || '') + '</td>' +
+        '<td>' + (p.eventoSalud || '') + '</td><td>' + ((p.condiciones || []).join(', ')) + '</td></tr>';
     });
-    html += '</tbody></table></div>';
-    html += '<div style="margin-top:10px;"><button class="b-verde" style="width:100%; padding:12px;" onclick="descargarExcel()">📥 Descargar Excel</button></div>';
-    cont.innerHTML = html;
+    tbody.innerHTML = html;
+    info.innerText = titulo + ' | ' + pac.length + ' pacientes en ' + new Set(pac.map(p => p.casa)).size + ' casas';
   }
-  
-  document.getElementById('modal').classList.add('abierto');
+  document.getElementById('modal-matriz').style.display = 'block';
 }
 
+function cerrarMatriz() { document.getElementById('modal-matriz').style.display = 'none'; }
+
 function descargarExcel() {
-  const pac = window._pacientesActuales || [];
-  if (pac.length === 0) { toast('Sin datos', 'err'); return; }
+  if (pacientesMatrizActuales.length === 0) { mostrarToast('⚠️ Sin datos', 'error'); return; }
   
-  const datos = pac.map(p => ({
+  const datos = pacientesMatrizActuales.map(p => ({
     'EAIS': p.equipo || '',
     'Barrio': p.barrio || '',
-    'Casa': p.casa,
-    'Estado': p.estado || '',
-    'Nombre': p.nombre || '',
-    'Cédula': p.cedula || '',
-    'Edad': p.edad || '',
-    'Sexo': p.sexo || '',
-    'Contacto': p.contacto || '',
-    'Enfermedades': p.enfermedades || '',
-    'Medicamentos': p.medicamentos || '',
+    'Casa': p.casa, 'Estado': p.estado,
+    'Nombre': p.nombre || '', 'Cédula': p.cedula || '',
+    'Edad': p.edad || '', 'Sexo': p.sexo || '',
+    'Contacto': p.contacto || '', 'Escolaridad': p.escolaridad || '',
+    'Grupo': p.grupoDispensarial || '', 'Vacunas': p.vacunasCompletas || '',
+    'Enfermedades': p.enfermedades || '', 'Medicamentos': p.medicamentos || '',
+    'Evento': p.eventoSalud || '',
     'Condiciones': (p.condiciones || []).join(', ')
   }));
   
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(datos);
-  XLSX.utils.book_append_sheet(wb, ws, 'Pacientes');
+  ws['!cols'] = [
+    { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 25 },
+    { wch: 15 }, { wch: 6 }, { wch: 10 }, { wch: 15 }, { wch: 12 },
+    { wch: 8 }, { wch: 12 }, { wch: 25 }, { wch: 25 }, { wch: 20 }, { wch: 25 }
+  ];
+  
+  let hoja = 'Pacientes';
+  let archivo = 'Pacientes';
   const fecha = new Date().toISOString().split('T')[0];
-  XLSX.writeFile(wb, 'Pacientes_' + fecha + '.xlsx');
-  toast('✅ Excel descargado', 'ok');
+  
+  if (tabMatrizActivo === 'barrio') {
+    hoja = barrioActual ? barrioActual.nombre.substring(0, 25) : 'Barrio';
+    archivo = 'Barrio_' + (barrioActual ? barrioActual.nombre : 'Sin') + '_' + fecha;
+  } else if (tabMatrizActivo === 'eais') {
+    hoja = equipoActual;
+    archivo = 'EAIS_' + equipoActual + '_' + fecha;
+  } else {
+    hoja = 'Todos';
+    archivo = 'TODOS_' + fecha;
+  }
+  
+  XLSX.utils.book_append_sheet(wb, ws, hoja);
+  XLSX.writeFile(wb, archivo.replace(/[^a-z0-9_\-]/gi, '_') + '.xlsx');
+  mostrarToast('✅ Excel descargado', 'success');
 }
 
 // ==================== EXPORTAR / IMPORTAR ====================
-function exportarJSON() {
-  if (!equipo) { toast('Sin equipo', 'err'); return; }
-  const datos = recolectar();
-  const blob = new Blob([JSON.stringify(datos)], { type: 'application/json' });
+function exportarDatos() {
+  if (!equipoActual) { mostrarToast('Sin equipo', 'error'); return; }
+  const datos = recolectarTodosLosDatos();
+  const json = JSON.stringify(datos);
+  const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'catastro_' + equipo + '_' + new Date().toISOString().split('T')[0] + '.json';
+  a.download = 'catastro_' + equipoActual + '_' + new Date().toISOString().split('T')[0] + '.json';
   a.click();
   URL.revokeObjectURL(url);
-  toast('Exportado', 'ok');
+  mostrarToast('✅ Exportado', 'success');
 }
 
-function importarJSON(e) {
+function importarDatos(e) {
   const f = e.target.files[0];
   if (!f) return;
-  if (!confirm('¿Reemplazar datos actuales?')) { e.target.value = ''; return; }
+  if (!equipoActual) { mostrarToast('Sin equipo', 'error'); e.target.value = ''; return; }
+  if (!confirm('¿Reemplazar datos de ' + equipoActual + '?')) { e.target.value = ''; return; }
   const r = new FileReader();
   r.onload = function(ev) {
     try {
-      restaurar(JSON.parse(ev.target.result));
-      toast('Importado. Recargando...', 'ok');
-      setTimeout(() => location.reload(), 1000);
-    } catch(err) { toast('Error: ' + err.message, 'err'); }
+      const datos = JSON.parse(ev.target.result);
+      if (!datos.datos || !datos.barrios) throw new Error('Formato inválido');
+      restaurarTodosLosDatos(datos);
+      mostrarToast('✅ Importado. Recargando...', 'success');
+      setTimeout(() => location.reload(), 1500);
+    } catch(err) { mostrarToast('❌ ' + err.message, 'error'); }
     e.target.value = '';
   };
   r.readAsText(f);
 }
 
-// ==================== INICIO ====================
-window.addEventListener('load', function() {
-  log('App iniciada');
-  
-  const guardado = localStorage.getItem('cat_equipo_activo');
-  actualizarUIEquipos();
-  
-  if (guardado) {
-    const lista = listaEquipos();
-    if (lista.includes(guardado)) {
-      cambiarEquipo(guardado);
+function recolectarTodosLosDatos() {
+  if (!equipoActual) return { version: '1.0', datos: {}, barrios: [] };
+  const datos = {
+    version: '1.0',
+    fecha: new Date().toISOString(),
+    equipo: equipoActual,
+    barrios: cargarBarriosLista(),
+    barrioActivo: barrioActual ? barrioActual.id : null,
+    datos: {}
+  };
+  const pref = P('');
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith(pref)) {
+      const sp = k.substring(pref.length);
+      if (sp.match(/^(mapa_|canvas_|ficha_|estado_)/)) {
+        datos.datos[sp] = localStorage.getItem(k);
+      }
     }
   }
-});
+  return datos;
+}
 
-// Atajos de teclado
-document.addEventListener('keydown', function(e) {
-  if ((e.key === 'Delete' || e.key === 'Supr') && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-    const o = canvas.getActiveObject();
-    if (o && o.selectable) eliminarSeleccionado();
+function restaurarTodosLosDatos(datos) {
+  if (!datos || !datos.datos || !datos.barrios) throw new Error('Formato inválido');
+  if (!equipoActual) throw new Error('Sin equipo');
+  const pref = P('');
+  const borrar = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith(pref)) borrar.push(k);
   }
+  borrar.forEach(k => localStorage.removeItem(k));
+  for (const [sp, v] of Object.entries(datos.datos)) {
+    localStorage.setItem(P(sp), v);
+  }
+  localStorage.setItem(P('barrios'), JSON.stringify(datos.barrios));
+  if (datos.barrioActivo) localStorage.setItem(P('barrio_activo'), datos.barrioActivo);
+}
+
+function guardarMapa() {
+  if (aplicandoFiltros || !barrioActual || !equipoActual) return;
+  guardarCanvasActual();
+  marcarCambioPendiente();
+  programarSubida();
+}
+
+// ==================== INICIO ====================
+window.addEventListener('load', function() {
+  log('🚀 Iniciando...', 'info');
+  
+  migrarDatosAntiguos();
+  equipoActual = cargarEquipoActivoGuardado();
+  
+  // PWA manifest
+  try {
+    const manifest = {
+      name: "Catastro Médico", short_name: "Catastro", start_url: ".", display: "standalone",
+      background_color: "#2c3e50", theme_color: "#2c3e50",
+      icons: [{ src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgZmlsbD0iIzJjM2U1MCIgcng9IjMwIi8+PC9zdmc+", sizes: "192x192", type: "image/svg+xml" }]
+    };
+    const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+    const link = document.getElementById('manifest-placeholder');
+    if (link) link.href = URL.createObjectURL(blob);
+  } catch(e) {}
+  
+  try {
+    canvas = new fabric.Canvas('c', {
+      selection: true, preserveObjectStacking: true,
+      backgroundColor: 'transparent', width: 800, height: 600,
+      allowTouchScrolling: true
+    });
+    configurarEventosCanvas();
+    log('Canvas OK', 'ok');
+  } catch(e) { log('Error canvas: ' + e.message, 'error'); }
+  
+  inicializarGestosTactiles();
+  
+  if (localStorage.getItem('instrucciones_cerradas') === '1') {
+    document.getElementById('instrucciones').classList.add('oculto');
+  }
+  
+  actualizarUIEquipos();
+  actualizarTabsMatriz();
+  
+  if (equipoActual) {
+    iniciarEquipo();
+  } else {
+    document.getElementById('sin-equipo').style.display = 'block';
+    document.getElementById('btn-matriz').disabled = true;
+  }
+  
+  window.addEventListener('beforeunload', function() {
+    if (equipoActual) guardarTodoLocal();
+    guardarZoomScroll();
+  });
+  
+  document.getElementById('mapa-wrapper').addEventListener('scroll', () => {
+    clearTimeout(window._scrollSaveTimer);
+    window._scrollSaveTimer = setTimeout(guardarZoomScroll, 500);
+  });
+  
+  inicializarFirebase();
+  
+  window.addEventListener('online', () => mostrarToast('🌐 Reconectado', 'info'));
+  window.addEventListener('offline', () => mostrarToast('📴 Sin conexión', 'warning'));
 });
 </script>
 </body>
