@@ -19,15 +19,18 @@ input,select,textarea{font-family:inherit}
 
 #app{display:grid;grid-template-rows:56px 1fr;height:100vh}
 #topbar{background:linear-gradient(180deg,#0c273b,#0a1e2e);color:#e7f0f7;display:flex;align-items:center;gap:10px;padding:0 16px;box-shadow:0 2px 12px rgba(0,0,0,.35);z-index:20;border-bottom:1px solid #1e3a4d}
-#topbar h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.3px}
+#topbar h1{font-size:14px;margin:0;font-weight:600;letter-spacing:.3px;white-space:nowrap}
 #topbar .spacer{flex:1}
-#topbar .pill{background:#172a36;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;border:1px solid #294150;color:#a3bac6}
+#topbar .pill{background:#172a36;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;border:1px solid #294150;color:#a3bac6;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
 #topbar .pill.clickable{cursor:pointer}
 #topbar .pill.clickable:hover{background:#1f3540}
 #topbar .pill.ok{background:#134e42;border-color:#1a8a75;color:#8ee0cb}
 #topbar .pill.warn{background:#4a3510;border-color:#bd8822;color:#ffd77a}
 #topbar .pill.err{background:#4a1c18;border-color:#bd4b42;color:#ffa89e}
 #topbar .pill.off{background:#1f3540;color:#a3bac6}
+#topbar .pill.uo{background:#1a3a52;border-color:#246a9c;color:#8ec8ff}
+#topbar .pill.eais{background:#2a1a3a;border-color:#7c4dff;color:#c8b3ff}
+#topbar .pill.uo .ico,#topbar .pill.eais .ico{font-size:13px}
 
 #body{display:grid;grid-template-columns:262px 1fr;min-height:0}
 
@@ -61,22 +64,22 @@ input,select,textarea{font-family:inherit}
 
 .side-field{margin-bottom:8px}
 .side-field label{display:block;font-size:10.5px;font-weight:700;color:#617886;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
-.side-field input,.side-field select{width:100%;padding:7px 9px;border:1px solid #294150;border-radius:6px;font-size:12.5px;background:#0a1520;color:#e7f0f7;transition:border-color .15s}
-.side-field input:focus,.side-field select:focus{outline:none;border-color:#2878b8}
-.side-field input::placeholder{color:#4d6373}
+.side-field input,.side-field select{width:100%;padding:7px 9px;border:1px solid #294150;border-radius:6px;font-size:12.5px;background:#1c2f42;color:#e7f0f7;transition:border-color .15s}
+.side-field input:focus,.side-field select:focus{outline:none;border-color:#2878b8;background:#243a4e}
+.side-field input::placeholder{color:#5d7788}
 
-.side-list{max-height:220px;overflow-y:auto;border:1px solid #1e3a4d;border-radius:6px;background:#0a1520}
+.side-list{max-height:220px;overflow-y:auto;border:1px solid #1e3a4d;border-radius:6px;background:#152536}
 .side-item{padding:8px 10px;font-size:12px;border-bottom:1px solid #1e3a4d;cursor:pointer;display:flex;justify-content:space-between;align-items:center;color:#c9d9e3;transition:background .12s}
 .side-item:last-child{border-bottom:0}
-.side-item:hover{background:#172a36}
+.side-item:hover{background:#1e3244}
 .side-item.active{background:#134e42;color:#8ee0cb;font-weight:600}
 .side-item.test{border-left:3px solid #7c4dff}
 
-.side-hint{font-size:11px;color:#617886;line-height:1.5;margin:6px 0 0;padding:9px;background:#0a1520;border-radius:6px;border-left:3px solid #294150}
+.side-hint{font-size:11px;color:#8ba5b5;line-height:1.5;margin:6px 0 0;padding:9px;background:#1a2c3d;border-radius:6px;border-left:3px solid #294150}
 .side-hint.uo{color:#8ee0cb;border-left-color:#147a68}
 
 .filtro{display:flex;align-items:center;gap:7px;padding:6px 6px;font-size:12px;border-radius:5px;cursor:pointer;color:#c9d9e3;transition:background .12s}
-.filtro:hover{background:#172a36}
+.filtro:hover{background:#1a2c3d}
 .filtro input{accent-color:#147a68}
 .dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
 
@@ -87,13 +90,14 @@ input,select,textarea{font-family:inherit}
 #toolbar button.primary{background:#147a68;color:#fff;border-color:#1a8a75}
 #toolbar button.primary:hover{background:#1a8a75}
 #toolbar button.danger{background:#9c3a32;color:#fff;border-color:#bd4b42}
+#toolbar button.active{background:#bd8822;color:#1a1305;border-color:#ffd77a;font-weight:700}
 #toolbar .zoom{display:flex;align-items:center;border:1px solid #294150;border-radius:7px;overflow:hidden;background:#203641}
 #toolbar .zoom button{border:0;border-radius:0;padding:6px 9px;background:transparent}
 #toolbar .zoom span{padding:0 8px;font-size:12px;font-weight:600;min-width:46px;text-align:center;color:#a3bac6}
 #toolbar .grow{flex:1}
 
 #workspace{display:grid;grid-template-columns:1fr 340px;min-height:0;min-width:0}
-#mapa-wrapper{position:relative;overflow:auto;background:#0a1520;padding:20px;-webkit-overflow-scrolling:touch;min-height:0;min-width:0}
+#mapa-wrapper{position:relative;overflow:auto;background:#0a1520;padding:20px;-webkit-overflow-scrolling:touch;min-height:0;min-width:0;touch-action:pan-x pan-y}
 #mapa-wrapper::-webkit-scrollbar{width:12px;height:12px}
 #mapa-wrapper::-webkit-scrollbar-thumb{background:#294150;border-radius:6px}
 #mapa-wrapper::-webkit-scrollbar-track{background:#0a1520}
@@ -120,8 +124,8 @@ input,select,textarea{font-family:inherit}
 .estado-Cerrada{background:#3a5261}
 .estado-Abandonada{background:#1e3a4d}
 
-.integrante{border-left:4px solid #147a68;background:#0a1520;padding:10px;border-radius:8px;margin-bottom:8px;font-size:12px;cursor:pointer;color:#c9d9e3;transition:background .12s}
-.integrante:hover{background:#172a36}
+.integrante{border-left:4px solid #147a68;background:#1a2c3d;padding:10px;border-radius:8px;margin-bottom:8px;font-size:12px;cursor:pointer;color:#c9d9e3;transition:background .12s}
+.integrante:hover{background:#243a4e}
 .integrante.g2{border-left-color:#bd8822}
 .integrante.g3{border-left-color:#bd4b42}
 .integrante.g4{border-left-color:#2878b8}
@@ -131,7 +135,7 @@ input,select,textarea{font-family:inherit}
 .integrante.g3 .tag{background:#4a1c18;color:#ffa89e}
 .integrante.g4 .tag{background:#13304a;color:#8ec8ff}
 
-.visita-item{background:#0a1520;border-radius:8px;padding:9px;margin-bottom:6px;font-size:11.5px;color:#c9d9e3;border-left:3px solid #2878b8}
+.visita-item{background:#1a2c3d;border-radius:8px;padding:9px;margin-bottom:6px;font-size:11.5px;color:#c9d9e3;border-left:3px solid #2878b8}
 .visita-item .fecha{font-weight:700;color:#8ec8ff;font-size:10.5px;margin-bottom:3px}
 .visita-item strong{color:#e7f0f7}
 
@@ -148,33 +152,33 @@ input,select,textarea{font-family:inherit}
 
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1000;overflow-y:auto;backdrop-filter:blur(3px)}
 .modal.open{display:block}
-.modal-content{background:#172a36;border:1px solid #294150;margin:20px auto;padding:18px;border-radius:14px;width:92%;max-width:920px;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.6);color:#e7f0f7}
+.modal-content{background:#1e3344;border:1px solid #2f4a5f;margin:20px auto;padding:18px;border-radius:14px;width:92%;max-width:920px;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.6);color:#e7f0f7}
 .modal-content.wide{max-width:98%}
-.modal-close{position:absolute;top:10px;right:14px;background:transparent;border:0;font-size:26px;color:#617886;line-height:1;padding:0 6px}
+.modal-close{position:absolute;top:10px;right:14px;background:transparent;border:0;font-size:26px;color:#8ba5b5;line-height:1;padding:0 6px}
 .modal-close:hover{color:#e7f0f7}
 .modal-content h2{font-size:16px;margin:0 0 14px;padding-right:36px;font-weight:600;color:#e7f0f7}
-.modal-content h3{font-size:11px;margin:14px 0 8px;color:#617886;text-transform:uppercase;letter-spacing:.6px;font-weight:700}
+.modal-content h3{font-size:11px;margin:14px 0 8px;color:#8ba5b5;text-transform:uppercase;letter-spacing:.6px;font-weight:700}
 
 .form-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .form-group{flex:1;min-width:130px;display:flex;flex-direction:column}
-.form-group label{font-size:10.5px;font-weight:700;color:#617886;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
-.form-group input,.form-group select,.form-group textarea{padding:8px 10px;border:1px solid #294150;border-radius:6px;font-size:13px;background:#0a1520;color:#e7f0f7;transition:border-color .15s}
-.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:#2878b8}
+.form-group label{font-size:10.5px;font-weight:700;color:#8ba5b5;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+.form-group input,.form-group select,.form-group textarea{padding:8px 10px;border:1px solid #2f4a5f;border-radius:6px;font-size:13px;background:#2a4256;color:#e7f0f7;transition:border-color .15s,background .15s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:#4b9ce0;background:#314b60}
 .form-group textarea{resize:vertical;min-height:48px}
-.form-group input::placeholder{color:#4d6373}
+.form-group input::placeholder{color:#7a94a5}
 
 .cond-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;margin-top:6px}
-.cond-item{display:flex;align-items:center;gap:6px;font-size:11.5px;background:#0a1520;padding:6px 8px;border-radius:5px;border:1px solid #1e3a4d;cursor:pointer;color:#c9d9e3}
+.cond-item{display:flex;align-items:center;gap:6px;font-size:11.5px;background:#2a4256;padding:6px 8px;border-radius:5px;border:1px solid #2f4a5f;cursor:pointer;color:#e7f0f7}
 .cond-item input{accent-color:#147a68}
 
-.integrante-card{background:#0a1520;border:1px solid #1e3a4d;border-left:5px solid #147a68;border-radius:8px;padding:12px;margin-bottom:12px;position:relative}
+.integrante-card{background:#24394c;border:1px solid #2f4a5f;border-left:5px solid #147a68;border-radius:8px;padding:12px;margin-bottom:12px;position:relative}
 .integrante-card.g2{border-left-color:#bd8822}
 .integrante-card.g3{border-left-color:#bd4b42}
 .integrante-card.g4{border-left-color:#2878b8}
 .integrante-card h4{margin:0 0 10px;font-size:13px;color:#8ec8ff;font-weight:600}
 .btn-x{position:absolute;top:8px;right:8px;background:#9c3a32;color:#fff;border:0;border-radius:4px;padding:3px 9px;font-size:11px;font-weight:600}
 
-.estado-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;padding:10px;background:#0a1520;border-radius:8px;border:1px solid #1e3a4d}
+.estado-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;padding:10px;background:#24394c;border-radius:8px;border:1px solid #2f4a5f}
 .estado-btns button{padding:7px 12px;border:2px solid transparent;border-radius:6px;font-size:11.5px;font-weight:600;color:#fff;transition:box-shadow .15s}
 .estado-btns button.sel{border-color:#e7f0f7;box-shadow:inset 0 2px 6px rgba(0,0,0,.4)}
 .b-pendiente{background:#9c3a32}
@@ -183,35 +187,35 @@ input,select,textarea{font-family:inherit}
 .b-cerrada{background:#3a5261}
 .b-abandonada{background:#1e3a4d}
 
-.modal-footer{display:flex;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid #1e3a4d;flex-wrap:wrap}
+.modal-footer{display:flex;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid #2f4a5f;flex-wrap:wrap}
 .modal-footer button{padding:11px 18px;border:0;border-radius:7px;color:#fff;font-size:13px;font-weight:600;flex:1;min-width:130px;transition:filter .12s}
 .modal-footer button:hover{filter:brightness(1.15)}
 
 .tabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap}
-.tab{padding:9px 16px;border:1px solid #294150;background:#203641;color:#c9d9e3;border-radius:7px;font-size:12.5px;font-weight:600;transition:background .12s}
-.tab:hover{background:#2f4351}
+.tab{padding:9px 16px;border:1px solid #2f4a5f;background:#2a4256;color:#c9d9e3;border-radius:7px;font-size:12.5px;font-weight:600;transition:background .12s}
+.tab:hover{background:#314b60}
 .tab.active{background:#246a9c;color:#fff;border-color:#2878b8}
 
 .tabla-matriz{width:100%;border-collapse:collapse;font-size:12px;color:#c9d9e3}
 .tabla-matriz th{background:#0c273b;color:#8ec8ff;padding:9px 8px;text-align:left;position:sticky;top:0;z-index:2;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
 .tabla-matriz td{padding:7px 8px;border-bottom:1px solid #1e3a4d}
-.tabla-matriz tr:nth-child(even){background:#0a1520}
-.tabla-matriz tr:hover{background:#172a36}
+.tabla-matriz tr:nth-child(even){background:#1a2c3d}
+.tabla-matriz tr:hover{background:#24394c}
 .estado-tag{padding:2px 7px;border-radius:9px;font-size:10px;color:#fff;font-weight:700;white-space:nowrap}
 .tabla-scroll{max-height:60vh;overflow:auto;border:1px solid #1e3a4d;border-radius:8px}
 .tabla-scroll::-webkit-scrollbar{width:8px;height:8px}
 .tabla-scroll::-webkit-scrollbar-thumb{background:#294150;border-radius:4px}
 
-#busqueda-input{width:100%;padding:11px 14px;border:1px solid #294150;border-radius:8px;font-size:14px;background:#0a1520;color:#e7f0f7;margin-bottom:10px}
-#busqueda-input:focus{outline:none;border-color:#2878b8}
+#busqueda-input{width:100%;padding:11px 14px;border:1px solid #2f4a5f;border-radius:8px;font-size:14px;background:#2a4256;color:#e7f0f7;margin-bottom:10px}
+#busqueda-input:focus{outline:none;border-color:#4b9ce0}
 #busqueda-resultados{max-height:60vh;overflow-y:auto}
 .resultado-item{padding:11px 12px;border-bottom:1px solid #1e3a4d;cursor:pointer;font-size:12.5px;color:#c9d9e3;transition:background .12s}
-.resultado-item:hover{background:#172a36}
+.resultado-item:hover{background:#24394c}
 .resultado-item strong{color:#8ec8ff;display:block;margin-bottom:2px}
-.resultado-item small{color:#617886;display:block;font-size:11px}
+.resultado-item small{color:#8ba5b5;display:block;font-size:11px}
 
-.hist-item{background:#0a1520;border-left:4px solid #3a5261;padding:11px;border-radius:6px;margin-bottom:8px;font-size:12px;color:#c9d9e3}
-.hist-item .meta{color:#617886;font-size:10.5px;margin-bottom:6px;letter-spacing:.3px}
+.hist-item{background:#1a2c3d;border-left:4px solid #3a5261;padding:11px;border-radius:6px;margin-bottom:8px;font-size:12px;color:#c9d9e3}
+.hist-item .meta{color:#8ba5b5;font-size:10.5px;margin-bottom:6px;letter-spacing:.3px}
 .hist-item strong{color:#e7f0f7}
 .hist-item button{background:#246a9c;color:#fff;border:0;border-radius:5px;padding:5px 11px;font-size:11px;font-weight:600;margin-top:8px}
 .hist-item button:hover{background:#2878b8}
@@ -236,11 +240,23 @@ input,select,textarea{font-family:inherit}
 .log-info{color:#8ec8ff}
 
 .banner-editando{background:#4a3510;border:1px solid #bd8822;color:#ffd77a;padding:9px 12px;border-radius:8px;font-size:12px;margin-bottom:10px;font-weight:600}
+.banner-modo{background:#4a3510;border:1px solid #ffd77a;color:#ffd77a;padding:6px 12px;border-radius:8px;font-size:12px;margin-right:auto;font-weight:700;display:none}
+.banner-modo.activo{display:flex;align-items:center;gap:6px}
 
-.uo-preview{background:#0a1520;border:1px solid #1e3a4d;border-radius:8px;padding:12px;font-size:12px;color:#a3bac6;line-height:1.7}
+.uo-preview{background:#1a2c3d;border:1px solid #2f4a5f;border-radius:8px;padding:12px;font-size:12px;color:#a3bac6;line-height:1.7}
 .uo-preview strong{color:#8ee0cb;display:block;font-size:14px;margin-bottom:4px}
 .uo-preview .kv{display:grid;grid-template-columns:120px 1fr;gap:2px 8px}
-.uo-preview .k{color:#617886;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+.uo-preview .k{color:#8ba5b5;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+
+.eais-manage{background:#1a2c3d;border:1px solid #3a2626;border-radius:8px;padding:10px;margin-top:12px}
+.eais-manage h4{margin:0 0 8px;font-size:12px;color:#ffa89e;text-transform:uppercase;letter-spacing:.5px}
+.eais-manage .aviso{font-size:11px;color:#ffd77a;background:#4a3510;border-radius:5px;padding:7px 9px;margin-bottom:8px;border-left:3px solid #bd8822}
+.eais-item{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#24394c;border-radius:6px;margin-bottom:5px;font-size:12.5px;color:#c9d9e3}
+.eais-item:last-child{margin-bottom:0}
+.eais-item.activo{border-left:3px solid #8ee0cb}
+.eais-item button{background:#9c3a32;color:#fff;border:0;border-radius:5px;padding:4px 10px;font-size:11px;font-weight:600}
+.eais-item button:hover{background:#bd4b42}
+.eais-item .badge{font-size:10px;color:#8ee0cb;background:#134e42;padding:2px 6px;border-radius:8px;margin-right:6px}
 
 @media (max-width:768px){
   #body{grid-template-columns:1fr}
@@ -253,6 +269,8 @@ input,select,textarea{font-family:inherit}
   .modal-content{margin:8px auto;padding:14px}
   #toolbar button span.txt{display:none}
   #stats-bar{grid-template-columns:repeat(2,1fr)}
+  #topbar h1{font-size:12px}
+  #topbar .pill{font-size:11px;padding:5px 9px;max-width:140px}
 }
 </style>
 </head>
@@ -261,10 +279,15 @@ input,select,textarea{font-family:inherit}
 <div id="app">
   <header id="topbar">
     <button id="btn-hamburguesa" onclick="toggleSidebar()">☰</button>
-    <h1>🏥 Catastro Médico v2</h1>
+    <h1>🏥 Catastro Médico</h1>
+    <span class="pill uo clickable" id="uo-pill" onclick="abrirModalUnidad()" title="Editar Unidad Operativa">
+      <span class="ico">🏢</span><span id="uo-pill-txt">Sin UO</span>
+    </span>
+    <span class="pill eais" id="eais-pill" title="EAIS activo">
+      <span class="ico">🏥</span><span id="eais-pill-txt">Sin EAIS</span>
+    </span>
     <span class="spacer"></span>
     <span class="pill clickable" id="sync-pill" onclick="gestionarSync()">☁️ Sin conexión</span>
-    <span class="pill" id="team-pill">🏥 Sin equipo</span>
   </header>
 
   <div id="body">
@@ -275,18 +298,18 @@ input,select,textarea{font-family:inherit}
         <small id="uo-detalle-display">Sin configurar</small>
       </div>
 
-      <!-- UNIDAD OPERATIVA -->
+      <!-- UNIDAD OPERATIVA: solo resumen, sin botón de edición -->
       <div class="side-section collapsed" data-key="uo">
         <button class="side-header" onclick="toggleSection(this)">
           <span>🏢 Unidad Operativa</span><span class="chev">▼</span>
         </button>
         <div class="side-body">
           <div id="uo-preview-box" class="uo-preview">Sin datos</div>
-          <button class="btn btn-orange" onclick="abrirModalUnidad()">✏️ Editar Unidad Operativa</button>
+          <p class="side-hint" style="margin-top:10px">Para editar la Unidad Operativa ve a <strong>Acciones → 🏢 Editar Unidad Operativa</strong>.</p>
         </div>
       </div>
 
-      <!-- EQUIPO DE SALUD -->
+      <!-- EQUIPO DE SALUD: solo selección, sin eliminar -->
       <div class="side-section collapsed" data-key="equipo">
         <button class="side-header" onclick="toggleSection(this)">
           <span>🏥 Equipo de Salud</span><span class="chev">▼</span>
@@ -299,12 +322,10 @@ input,select,textarea{font-family:inherit}
             </div>
           </div>
           <button class="btn btn-violet" onclick="crearEquipoPrueba()">🧪 Equipo de prueba (TEST)</button>
-          <button class="btn btn-red" onclick="eliminarEquipoActual()">🗑️ Eliminar equipo actual</button>
-          <p class="side-hint">Selecciona un EAIS para trabajar. Se guarda automáticamente el último usado.</p>
+          <p class="side-hint">Selecciona un EAIS para trabajar. Se guarda automáticamente el último usado. La eliminación de equipos está restringida a la Unidad Operativa.</p>
         </div>
       </div>
 
-      <!-- NUBE -->
       <div class="side-section collapsed" data-key="nube">
         <button class="side-header" onclick="toggleSection(this)">
           <span>☁️ Nube y respaldo</span><span class="chev">▼</span>
@@ -321,7 +342,6 @@ input,select,textarea{font-family:inherit}
         </div>
       </div>
 
-      <!-- BARRIOS -->
       <div class="side-section collapsed" data-key="barrios">
         <button class="side-header" onclick="toggleSection(this)">
           <span>📍 Barrios y mapas</span><span class="chev">▼</span>
@@ -344,7 +364,6 @@ input,select,textarea{font-family:inherit}
         </div>
       </div>
 
-      <!-- FILTROS -->
       <div class="side-section collapsed" data-key="filtros">
         <button class="side-header" onclick="toggleSection(this)">
           <span>🔍 Filtros clínicos</span><span class="chev">▼</span>
@@ -356,7 +375,6 @@ input,select,textarea{font-family:inherit}
         </div>
       </div>
 
-      <!-- ACCIONES -->
       <div class="side-section collapsed" data-key="acciones">
         <button class="side-header" onclick="toggleSection(this)">
           <span>⚙️ Acciones</span><span class="chev">▼</span>
@@ -374,9 +392,10 @@ input,select,textarea{font-family:inherit}
 
     <div id="main">
       <div id="toolbar">
+        <span class="banner-modo" id="banner-modo">✏️ MODO EDICIÓN: arrastra, escala o rota las casas</span>
         <button class="primary" onclick="crearCasa()">➕ <span class="txt">Casa</span></button>
         <button onclick="ponerNomenclatura()">✍️ <span class="txt">Nomen.</span></button>
-        <button onclick="modoEdicion()">🖱️ <span class="txt">Editar</span></button>
+        <button id="btn-editar" onclick="modoEdicion()">🖱️ <span class="txt">Editar</span></button>
         <button onclick="fijarCasas()">📌 <span class="txt">Fijar</span></button>
         <button class="danger" onclick="eliminarSeleccionado()">🗑️</button>
         <div class="zoom">
@@ -426,11 +445,13 @@ input,select,textarea{font-family:inherit}
 
 <div id="overlay" onclick="toggleSidebar()"></div>
 
-<!-- ========== MODAL UNIDAD OPERATIVA ========== -->
+<!-- MODAL UNIDAD OPERATIVA -->
 <div class="modal" id="modal-unidad">
-  <div class="modal-content" style="max-width:720px">
+  <div class="modal-content" style="max-width:780px">
     <button class="modal-close" onclick="cerrarModal('modal-unidad')">×</button>
     <h2>🏢 Unidad Operativa</h2>
+
+    <h3>Datos generales</h3>
     <div class="form-row">
       <div class="form-group"><label>Nombre</label><input id="uo-nombre" placeholder="Ej: Unidad Operativa Norte"></div>
       <div class="form-group" style="max-width:200px"><label>Ubicación Código</label><input id="uo-codigo" placeholder="Ej: UO-04"></div>
@@ -444,9 +465,16 @@ input,select,textarea{font-family:inherit}
       <div class="form-group"><label>Dirección</label><input id="uo-direccion" placeholder="Ej: Av. Principal 123"></div>
     </div>
     <div class="form-row">
-      <div class="form-group" style="max-width:220px"><label>Cantidad Equipos EAIS</label><input type="number" id="uo-eais-count" min="1" max="50" value="1"></div>
+      <div class="form-group" style="max-width:240px"><label>Cantidad Equipos EAIS</label><input type="number" id="uo-eais-count" min="1" max="50" value="1"></div>
     </div>
-    <p class="side-hint" style="margin-top:4px">Al guardar, se generarán los equipos EAIS01…EAIS0N en "Equipo de Salud". Los datos previos no se borran.</p>
+    <p class="side-hint" style="margin-top:4px">Al guardar, se generarán los equipos EAIS01…EAIS0N. Los equipos que ya existen se conservan.</p>
+
+    <h3 style="margin-top:20px">Equipos EAIS existentes</h3>
+    <div class="eais-manage">
+      <div class="aviso">⚠️ Zona sensible: eliminar un EAIS borra todas sus casas, fichas y visitas de este dispositivo y de la nube. Deberás escribir el nombre exacto del EAIS para confirmar.</div>
+      <div id="eais-lista-manage"></div>
+    </div>
+
     <div class="modal-footer">
       <button style="background:#147a68" onclick="guardarUnidadOperativa()">💾 Guardar</button>
       <button style="background:#3a5261" onclick="cerrarModal('modal-unidad')">Cancelar</button>
@@ -454,7 +482,7 @@ input,select,textarea{font-family:inherit}
   </div>
 </div>
 
-<!-- ========== MODAL FICHA ========== -->
+<!-- MODAL FICHA -->
 <div class="modal" id="modal-ficha">
   <div class="modal-content">
     <button class="modal-close" onclick="cerrarModalFicha()">×</button>
@@ -478,7 +506,7 @@ input,select,textarea{font-family:inherit}
   </div>
 </div>
 
-<!-- ========== MODAL VISITA ========== -->
+<!-- MODAL VISITA -->
 <div class="modal" id="modal-visita">
   <div class="modal-content" style="max-width:560px">
     <button class="modal-close" onclick="cerrarModal('modal-visita')">×</button>
@@ -512,7 +540,7 @@ input,select,textarea{font-family:inherit}
   </div>
 </div>
 
-<!-- ========== MODAL HISTORIAL ========== -->
+<!-- MODAL HISTORIAL -->
 <div class="modal" id="modal-historial">
   <div class="modal-content">
     <button class="modal-close" onclick="cerrarModal('modal-historial')">×</button>
@@ -521,7 +549,7 @@ input,select,textarea{font-family:inherit}
   </div>
 </div>
 
-<!-- ========== MODAL BÚSQUEDA ========== -->
+<!-- MODAL BÚSQUEDA -->
 <div class="modal" id="modal-busqueda">
   <div class="modal-content" style="max-width:720px">
     <button class="modal-close" onclick="cerrarModal('modal-busqueda')">×</button>
@@ -531,7 +559,7 @@ input,select,textarea{font-family:inherit}
   </div>
 </div>
 
-<!-- ========== MODAL MATRIZ ========== -->
+<!-- MODAL MATRIZ -->
 <div class="modal" id="modal-matriz">
   <div class="modal-content wide">
     <button class="modal-close" onclick="cerrarModal('modal-matriz')">×</button>
@@ -542,7 +570,7 @@ input,select,textarea{font-family:inherit}
       <button class="tab" id="tab-total" onclick="cambiarTabMatriz('total')">🌎 Total</button>
       <button class="tab" style="margin-left:auto;background:#147a68;color:#fff;border-color:#1a8a75" onclick="descargarExcel()">📥 Excel</button>
     </div>
-    <div id="matriz-info" style="font-size:11.5px;color:#617886;margin-bottom:8px"></div>
+    <div id="matriz-info" style="font-size:11.5px;color:#8ba5b5;margin-bottom:8px"></div>
     <div class="tabla-scroll">
       <table class="tabla-matriz">
         <thead><tr>
@@ -556,7 +584,7 @@ input,select,textarea{font-family:inherit}
   </div>
 </div>
 
-<!-- ========== MODAL RESPALDOS ========== -->
+<!-- MODAL RESPALDOS -->
 <div class="modal" id="modal-respaldos">
   <div class="modal-content">
     <button class="modal-close" onclick="cerrarModal('modal-respaldos')">×</button>
@@ -584,6 +612,9 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 db.enablePersistence({synchronizeTabs:true}).catch(e=>log('Persistencia: '+e.code,'info'));
+
+const ES_MOVIL = /Android|iPhone|iPad|iPod|Mobile|webOS|BlackBerry|Opera Mini|IEMobile/i.test(navigator.userAgent) ||
+                 (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
 
 /* =========================================================
    ESTADO
@@ -615,13 +646,7 @@ function fmtFecha(iso){if(!iso)return '';try{return new Date(iso).toLocaleString
 function escapeHTML(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function abrirModal(id){document.getElementById(id).classList.add('open');}
 function cerrarModal(id){document.getElementById(id).classList.remove('open');}
-
-/* =========================================================
-   SECCIONES PLEGABLES (colapsadas por defecto)
-   ========================================================= */
-function toggleSection(header){
-  header.parentElement.classList.toggle('collapsed');
-}
+function toggleSection(header){header.parentElement.classList.toggle('collapsed');}
 
 /* =========================================================
    PERSISTENCIA
@@ -659,7 +684,72 @@ function abrirModalUnidad(){
   document.getElementById('uo-parroquia').value = uo.parroquia || '';
   document.getElementById('uo-direccion').value = uo.direccion || '';
   document.getElementById('uo-eais-count').value = uo.eaisCount || 1;
+  renderEAISManage();
   abrirModal('modal-unidad');
+}
+
+function renderEAISManage(){
+  const cont = document.getElementById('eais-lista-manage');
+  const lista = cargarEquipos();
+  const eais = lista.filter(e=>e.id.startsWith('EAIS'));
+  if(eais.length === 0){
+    cont.innerHTML = '<div style="text-align:center;color:#8ba5b5;font-size:12px;padding:10px">Sin equipos EAIS creados todavía.</div>';
+    return;
+  }
+  cont.innerHTML = eais.map(e=>{
+    const activo = e.id === S.equipo;
+    return '<div class="eais-item'+(activo?' activo':'')+'">'+
+      '<span>'+(activo?'<span class="badge">ACTIVO</span>':'')+'🏥 '+escapeHTML(e.id)+'</span>'+
+      '<button onclick="eliminarEAIS(\''+e.id+'\')">🗑️ Eliminar</button>'+
+    '</div>';
+  }).join('');
+}
+
+function eliminarEAIS(idEAIS){
+  // Verificación 1: diálogo
+  if(!confirm('⚠️ ELIMINAR EAIS '+idEAIS+'?\n\nSe borrarán TODAS las casas, fichas, visitas, historial y mapas de este EAIS.\n\n¿Continuar?'))return;
+  // Verificación 2: escribir nombre exacto
+  const typed = prompt('Para confirmar, escribe exactamente: '+idEAIS);
+  if(typed === null)return;
+  if(typed.trim() !== idEAIS){
+    toast('Nombre incorrecto. Eliminación cancelada.','error');
+    return;
+  }
+  // Borrar local
+  const keysABorrar = [];
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(k && k.startsWith('cat_v2_'+idEAIS+'_')) keysABorrar.push(k);
+  }
+  keysABorrar.forEach(k=>localStorage.removeItem(k));
+  // Quitar de la lista
+  const lista = cargarEquipos().filter(e=>e.id!==idEAIS);
+  guardarEquipos(lista);
+  // Borrar en Firestore (cascade manual)
+  if(S.usuario){
+    const ref = db.collection('catastros').doc(idEAIS);
+    Promise.all(['casas','fichas','visitas','historial','mapas','respaldos'].map(col=>
+      ref.collection(col).get().then(s=>Promise.all(s.docs.map(d=>d.ref.delete())))
+    )).then(()=>ref.delete()).catch(e=>log('Error borrando nube: '+e.message,'error'));
+  }
+  toast('EAIS '+idEAIS+' eliminado','success');
+  log('EAIS eliminado: '+idEAIS,'ok');
+  // Si era el activo, cambiar al primero disponible
+  if(S.equipo === idEAIS){
+    const visibles = equiposVisibles();
+    if(visibles.length > 0){
+      S.equipo = visibles[0].id;
+      guardarEquipoActivo(S.equipo);
+    } else {
+      S.equipo = null;
+      localStorage.removeItem(keyEquipoActivo());
+    }
+    iniciarEquipo();
+  }
+  // Refrescar lista en el modal
+  renderEAISManage();
+  actualizarUIEquipos();
+  actualizarTopbar();
 }
 
 function guardarUnidadOperativa(){
@@ -678,8 +768,6 @@ function guardarUnidadOperativa(){
   };
   S.uo = uo;
   guardarUO(uo);
-
-  // Generar equipos EAIS01..EAIS0N en la lista (sin borrar los existentes)
   const lista = cargarEquipos();
   for(let i=1; i<=eaisCount; i++){
     const id = 'EAIS'+String(i).padStart(2,'0');
@@ -691,12 +779,12 @@ function guardarUnidadOperativa(){
     }
   }
   guardarEquipos(lista);
-
   actualizarUIUnidadOperativa();
   actualizarUIEquipos();
+  actualizarTopbar();
   subirUnidadANube();
   marcarPendiente();
-  toast('Unidad Operativa guardada. Se generaron '+eaisCount+' equipos EAIS','success');
+  toast('Unidad Operativa guardada. '+eaisCount+' equipos EAIS','success');
   cerrarModal('modal-unidad');
   log('UO guardada: '+nombre+' · '+eaisCount+' EAIS','ok');
 }
@@ -705,14 +793,17 @@ function actualizarUIUnidadOperativa(){
   const dispNombre = document.getElementById('uo-nombre-display');
   const dispDetalle = document.getElementById('uo-detalle-display');
   const prev = document.getElementById('uo-preview-box');
+  const pill = document.getElementById('uo-pill-txt');
   if(!S.uo){
     dispNombre.textContent = '—';
     dispDetalle.textContent = 'Sin configurar';
     prev.innerHTML = '<div style="color:#ffd77a;text-align:center;padding:6px">⚠️ Sin Unidad Operativa configurada</div>';
+    if(pill) pill.textContent = 'Configurar UO';
     return;
   }
   dispNombre.textContent = S.uo.nombre;
   dispDetalle.textContent = (S.uo.codigo||'') + ' · ' + S.uo.eaisCount + ' EAIS';
+  if(pill) pill.textContent = S.uo.nombre + (S.uo.codigo?' · '+S.uo.codigo:'');
   prev.innerHTML =
     '<strong>'+escapeHTML(S.uo.nombre)+'</strong>'+
     '<div class="kv">'+
@@ -725,7 +816,21 @@ function actualizarUIUnidadOperativa(){
     '</div>';
 }
 
-/* Filtrar equipos visibles: EAIS 01..0N (de la UO) + equipos no-EAIS (TEST, manuales) */
+function actualizarTopbar(){
+  const uoTxt = document.getElementById('uo-pill-txt');
+  const eaisTxt = document.getElementById('eais-pill-txt');
+  if(S.uo){
+    uoTxt.textContent = S.uo.nombre + (S.uo.codigo?' · '+S.uo.codigo:'');
+  } else {
+    uoTxt.textContent = 'Configurar UO';
+  }
+  if(S.equipo){
+    eaisTxt.textContent = S.equipo;
+  } else {
+    eaisTxt.textContent = 'Sin EAIS';
+  }
+}
+
 function equiposVisibles(){
   const todos = cargarEquipos();
   if(!S.uo || !S.uo.eaisCount) return todos;
@@ -763,7 +868,7 @@ function abrirHistorial(idCasa){
   document.getElementById('mh-casa').textContent=idCasa;
   const cont=document.getElementById('mh-lista');
   const arr=S.historial[idCasa]||[];
-  if(arr.length===0){cont.innerHTML='<p style="color:#617886;text-align:center;padding:30px">Sin cambios registrados.</p>';}
+  if(arr.length===0){cont.innerHTML='<p style="color:#8ba5b5;text-align:center;padding:30px">Sin cambios registrados.</p>';}
   else{
     cont.innerHTML=arr.map(h=>{
       const puede=h.antes&&(h.tipo==='ficha'||h.tipo==='casa');
@@ -849,8 +954,7 @@ function actualizarUIEquipos(){
         (isTest?'🧪 ':'🏥 ')+escapeHTML(e.id)+'</div>';
     }).join('');
   }
-  const topPill = document.getElementById('team-pill');
-  topPill.textContent=S.equipo?'🏥 '+S.equipo:'🏥 Sin equipo';
+  actualizarTopbar();
 }
 function crearEquipoPrueba(){
   const lista=cargarEquipos();
@@ -869,27 +973,6 @@ function seleccionarEquipo(id){
   if(S.equipo)guardarTodoLocal();
   S.equipo=id;guardarEquipoActivo(id);iniciarEquipo();
 }
-function eliminarEquipoActual(){
-  if(!S.equipo){toast('Sin equipo','error');return;}
-  if(!confirm('⚠️ Eliminar '+S.equipo+'? Se borrarán TODOS sus datos.'))return;
-  if(!confirm('Confirma definitivamente.'))return;
-  const id=S.equipo;
-  const keys=[];
-  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('cat_v2_'+id+'_'))keys.push(k);}
-  keys.forEach(k=>localStorage.removeItem(k));
-  const lista=cargarEquipos().filter(e=>e.id!==id);guardarEquipos(lista);
-  if(S.usuario){
-    const ref=db.collection('catastros').doc(id);
-    Promise.all(['casas','fichas','visitas','historial','mapas','respaldos'].map(col=>
-      ref.collection(col).get().then(s=>Promise.all(s.docs.map(d=>d.ref.delete())))
-    )).then(()=>ref.delete()).catch(e=>log('Error borrando: '+e.message,'error'));
-  }
-  toast('Equipo eliminado','success');
-  const visibles = equiposVisibles();
-  if(visibles.length>0){S.equipo=visibles[0].id;guardarEquipoActivo(S.equipo);}
-  else{S.equipo=null;localStorage.removeItem(keyEquipoActivo());}
-  iniciarEquipo();
-}
 
 function iniciarEquipo(){
   desconectarListeners();
@@ -899,6 +982,7 @@ function iniciarEquipo(){
   document.getElementById('casa-panel-content').style.display='none';
   document.getElementById('casa-panel-empty').style.display='block';
   actualizarUIEquipos();renderSelectorBarrios();actualizarStats();
+  actualizarTopbar();
   if(!S.equipo){
     document.getElementById('sin-equipo').style.display='block';
     document.getElementById('sin-mapa').style.display='none';
@@ -1015,26 +1099,55 @@ function cambiarBarrio(id){
    ========================================================= */
 function initCanvas(){
   try{
-    S.canvas=new fabric.Canvas('c',{selection:true,preserveObjectStacking:true,backgroundColor:'transparent',width:800,height:600,allowTouchScrolling:true});
+    S.canvas=new fabric.Canvas('c',{
+      selection:true,
+      preserveObjectStacking:true,
+      backgroundColor:'transparent',
+      width:800, height:600,
+      allowTouchScrolling:true,
+      selectionColor:'rgba(20,122,104,0.15)',
+      selectionBorderColor:'#147a68',
+      selectionLineWidth:2
+    });
+    fabric.Object.prototype.set({
+      cornerStyle:'circle',
+      cornerColor:'#147a68',
+      cornerStrokeColor:'#0a1520',
+      cornerSize:16,
+      transparentCorners:false,
+      borderColor:'#147a68',
+      borderScaleFactor:2,
+      padding:4
+    });
+    fabric.Object.prototype.controls.mtr.offsetY=-40;
+    fabric.Object.prototype.controls.mtr.cursorStyle='crosshair';
+
     S.canvas.on('object:modified',onCasaMovida);
     S.canvas.on('mouse:down',onCanvasClick);
+    S.canvas.on('mouse:dblclick',function(opt){
+      const t=opt.target;if(!t||!t.idCasa)return;
+      abrirModalFicha(t.idCasa);
+    });
     log('Canvas OK','ok');
   }catch(e){log('Error canvas: '+e.message,'error');}
 }
 function onCasaMovida(e){
   const obj=e.target;if(!obj||!obj.idCasa)return;
   const casa=S.casas[obj.idCasa];if(!casa)return;
-  const antes={left:casa.left,top:casa.top,ancho:casa.ancho,alto:casa.alto};
-  casa.left=obj.left;casa.top=obj.top;
-  casa.ancho=obj.width*(obj.scaleX||1);casa.alto=obj.height*(obj.scaleY||1);
+  const antes={left:casa.left,top:casa.top,ancho:casa.ancho,alto:casa.alto,angulo:casa.angulo||0};
+  casa.left=obj.left;
+  casa.top=obj.top;
+  casa.ancho=obj.width*(obj.scaleX||1);
+  casa.alto=obj.height*(obj.scaleY||1);
+  casa.angulo=obj.angle||0;
   casa.actualizadoEn=nowISO();casa.actualizadoPor=S.usuario?(S.usuario.displayName||S.usuario.email):'local';
   lsSet(keyCasa(S.equipo,casa.idCasa),casa);
-  agregarHistorial(casa.idCasa,'casa',antes,{left:casa.left,top:casa.top,ancho:casa.ancho,alto:casa.alto},'Movimiento de casa');
+  agregarHistorial(casa.idCasa,'casa',antes,{left:casa.left,top:casa.top,ancho:casa.ancho,alto:casa.alto,angulo:casa.angulo},'Movimiento de casa');
   subirCasa(casa.idCasa);marcarPendiente();
 }
 function onCanvasClick(opt){
   const t=opt.target;if(!t||!t.idCasa)return;
-  if(S.modoEdicion&&t.selectable)return;
+  if(S.modoEdicion)return;
   abrirPanelCasa(t.idCasa);
 }
 function renderCasas(){
@@ -1052,10 +1165,31 @@ function renderCasas(){
 function construirGrupoCasa(c){
   const ancho=c.ancho||70,alto=c.alto||50;
   const fuente=Math.max(10,Math.min(14,ancho/6));
-  const rect=new fabric.Rect({width:ancho,height:alto,fill:'rgba(189,75,66,0.35)',stroke:'#bd4b42',strokeWidth:2,rx:5,ry:5});
-  const text=new fabric.Textbox(c.nomenclatura||c.idCasa,{fontSize:fuente,fontFamily:'Segoe UI',fill:'#0c273b',textAlign:'center',width:ancho,top:alto*0.25,left:0,fontWeight:'bold',splitByGrapheme:true});
-  const grupo=new fabric.Group([rect,text],{left:c.left,top:c.top,hasControls:true,hasBorders:true,selectable:true,evented:true});
-  grupo.set('idCasa',c.idCasa);grupo.setCoords();return grupo;
+  const rect=new fabric.Rect({
+    width:ancho, height:alto,
+    fill:'rgba(189,75,66,0.35)', stroke:'#bd4b42',
+    strokeWidth:2, rx:5, ry:5
+  });
+  const text=new fabric.Textbox(c.nomenclatura||c.idCasa,{
+    fontSize:fuente, fontFamily:'Segoe UI', fill:'#0c273b',
+    textAlign:'center', width:ancho, top:alto*0.25, left:0,
+    fontWeight:'bold', splitByGrapheme:true
+  });
+  const grupo=new fabric.Group([rect,text],{
+    left:c.left, top:c.top,
+    angle: c.angulo||0,
+    hasControls:true, hasBorders:true,
+    selectable:true, evented:true,
+    lockMovementX:false, lockMovementY:false,
+    lockScalingX:false, lockScalingY:false,
+    lockRotation:false,
+    minScaleLimit:0.15,
+    rotatingPointOffset:24,
+    originX:'left', originY:'top'
+  });
+  grupo.set('idCasa',c.idCasa);
+  grupo.setCoords();
+  return grupo;
 }
 function crearCasa(){
   if(!S.canvas||!S.barrio||!S.equipo){toast('Selecciona equipo y barrio','error');return;}
@@ -1064,11 +1198,14 @@ function crearCasa(){
   const rw=wrap.getBoundingClientRect(),rc=cont.getBoundingClientRect();
   const cx=(rw.left+rw.width/2-rc.left)/S.zoom,cy=(rw.top+rw.height/2-rc.top)/S.zoom;
   const idCasa='CASA-'+uid();
-  const casa={idCasa,barrioId:S.barrio.id,nomenclatura:idCasa,left:cx-35,top:cy-25,ancho:70,alto:50,estado:'Pendiente',eliminado:false,actualizadoEn:nowISO(),actualizadoPor:S.usuario?(S.usuario.displayName||S.usuario.email):'local'};
+  const casa={idCasa,barrioId:S.barrio.id,nomenclatura:idCasa,left:cx-35,top:cy-25,ancho:70,alto:50,angulo:0,estado:'Pendiente',eliminado:false,actualizadoEn:nowISO(),actualizadoPor:S.usuario?(S.usuario.displayName||S.usuario.email):'local'};
   S.casas[idCasa]=casa;lsSet(keyCasa(S.equipo,idCasa),casa);
-  const g=construirGrupoCasa(casa);S.canvas.add(g);S.canvas.setActiveObject(g);S.canvas.renderAll();
-  aplicarModo();subirCasa(idCasa);marcarPendiente();actualizarStats();
-  toast('Casa creada. Usa ✍️ para nombrarla.','info');
+  const g=construirGrupoCasa(casa);S.canvas.add(g);
+  if(!S.modoEdicion){S.modoEdicion=true;aplicarModo();actualizarBotonEditar();}
+  S.canvas.setActiveObject(g);
+  S.canvas.renderAll();
+  subirCasa(idCasa);marcarPendiente();actualizarStats();
+  toast('Casa creada. Arrástrala a su posición.','info');
 }
 function ponerNomenclatura(){
   if(!S.canvas)return;
@@ -1090,18 +1227,58 @@ function ponerNomenclatura(){
   agregarHistorial(casa.idCasa,'casa',{nomenclatura:antes},{nomenclatura:limpio},'Renombrado: '+antes+' → '+limpio);
   subirCasa(casa.idCasa);marcarPendiente();toast('Nomenclatura actualizada','success');
 }
-function modoEdicion(){S.modoEdicion=!S.modoEdicion;aplicarModo();toast(S.modoEdicion?'Modo edición activado':'Casas bloqueadas',S.modoEdicion?'info':'success');}
-function fijarCasas(){S.modoEdicion=false;aplicarModo();if(S.canvas)S.canvas.discardActiveObject();toast('Casas fijadas','success');}
+function modoEdicion(){
+  S.modoEdicion=!S.modoEdicion;
+  aplicarModo();
+  actualizarBotonEditar();
+  toast(S.modoEdicion?'✏️ Modo edición: arrastra y escala las casas':'📌 Casas fijadas',S.modoEdicion?'info':'success');
+}
+function fijarCasas(){
+  S.modoEdicion=false;
+  aplicarModo();
+  actualizarBotonEditar();
+  if(S.canvas)S.canvas.discardActiveObject();
+  toast('Casas fijadas','success');
+}
+function actualizarBotonEditar(){
+  const btn=document.getElementById('btn-editar');
+  const banner=document.getElementById('banner-modo');
+  if(S.modoEdicion){
+    btn.classList.add('active');
+    banner.classList.add('activo');
+  } else {
+    btn.classList.remove('active');
+    banner.classList.remove('activo');
+  }
+}
 function aplicarModo(){
   if(!S.canvas)return;
-  S.canvas.selection=S.modoEdicion;S.canvas.skipTargetFind=false;
+  S.canvas.selection=S.modoEdicion;
+  S.canvas.skipTargetFind=false;
+  S.canvas.allowTouchScrolling = !S.modoEdicion;
+
   S.canvas.forEachObject(o=>{
     if(o.type!=='group'||!o.idCasa)return;
-    o.selectable=S.modoEdicion;o.hasControls=S.modoEdicion;o.hasBorders=S.modoEdicion;
-    o.lockMovementX=!S.modoEdicion;o.lockMovementY=!S.modoEdicion;
-    o.evented=true;o.hoverCursor=S.modoEdicion?'move':'pointer';o.setCoords();aplicarColorEstado(o);
+    if(S.modoEdicion){
+      o.selectable=true;o.evented=true;o.hasControls=true;o.hasBorders=true;
+      o.lockMovementX=false;o.lockMovementY=false;
+      o.lockScalingX=false;o.lockScalingY=false;
+      o.lockRotation=false;
+      o.hoverCursor='move';o.moveCursor='move';
+      o.perPixelTargetFind=false;
+    } else {
+      o.selectable=false;o.hasControls=false;o.hasBorders=false;
+      o.lockMovementX=true;o.lockMovementY=true;
+      o.lockScalingX=true;o.lockScalingY=true;
+      o.lockRotation=true;
+      o.evented=true;o.hoverCursor='pointer';
+    }
+    o.setCoords();
+    aplicarColorEstado(o);
   });
   S.canvas.renderAll();
+  const wrap = document.getElementById('mapa-wrapper');
+  if(wrap) wrap.style.touchAction = S.modoEdicion ? 'none' : 'pan-x pan-y';
 }
 function eliminarSeleccionado(){
   if(!S.canvas)return;
@@ -1152,9 +1329,9 @@ function abrirPanelCasa(idCasa){
   html+='<h2>'+escapeHTML(casa.nomenclatura)+' <button class="close" onclick="cerrarPanelCasa()">×</button></h2>';
   html+='<div class="estado-badge estado-'+casa.estado+'">Estado: '+casa.estado+'</div>';
   if(integrantes.length===0){
-    html+='<p style="color:#617886;font-size:12.5px;text-align:center;padding:20px 10px">Sin ficha registrada</p>';
+    html+='<p style="color:#8ba5b5;font-size:12.5px;text-align:center;padding:20px 10px">Sin ficha registrada</p>';
   } else {
-    html+='<h3 style="font-size:10.5px;color:#617886;margin:10px 0 6px;text-transform:uppercase;letter-spacing:.5px">Integrantes ('+integrantes.length+')</h3>';
+    html+='<h3 style="font-size:10.5px;color:#8ba5b5;margin:10px 0 6px;text-transform:uppercase;letter-spacing:.5px">Integrantes ('+integrantes.length+')</h3>';
     integrantes.forEach(i=>{
       const g=i.grupoDispensarial||'1';
       const conds=(i.condiciones||[]).map(c=>'<span class="tag" style="background:'+(CONDICIONES_COLOR[c]||'#3a5261')+';color:#fff">'+escapeHTML(c)+'</span>').join('');
@@ -1166,14 +1343,14 @@ function abrirPanelCasa(idCasa){
         '</div>';
     });
   }
-  html+='<h3 style="font-size:10.5px;color:#617886;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.5px">Bitácora ('+visitas.length+')</h3>';
+  html+='<h3 style="font-size:10.5px;color:#8ba5b5;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.5px">Bitácora ('+visitas.length+')</h3>';
   if(visitas.length===0){
-    html+='<p style="color:#617886;font-size:11.5px">Sin visitas registradas.</p>';
+    html+='<p style="color:#8ba5b5;font-size:11.5px">Sin visitas registradas.</p>';
   } else {
     visitas.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).slice(0,5).forEach(v=>{
       html+='<div class="visita-item"><div class="fecha">📅 '+escapeHTML(v.fecha||'')+' · '+escapeHTML(v.profesional||'')+'</div><div><strong>'+escapeHTML(v.motivo||'')+'</strong> → '+escapeHTML(v.resultado||'')+'</div>'+(v.proxima?'<div>Próxima: '+escapeHTML(v.proxima)+'</div>':'')+(v.observaciones?'<div>'+escapeHTML(v.observaciones)+'</div>':'')+'</div>';
     });
-    if(visitas.length>5)html+='<p style="font-size:10.5px;color:#617886;text-align:center">+'+(visitas.length-5)+' más</p>';
+    if(visitas.length>5)html+='<p style="font-size:10.5px;color:#8ba5b5;text-align:center">+'+(visitas.length-5)+' más</p>';
   }
   html+='<div class="panel-actions"><button style="background:#246a9c" onclick="abrirModalFicha(\''+idCasa+'\')">✏️ Ficha</button><button style="background:#147a68" onclick="abrirModalVisita(\''+idCasa+'\')">📝 Visita</button><button style="background:#5c3ca8" onclick="abrirHistorial(\''+idCasa+'\')">🕓 Historial</button></div>';
   cont.innerHTML=html;
@@ -1308,11 +1485,11 @@ function aplicarFiltrosVisuales(){
 /* =========================================================
    BÚSQUEDA
    ========================================================= */
-function abrirBusqueda(){document.getElementById('busqueda-input').value='';document.getElementById('busqueda-resultados').innerHTML='<p style="color:#617886;text-align:center;padding:20px">Escribe para buscar...</p>';abrirModal('modal-busqueda');}
+function abrirBusqueda(){document.getElementById('busqueda-input').value='';document.getElementById('busqueda-resultados').innerHTML='<p style="color:#8ba5b5;text-align:center;padding:20px">Escribe para buscar...</p>';abrirModal('modal-busqueda');}
 function ejecutarBusqueda(q){
   const cont=document.getElementById('busqueda-resultados');
   q=(q||'').toLowerCase().trim();
-  if(q.length<2){cont.innerHTML='<p style="color:#617886;text-align:center;padding:20px">Escribe al menos 2 caracteres.</p>';return;}
+  if(q.length<2){cont.innerHTML='<p style="color:#8ba5b5;text-align:center;padding:20px">Escribe al menos 2 caracteres.</p>';return;}
   const res=[];
   Object.values(S.casas).forEach(c=>{
     if(c.eliminado)return;
@@ -1325,7 +1502,7 @@ function ejecutarBusqueda(q){
       });
     }
   });
-  if(res.length===0){cont.innerHTML='<p style="color:#617886;text-align:center;padding:20px">Sin resultados.</p>';return;}
+  if(res.length===0){cont.innerHTML='<p style="color:#8ba5b5;text-align:center;padding:20px">Sin resultados.</p>';return;}
   cont.innerHTML=res.slice(0,60).map(r=>'<div class="resultado-item" onclick="irACasa(\''+r.idCasa+'\')"><strong>'+escapeHTML(r.label)+'</strong><small>'+escapeHTML(r.detalle)+'</small></div>').join('');
 }
 function irACasa(idCasa){
@@ -1395,7 +1572,7 @@ function descargarExcel(){
 }
 
 /* =========================================================
-   FIREBASE AUTH
+   FIREBASE AUTH (con soporte móvil)
    ========================================================= */
 function initFirebaseAuth(){
   auth.onAuthStateChanged(user=>{
@@ -1406,7 +1583,6 @@ function initFirebaseAuth(){
       btn.textContent='✅ '+(user.displayName||user.email);
       btn.style.background='#134e42';btn.style.color='#8ee0cb';btn.style.borderColor='#1a8a75';
       controls.style.display='block';
-      // Sincronizar UO
       bajarUnidadDeNube();
       iniciarListenersFirestore();
       setTimeout(()=>respaldoAutomaticoDiario(),3000);
@@ -1417,12 +1593,46 @@ function initFirebaseAuth(){
     }
     actualizarIndicadorBackup();
   });
+
+  auth.getRedirectResult().then(r=>{
+    if(r && r.user){
+      log('Sesión por redirect: '+r.user.email,'ok');
+      toast('Conectado: '+(r.user.displayName||r.user.email),'success');
+    }
+  }).catch(e=>{
+    if(e && e.code && e.code !== 'auth/no-auth-event'){
+      log('Redirect error: '+e.code+' '+e.message,'error');
+      toast('Error al conectar: '+e.message,'error');
+    }
+  });
 }
 function conectarGoogle(){
   if(S.usuario){if(confirm('¿Cerrar sesión?'))auth.signOut();return;}
   const provider=new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).then(r=>{toast('Conectado: '+(r.user.displayName||r.user.email),'success');log('Sesión: '+r.user.email,'ok');})
-    .catch(e=>{toast('Error: '+e.message,'error');log('Error auth: '+e.message,'error');});
+  provider.setCustomParameters({prompt:'select_account'});
+
+  // En móvil usamos redirect (popup falla en Safari/Chrome móvil)
+  if(ES_MOVIL){
+    toast('Redirigiendo a Google...','info');
+    auth.signInWithRedirect(provider).catch(e=>{
+      log('Error redirect: '+e.message,'error');
+      toast('Error: '+e.message,'error');
+      // Fallback a popup si falla
+      auth.signInWithPopup(provider).catch(e2=>{
+        log('Error popup fallback: '+e2.message,'error');
+        toast('No se pudo conectar: '+e2.message,'error');
+      });
+    });
+    return;
+  }
+  // Escritorio: popup
+  auth.signInWithPopup(provider).then(r=>{
+    toast('Conectado: '+(r.user.displayName||r.user.email),'success');
+    log('Sesión: '+r.user.email,'ok');
+  }).catch(e=>{
+    log('Error auth: '+e.message,'error');
+    toast('Error: '+e.message,'error');
+  });
 }
 function gestionarSync(){if(!S.usuario)conectarGoogle();else if(confirm('¿Cerrar sesión?'))auth.signOut();}
 
@@ -1441,9 +1651,8 @@ async function bajarUnidadDeNube(){
     if(d.exists){
       const remota=d.data();
       const local=S.uo;
-      // Preferir la más reciente
       if(!local || (remota.actualizadoEn||'') > (local.actualizadoEn||'')){
-        S.uo=remota;guardarUO(remota);actualizarUIUnidadOperativa();actualizarUIEquipos();
+        S.uo=remota;guardarUO(remota);actualizarUIUnidadOperativa();actualizarUIEquipos();actualizarTopbar();
         log('UO actualizada desde nube','ok');
       } else if(local){
         subirUnidadANube();
@@ -1570,7 +1779,7 @@ async function abrirModalRespaldos(){
   abrirModal('modal-respaldos');
   try{
     const snap=await db.collection('catastros').doc(S.equipo).collection('respaldos').orderBy('fecha','desc').limit(30).get();
-    if(snap.size===0){cont.innerHTML='<p style="text-align:center;padding:20px;color:#617886">Sin respaldos.</p>';return;}
+    if(snap.size===0){cont.innerHTML='<p style="text-align:center;padding:20px;color:#8ba5b5">Sin respaldos.</p>';return;}
     cont.innerHTML=snap.docs.map(d=>{
       const x=d.data();
       const nCasas=x.casas?Object.keys(x.casas).length:0;
@@ -1636,25 +1845,19 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
 window.addEventListener('load',()=>{
   log('🚀 Iniciando Catastro v2','info');
 
-  // Manifest
   try{
     const manifest={name:'Catastro Médico v2',short_name:'Catastro',start_url:'.',display:'standalone',background_color:'#0c273b',theme_color:'#0c273b'};
     const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
     document.getElementById('manifest-placeholder').href=URL.createObjectURL(blob);
   }catch(e){}
 
-  // Estado inicial: todas las secciones colapsadas (ya están en HTML con class="collapsed")
-
-  // Cargar UO
   S.uo = cargarUO();
   actualizarUIUnidadOperativa();
 
   initCanvas();
   renderFiltros();
 
-  // Cargar último equipo activo (ya guardado)
   S.equipo = equipoActivoGuardado();
-  // Validar que el equipo activo siga visible
   if(S.equipo){
     const visibles = equiposVisibles().map(e=>e.id);
     if(!visibles.includes(S.equipo)){
@@ -1664,6 +1867,7 @@ window.addEventListener('load',()=>{
     }
   }
   iniciarEquipo();
+  actualizarTopbar();
   initFirebaseAuth();
   actualizarIndicadorBackup();
 
