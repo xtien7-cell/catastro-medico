@@ -432,6 +432,7 @@ let equipoActual = null;
 let tabMatrizActivo = 'barrio';
 let pacientesMatrizActuales = [];
 let cargandoCanvas = false;
+let primeraLecturaListener = true;
 
 const coloresCondiciones = {
   'Embarazada': { fill: 'rgba(233, 30, 99, 0.7)', stroke: '#e91e63' },
@@ -586,9 +587,21 @@ function actualizarIndicadorSync(estado, texto) {
   const ind = document.getElementById('sync-indicador');
   if (ind) { ind.className = estado; ind.innerText = texto; }
 }
+function clavePendienteSync() { return P('pendiente_sync'); }
+function restaurarEstadoPendiente() {
+  hayCambiosPendientes = localStorage.getItem(clavePendienteSync()) === '1';
+  if (hayCambiosPendientes) ultimoCambioLocal = Date.now();
+}
+function confirmarCambioSincronizado() {
+  hayCambiosPendientes = false;
+  localStorage.removeItem(clavePendienteSync());
+}
 function marcarCambioPendiente(idBarrio) {
   if (!equipoActual) return;
   hayCambiosPendientes = true;
+  // Esta marca sobrevive al cierre de la aplicación. Sin ella, una recarga
+  // podía interpretar erróneamente que era seguro reemplazar datos locales.
+  localStorage.setItem(clavePendienteSync(), '1');
   ultimoCambioLocal = Date.now();
   if (idBarrio) marcarBarrioModificado(idBarrio);
   if (usuarioActual) {
@@ -699,6 +712,8 @@ function iniciarEquipo() {
     document.getElementById('mapa-imagen').src = '';
     return;
   }
+  restaurarEstadoPendiente();
+  primeraLecturaListener = true;
   document.getElementById('sin-equipo').style.display = 'none';
   document.getElementById('btn-matriz').disabled = false;
   const lista = cargarBarriosLista();
@@ -805,12 +820,23 @@ function fusionarDatosPorTimestamp(datosLocales, datosRemotos) {
         'mapa_' + idBarrio, 'canvas_' + idBarrio,
         'ficha_' + idBarrio + '_', 'estado_' + idBarrio + '_',
         'zoom_' + idBarrio, 'scrollL_' + idBarrio, 'scrollT_' + idBarrio,
-        'ts_' + idBarrio
+        'ts_' + idBarrio, 'borrado_' + idBarrio
       ];
       if (prefijosBarrio.some(p => k === p || k.startsWith(p))) {
         fusionado[k] = fuente[k];
       }
     });
+  });
+  // Datos creados por versiones antiguas no tenían ts_. Nunca deben
+  // desaparecer solo porque todavía no poseen una fecha de sincronización.
+  // Si una clave existe en ambos lados sin fecha, se conserva la remota: al
+  // iniciar se pide al usuario resolver esas copias distintas explícitamente.
+  const clavesCubiertas = new Set(Object.keys(fusionado));
+  Object.keys(datosRemotos).forEach(k => {
+    if (!clavesCubiertas.has(k)) fusionado[k] = datosRemotos[k];
+  });
+  Object.keys(datosLocales).forEach(k => {
+    if (!Object.prototype.hasOwnProperty.call(fusionado, k)) fusionado[k] = datosLocales[k];
   });
   return fusionado;
 }
@@ -824,23 +850,37 @@ async function subirManualmente(silencioso = false) {
     guardandoEnFirestore = true;
     log('⬆️ Subiendo ' + equipoActual + '...', 'info');
     const docRef = db.collection('catastros').doc(equipoActual);
-    const docSnap = await docRef.get();
-    const datosRemotos = docSnap.exists ? (docSnap.data().datos || {}) : {};
-    const datosLocales = recolectarTodosLosDatos().datos || {};
-    const datosFusionados = fusionarDatosPorTimestamp(datosLocales, datosRemotos);
-    const barriosLocales = cargarBarriosLista();
-    const barriosRemotos = docSnap.exists ? (docSnap.data().barrios || []) : [];
-    const barriosMap = new Map();
-    barriosRemotos.forEach(b => barriosMap.set(b.id, b));
-    barriosLocales.forEach(b => barriosMap.set(b.id, b));
-    const barriosFusionados = Array.from(barriosMap.values());
-    const datosFinales = {
-      version: '1.0', fecha: new Date().toISOString(),
-      equipo: equipoActual, barrios: barriosFusionados,
-      barrioActivo: barrioActual ? barrioActual.id : null,
-      datos: datosFusionados
-    };
-    await docRef.set(datosFinales);
+    // La transacción obliga a volver a leer si otro médico guardó entre la
+    // lectura y la escritura; así se evita el clásico "último guardado borra
+    // todo" cuando trabajan en barrios distintos.
+    const datosFinales = await db.runTransaction(async (tx) => {
+      const docSnap = await tx.get(docRef);
+      const datosRemotos = docSnap.exists ? (docSnap.data().datos || {}) : {};
+      const datosLocales = recolectarTodosLosDatos().datos || {};
+      const datosFusionados = fusionarDatosPorTimestamp(datosLocales, datosRemotos);
+      const barriosLocales = cargarBarriosLista();
+      const barriosRemotos = docSnap.exists ? (docSnap.data().barrios || []) : [];
+      const barriosMap = new Map();
+      // Una eliminación necesita una lápida: sin ella, unir ambas listas de
+      // barrios hacía que un barrio borrado reapareciera desde la nube.
+      barriosRemotos.forEach(b => {
+        const eliminadoLocal = datosLocales['borrado_' + b.id];
+        const tsLocal = parseInt(datosLocales['ts_' + b.id] || '0');
+        const tsRemoto = parseInt(datosRemotos['ts_' + b.id] || '0');
+        if (!(eliminadoLocal && tsLocal >= tsRemoto)) barriosMap.set(b.id, b);
+      });
+      barriosLocales.forEach(b => barriosMap.set(b.id, b));
+      const barriosFusionados = Array.from(barriosMap.values());
+      const siguiente = {
+        version: '1.1', fecha: new Date().toISOString(),
+        equipo: equipoActual, barrios: barriosFusionados,
+        barrioActivo: barrioActual ? barrioActual.id : null,
+        datos: datosFusionados
+      };
+      tx.set(docRef, siguiente);
+      return siguiente;
+    });
+    const barriosFusionados = datosFinales.barrios;
     const listaBarriosAntes = JSON.stringify(cargarBarriosLista());
     const listaBarriosDespues = JSON.stringify(barriosFusionados);
     if (listaBarriosAntes !== listaBarriosDespues) {
@@ -849,7 +889,7 @@ async function subirManualmente(silencioso = false) {
     }
     const hora = new Date().toTimeString().substring(0,5);
     localStorage.setItem('ultima_sync_hora', hora);
-    hayCambiosPendientes = false;
+    confirmarCambioSincronizado();
     const caja = document.getElementById('sync-estado-caja');
     if (caja) { caja.className = 'sync-estado ok'; caja.innerHTML = '✅ Subida: ' + hora; }
     actualizarIndicadorSync('sincronizado', '☁️ ' + hora);
@@ -868,7 +908,11 @@ async function subirManualmente(silencioso = false) {
 async function bajarManualmente() {
   if (!equipoActual) { mostrarToast('⚠️ Sin equipo', 'error'); return; }
   if (!usuarioActual) { mostrarToast('⚠️ Sin conexión', 'error'); return; }
-  if (!confirm('⚠️ BAJAR ' + equipoActual + ' de la nube?\n\nReemplazará tus datos locales con los de la nube.')) return;
+  if (hayCambiosPendientes) {
+    mostrarToast('⚠️ Primero sube o exporta tus cambios locales.', 'warning');
+    return;
+  }
+  if (!confirm('⚠️ BAJAR ' + equipoActual + ' de la nube?\n\nReemplazará la copia local sincronizada.')) return;
   try {
     log('⬇️ Bajando ' + equipoActual + '...', 'info');
     const docSnap = await db.collection('catastros').doc(equipoActual).get();
@@ -886,7 +930,7 @@ async function bajarManualmente() {
     });
     localStorage.setItem(P('barrios'), JSON.stringify(datosRemotos.barrios || []));
     if (datosRemotos.barrioActivo) localStorage.setItem(P('barrio_activo'), datosRemotos.barrioActivo);
-    hayCambiosPendientes = false;
+    confirmarCambioSincronizado();
     mostrarToast('⬇️ Datos cargados. Recargando...', 'success');
     setTimeout(() => window.location.reload(), 1200);
   } catch(e) {
@@ -909,6 +953,9 @@ function iniciarEscuchaTiempoReal() {
     if (cargandoCanvas) return;
     
     if (!snapshot.exists) return;
+    // onSnapshot siempre entrega una foto inicial. La verificación inicial
+    // decide qué hacer con ella; nunca debe borrar una copia local al abrir.
+    if (primeraLecturaListener) { primeraLecturaListener = false; return; }
     
     const datosRemotos = snapshot.data();
     const datosLocales = recolectarTodosLosDatos();
@@ -962,6 +1009,7 @@ function iniciarEscuchaTiempoReal() {
       aplicarZoom();
       setTimeout(() => { wrapper.scrollLeft = scrollL; wrapper.scrollTop = scrollT; }, 100);
       mostrarToast('✅ Cambios de compañeros aplicados', 'success');
+      confirmarCambioSincronizado();
       aplicandoCambiosRemotos = false;
     });
   }, (error) => log('Listener: ' + error.message, 'error'));
@@ -1038,14 +1086,18 @@ async function verificarDatosRemotos() {
     const hayRemotos = Object.keys(datosRemotos.datos || {}).length > 0;
     const cambioLocalPendiente = hayCambiosPendientes && hayLocales;
     
-    if (cambioLocalPendiente) {
-      const bajar = confirm(
-        '⚠️ Tienes cambios locales sin subir.\n\n' +
-        '· Aceptar = BAJAR los de la nube (perderás los locales)\n' +
-        '· Cancelar = SUBIR los locales (reemplazarás la nube)\n\n' +
-        '¿Bajar de la nube?'
+    // Si existen dos copias distintas, no se reemplaza ninguna en silencio.
+    // Las copias locales antiguas (sin la nueva marca persistente) también se
+    // protegen: primero se pide una decisión explícita.
+    if (cambioLocalPendiente || (hayLocales && hayRemotos)) {
+      const conservarLocal = confirm(
+        '⚠️ Hay dos copias distintas de este equipo.\n\n' +
+        'Aceptar = conservar y subir la copia de este dispositivo.\n' +
+        'Cancelar = conservar la nube y reemplazar este dispositivo.\n\n' +
+        'Antes de cancelar, exporta una copia local si necesitas revisarla.'
       );
-      if (!bajar) {
+      if (conservarLocal) {
+        marcarCambioPendiente(barrioActual ? barrioActual.id : null);
         await subirManualmente(true);
         return;
       }
@@ -1067,7 +1119,7 @@ async function verificarDatosRemotos() {
     localStorage.setItem(P('barrios'), JSON.stringify(datosRemotos.barrios || []));
     if (datosRemotos.barrioActivo) localStorage.setItem(P('barrio_activo'), datosRemotos.barrioActivo);
     
-    hayCambiosPendientes = false;
+    confirmarCambioSincronizado();
     mostrarToast('⬇️ Datos cargados desde la nube. Recargando...', 'success');
     setTimeout(() => window.location.reload(), 1500);
     
@@ -1242,12 +1294,15 @@ function cambiarBarrio(id) {
   const b = lista.find(x => x.id === id);
   if (!b) { mostrarToast('Barrio no encontrado', 'error'); return; }
   barrioActual = b;
+  // Cargar objetos de Fabric dispara object:added/object:removed. Sin esta
+  // protección, simplemente abrir un barrio se registraba como edición.
+  cargandoCanvas = true;
   localStorage.setItem(P('barrio_activo'), id);
   document.getElementById('selector-barrio').value = id;
   document.getElementById('btn-matriz').disabled = false;
   const dataURL = localStorage.getItem(P('mapa_' + id));
   const canvasJSON = localStorage.getItem(P('canvas_' + id));
-  if (!dataURL) { mostrarToast('Sin imagen', 'error'); return; }
+  if (!dataURL) { cargandoCanvas = false; mostrarToast('Sin imagen', 'error'); return; }
   document.getElementById('sin-barrio').style.display = 'none';
   document.getElementById('canvas-zoom-container').style.display = 'inline-block';
   const nuevoImg = new Image();
@@ -1271,10 +1326,11 @@ function cambiarBarrio(id) {
           restaurarEstadosObjetos();
           canvas.renderAll();
           canvas.calcOffset();
-          setTimeout(restaurarZoomScroll, 300);
+          setTimeout(() => { cargandoCanvas = false; restaurarZoomScroll(); }, 300);
         });
       } catch(e) { 
         canvas.renderAll();
+        cargandoCanvas = false;
         setTimeout(restaurarZoomScroll, 300);
       }
     } else {
@@ -1283,6 +1339,7 @@ function cambiarBarrio(id) {
       canvas.setHeight(nuevoImg.height);
       canvas.backgroundColor = 'transparent';
       canvas.renderAll();
+      cargandoCanvas = false;
       setTimeout(restaurarZoomScroll, 300);
     }
   };
@@ -1316,7 +1373,9 @@ function eliminarBarrioActual() {
   localStorage.removeItem(P('zoom_' + id));
   localStorage.removeItem(P('scrollL_' + id));
   localStorage.removeItem(P('scrollT_' + id));
-  localStorage.removeItem(P('ts_' + id));
+  // No se borra el timestamp: es la fecha que permite propagar la eliminación.
+  localStorage.setItem(P('borrado_' + id), Date.now().toString());
+  marcarBarrioModificado(id);
   const borrar = [];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
@@ -1332,7 +1391,9 @@ function eliminarBarrioActual() {
   document.getElementById('btn-matriz').disabled = true;
   actualizarSelectorBarrios();
   mostrarToast('✅ Eliminado', 'success');
-  hayCambiosPendientes = true;
+  // Aunque el barrio ya no exista, se deja una marca pendiente persistente
+  // para que una foto remota no lo restaure inmediatamente al recargar.
+  marcarCambioPendiente(null);
   programarSubida();
 }
 
@@ -1933,6 +1994,10 @@ function importarDatos(e) {
       const datos = JSON.parse(ev.target.result);
       if (!datos.datos || !datos.barrios) throw new Error('Formato inválido');
       restaurarTodosLosDatos(datos);
+      // Una importación es un cambio local importante: antes se recargaba sin
+      // esta marca y el listener podía sustituirla por una copia antigua.
+      marcarCambioPendiente(datos.barrioActivo || null);
+      programarSubida();
       mostrarToast('✅ Importado. Recargando...', 'success');
       setTimeout(() => location.reload(), 1500);
     } catch(err) { mostrarToast('❌ ' + err.message, 'error'); }
@@ -1956,7 +2021,7 @@ function recolectarTodosLosDatos() {
     const k = localStorage.key(i);
     if (k && k.startsWith(pref)) {
       const sp = k.substring(pref.length);
-      if (sp.match(/^(mapa_|canvas_|ficha_|estado_|ts_)/)) {
+      if (sp.match(/^(mapa_|canvas_|ficha_|estado_|ts_|borrado_)/)) {
         datos.datos[sp] = localStorage.getItem(k);
       }
     }
