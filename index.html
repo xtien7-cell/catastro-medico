@@ -91,6 +91,8 @@ input,select,textarea{font-family:inherit}
 #toolbar button.primary:hover{background:#1a8a75}
 #toolbar button.danger{background:#9c3a32;color:#fff;border-color:#bd4b42}
 #toolbar button.active{background:#bd8822;color:#1a1305;border-color:#ffd77a;font-weight:700}
+#toolbar button.agenda{background:#5c3ca8;color:#fff;border-color:#7c4dff}
+#toolbar button.agenda:hover{background:#6d4cc4}
 #toolbar .zoom{display:flex;align-items:center;border:1px solid #294150;border-radius:7px;overflow:hidden;background:#203641}
 #toolbar .zoom button{border:0;border-radius:0;padding:6px 9px;background:transparent}
 #toolbar .zoom span{padding:0 8px;font-size:12px;font-weight:600;min-width:46px;text-align:center;color:#a3bac6}
@@ -213,6 +215,18 @@ input,select,textarea{font-family:inherit}
 .resultado-item:hover{background:#24394c}
 .resultado-item strong{color:#8ec8ff;display:block;margin-bottom:2px}
 .resultado-item small{color:#8ba5b5;display:block;font-size:11px}
+
+/* Agenda */
+#agenda-resultados{max-height:60vh;overflow-y:auto;padding-right:4px}
+.agenda-grupo-fecha{font-size:11px;color:#c8b3ff;text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin-bottom:8px;padding:7px 11px;background:#2a1a3a;border-left:3px solid #7c4dff;border-radius:5px;display:inline-block}
+.agenda-item{background:#1a2c3d;border:1px solid #1e3a4d;border-left:4px solid #7c4dff;border-radius:8px;padding:11px 12px;margin-bottom:8px;cursor:pointer;transition:background .12s}
+.agenda-item:hover{background:#24394c}
+.agenda-item .titulo{display:flex;align-items:center;gap:8px;font-weight:700;color:#e7f0f7;font-size:13px;margin-bottom:4px}
+.agenda-item .titulo .casa{color:#c8b3ff}
+.agenda-item .fila{font-size:11.5px;color:#a3bac6;margin-top:3px;line-height:1.4}
+.agenda-item .fila strong{color:#e7f0f7;font-weight:600}
+.agenda-vacio{text-align:center;color:#8ba5b5;padding:30px 10px;font-style:italic}
+.agenda-badge{font-size:10px;padding:2px 7px;border-radius:9px;color:#fff;font-weight:700;margin-left:auto}
 
 .hist-item{background:#1a2c3d;border-left:4px solid #3a5261;padding:11px;border-radius:6px;margin-bottom:8px;font-size:12px;color:#c9d9e3}
 .hist-item .meta{color:#8ba5b5;font-size:10.5px;margin-bottom:6px;letter-spacing:.3px}
@@ -379,6 +393,7 @@ input,select,textarea{font-family:inherit}
         <div class="side-body">
           <button class="btn btn-orange" onclick="abrirModalUnidad()">🏢 Editar Unidad Operativa</button>
           <button class="btn btn-violet" onclick="abrirModalTest()">🧪 Equipos de prueba (TEST)</button>
+          <button class="btn btn-blue" onclick="abrirAgenda()">📅 Agenda de visitas</button>
           <button class="btn btn-blue" onclick="abrirBusqueda()">🔍 Búsqueda rápida</button>
           <button class="btn btn-blue" onclick="abrirMatriz('eais')">📊 Pacientes del EAIS</button>
           <button class="btn btn-gray" onclick="exportarJSON()">📤 Exportar JSON</button>
@@ -403,8 +418,9 @@ input,select,textarea{font-family:inherit}
           <button onclick="resetZoom()">⟳</button>
         </div>
         <span class="grow"></span>
-        <button onclick="abrirBusqueda()">🔍 Buscar</button>
-        <button onclick="abrirMatriz('barrio')">📋 Pacientes</button>
+        <button onclick="abrirBusqueda()">🔍 <span class="txt">Buscar</span></button>
+        <button class="agenda" onclick="abrirAgenda()">📅 <span class="txt">Agenda</span></button>
+        <button onclick="abrirMatriz('barrio')">📋 <span class="txt">Pacientes</span></button>
       </div>
 
       <div id="workspace">
@@ -497,6 +513,32 @@ input,select,textarea{font-family:inherit}
 
     <h3 style="margin-top:22px">Equipos TEST existentes</h3>
     <div id="test-lista"></div>
+  </div>
+</div>
+
+<!-- MODAL AGENDA -->
+<div class="modal" id="modal-agenda">
+  <div class="modal-content" style="max-width:760px">
+    <button class="modal-close" onclick="cerrarModal('modal-agenda')">×</button>
+    <h2>📅 Agenda de visitas</h2>
+    <p style="color:#8ba5b5;font-size:12px;line-height:1.5;margin-bottom:12px">
+      Muestra las casas con <strong style="color:#c8b3ff">próxima visita</strong> programada en la bitácora de la ficha.
+    </p>
+
+    <div class="tabs" style="margin-bottom:12px">
+      <button class="tab" id="agenda-tab-dia" onclick="cambiarTabAgenda('dia')">📅 Día específico</button>
+      <button class="tab" id="agenda-tab-semana" onclick="cambiarTabAgenda('semana')">📆 Próximos 7 días</button>
+      <button class="tab" id="agenda-tab-todas" onclick="cambiarTabAgenda('todas')">📋 Todas las programadas</button>
+    </div>
+
+    <div class="form-row" id="agenda-fecha-wrap">
+      <div class="form-group" style="max-width:240px">
+        <label>Fecha</label>
+        <input type="date" id="agenda-fecha" onchange="renderAgenda()">
+      </div>
+    </div>
+
+    <div id="agenda-resultados"></div>
   </div>
 </div>
 
@@ -657,6 +699,9 @@ const ESTADOS_HEX = {Pendiente:'#bd4b42',Visitada:'#147a68',Fallida:'#bd8822',Ce
 let _destacarTimer = null;
 let _destacarFinTimer = null;
 
+/* Agenda */
+let agendaTab = 'dia';
+
 /* =========================================================
    UTILIDADES
    ========================================================= */
@@ -727,7 +772,6 @@ function renderEAISManage(){
   }).join('');
 }
 
-/* Borrado genérico: doble confirmación para EAIS, simple para TEST */
 function eliminarEquipoCompleto(idEquipo, dobleConfirmacion){
   if(dobleConfirmacion){
     if(!confirm('⚠️ ELIMINAR '+idEquipo+'?\n\nSe borrarán TODAS las casas, fichas, visitas, historial y mapas de este EAIS.\n\n¿Continuar?'))return false;
@@ -740,17 +784,14 @@ function eliminarEquipoCompleto(idEquipo, dobleConfirmacion){
   } else {
     if(!confirm('¿Eliminar '+idEquipo+'?\n\nSe borrarán sus casas, fichas y visitas.'))return false;
   }
-  // Borrar local
   const keysABorrar = [];
   for(let i=0;i<localStorage.length;i++){
     const k = localStorage.key(i);
     if(k && k.startsWith('cat_v2_'+idEquipo+'_')) keysABorrar.push(k);
   }
   keysABorrar.forEach(k=>localStorage.removeItem(k));
-  // Quitar de la lista
   const lista = cargarEquipos().filter(e=>e.id!==idEquipo);
   guardarEquipos(lista);
-  // Borrar en Firestore
   if(S.usuario){
     const ref = db.collection('catastros').doc(idEquipo);
     Promise.all(['casas','fichas','visitas','historial','mapas','respaldos'].map(col=>
@@ -759,7 +800,6 @@ function eliminarEquipoCompleto(idEquipo, dobleConfirmacion){
   }
   toast(idEquipo+' eliminado','success');
   log('Equipo eliminado: '+idEquipo,'ok');
-  // Si era el activo, cambiar al primero disponible
   if(S.equipo === idEquipo){
     const visibles = equiposVisibles();
     if(visibles.length > 0){
@@ -927,6 +967,130 @@ function eliminarTest(idTest){
 }
 
 /* =========================================================
+   AGENDA DE VISITAS
+   ========================================================= */
+function abrirAgenda(){
+  document.getElementById('agenda-fecha').value = new Date().toISOString().split('T')[0];
+  agendaTab = 'dia';
+  ['dia','semana','todas'].forEach(x=>document.getElementById('agenda-tab-'+x).classList.toggle('active',x===agendaTab));
+  document.getElementById('agenda-fecha-wrap').style.display = 'flex';
+  renderAgenda();
+  abrirModal('modal-agenda');
+}
+
+function cambiarTabAgenda(t){
+  agendaTab = t;
+  ['dia','semana','todas'].forEach(x=>document.getElementById('agenda-tab-'+x).classList.toggle('active',x===t));
+  document.getElementById('agenda-fecha-wrap').style.display = (t === 'dia') ? 'flex' : 'none';
+  renderAgenda();
+}
+
+function recolectarVisitasProgramadas(){
+  const res = [];
+  Object.entries(S.visitas).forEach(([idCasa, visitas])=>{
+    const casa = S.casas[idCasa];
+    if(!casa || casa.eliminado) return;
+    visitas.forEach(v=>{
+      if(!v.proxima) return;
+      const barrio = S.barrios.find(b=>b.id===casa.barrioId);
+      const ficha = S.fichas[idCasa];
+      const integrantes = (ficha && ficha.integrantes) ? ficha.integrantes.map(i=>i.nombre).filter(Boolean) : [];
+      res.push({
+        fechaProxima: v.proxima,
+        fechaVisita: v.fecha,
+        idCasa,
+        casa: casa.nomenclatura,
+        estado: casa.estado,
+        barrioNombre: barrio ? barrio.nombre : '',
+        motivo: v.motivo || '',
+        resultado: v.resultado || '',
+        profesional: v.profesional || '',
+        observaciones: v.observaciones || '',
+        integrantes
+      });
+    });
+  });
+  res.sort((a,b)=>a.fechaProxima.localeCompare(b.fechaProxima));
+  return res;
+}
+
+function renderAgenda(){
+  const cont = document.getElementById('agenda-resultados');
+  const todas = recolectarVisitasProgramadas();
+  let filtradas = [];
+
+  if(agendaTab === 'dia'){
+    const f = document.getElementById('agenda-fecha').value;
+    if(!f){
+      cont.innerHTML = '<p class="agenda-vacio">Selecciona una fecha.</p>';
+      return;
+    }
+    filtradas = todas.filter(v=>v.fechaProxima === f);
+  } else if(agendaTab === 'semana'){
+    const hoy = new Date().toISOString().split('T')[0];
+    const en7 = new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0];
+    filtradas = todas.filter(v=>v.fechaProxima >= hoy && v.fechaProxima <= en7);
+  } else {
+    filtradas = todas.slice();
+  }
+
+  if(filtradas.length === 0){
+    const msg = (agendaTab === 'dia') ? 'Sin visitas programadas para ese día.' :
+                (agendaTab === 'semana') ? 'Sin visitas programadas en los próximos 7 días.' :
+                'Aún no hay visitas programadas.';
+    cont.innerHTML = '<p class="agenda-vacio">'+msg+'</p>';
+    return;
+  }
+
+  const grupos = {};
+  filtradas.forEach(v=>{
+    if(!grupos[v.fechaProxima]) grupos[v.fechaProxima] = [];
+    grupos[v.fechaProxima].push(v);
+  });
+
+  const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const hoyISO = new Date().toISOString().split('T')[0];
+
+  let html = '';
+  Object.keys(grupos).sort().forEach(fecha=>{
+    const visitas = grupos[fecha];
+    const fechaObj = new Date(fecha + 'T12:00:00');
+    const etiqueta = dias[fechaObj.getDay()] + ' ' + fechaObj.getDate() + ' ' + meses[fechaObj.getMonth()] + ' ' + fechaObj.getFullYear();
+    const sufijo = (fecha === hoyISO) ? ' · HOY' : '';
+    html += '<div style="margin-bottom:16px">';
+    html += '<div class="agenda-grupo-fecha">📅 '+etiqueta+sufijo+' · '+visitas.length+' visita'+(visitas.length>1?'s':'')+'</div>';
+    visitas.forEach(v=>{
+      const color = ESTADOS_HEX[v.estado] || '#3a5261';
+      html += '<div class="agenda-item" onclick="irACasa(\''+v.idCasa+'\')">';
+      html += '<div class="titulo">';
+      html += '<span class="casa">🏠 '+escapeHTML(v.casa)+'</span>';
+      html += '<span class="agenda-badge" style="background:'+color+'">'+escapeHTML(v.estado)+'</span>';
+      html += '</div>';
+      if(v.barrioNombre || v.integrantes.length){
+        html += '<div class="fila">📍 '+escapeHTML(v.barrioNombre);
+        if(v.integrantes.length) html += ' · 👥 '+escapeHTML(v.integrantes.join(', '));
+        html += '</div>';
+      }
+      if(v.motivo || v.profesional){
+        html += '<div class="fila">🩺 <strong>'+escapeHTML(v.motivo)+'</strong>';
+        if(v.profesional) html += ' · 👤 '+escapeHTML(v.profesional);
+        html += '</div>';
+      }
+      if(v.fechaVisita){
+        html += '<div class="fila" style="font-size:10.5px;color:#617886">Visita previa: '+escapeHTML(v.fechaVisita)+'</div>';
+      }
+      if(v.observaciones){
+        html += '<div class="fila">📝 '+escapeHTML(v.observaciones)+'</div>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+  cont.innerHTML = html;
+}
+
+/* =========================================================
    HISTORIAL
    ========================================================= */
 function agregarHistorial(idCasa, tipo, antes, despues, resumen){
@@ -1048,6 +1212,12 @@ function seleccionarEquipo(id){
 function iniciarEquipo(){
   cancelarDestacado();
   desconectarListeners();
+  // ===== FIX: limpiar canvas completamente al cambiar de equipo =====
+  if(S.canvas){
+    try { S.canvas.clear(); } catch(e){}
+    S.canvas.backgroundColor = 'transparent';
+    try { S.canvas.renderAll(); } catch(e){}
+  }
   S.barrio=null;S.casas={};S.fichas={};S.visitas={};S.historial={};S.mapas={};
   S.barrios=S.equipo?lsGet(keyBarrios(S.equipo),[]):[];
   S.seleccion=null;cerrarPanelCasa();
@@ -1153,12 +1323,20 @@ function cambiarBarrio(id){
   S.barrio=b;localStorage.setItem('cat_v2_'+S.equipo+'_barrio_activo',id);
   document.getElementById('selector-barrio').value=id;
   const mapa=S.mapas[id];
-  if(!mapa){document.getElementById('sin-mapa').style.display='block';document.getElementById('canvas-zoom-container').style.display='none';return;}
+  if(!mapa){
+    document.getElementById('sin-mapa').style.display='block';
+    document.getElementById('canvas-zoom-container').style.display='none';
+    // FIX: limpiar canvas si no hay mapa
+    if(S.canvas){ try{S.canvas.clear();S.canvas.renderAll();}catch(e){} }
+    return;
+  }
   document.getElementById('sin-mapa').style.display='none';
   document.getElementById('canvas-zoom-container').style.display='inline-block';
   const img=document.getElementById('mapa-imagen');
   img.onload=function(){
     if(!S.canvas)return;
+    // FIX: limpiar canvas ANTES de renderizar las nuevas casas
+    try { S.canvas.clear(); } catch(e){}
     S.canvas.setWidth(img.width);S.canvas.setHeight(img.height);
     S.canvas.backgroundColor='transparent';S.canvas.setZoom(1);S.canvas.calcOffset();
     renderCasas();actualizarStats();aplicarZoom();
@@ -1182,14 +1360,13 @@ function initCanvas(){
       selectionBorderColor:'#147a68',
       selectionLineWidth:2
     });
-    // Controles: círculos verdes TRANSPARENTES (para ver dónde ubicas la casa)
     fabric.Object.prototype.set({
       cornerStyle:'circle',
-      cornerColor:'rgba(20,122,104,0.35)',      // verde translúcido (relleno)
-      cornerStrokeColor:'#147a68',               // borde verde sólido
+      cornerColor:'rgba(20,122,104,0.35)',
+      cornerStrokeColor:'#147a68',
       cornerSize:16,
       transparentCorners:false,
-      borderColor:'rgba(20,122,104,0.55)',       // marco de selección translúcido
+      borderColor:'rgba(20,122,104,0.55)',
       borderScaleFactor:2,
       padding:4
     });
@@ -1214,11 +1391,9 @@ function inicializarGestosTactiles(){
   if(!wrap) return;
 
   const gesto = {
-    modo: null,           // 'pan' | 'pinch' | null
-    // pan
+    modo: null,
     startX: 0, startY: 0,
     scrollIniL: 0, scrollIniT: 0,
-    // pinch
     distIni: 0, zoomIni: 1,
     centroX: 0, centroY: 0
   };
@@ -1231,7 +1406,6 @@ function inicializarGestosTactiles(){
   }
 
   wrap.addEventListener('touchstart', function(e){
-    // En modo edición, fabric maneja todo (mover casas)
     if(S.modoEdicion){
       gesto.modo = null;
       return;
@@ -1268,7 +1442,6 @@ function inicializarGestosTactiles(){
       if(Math.abs(nuevoZoom - S.zoom) > 0.005){
         S.zoom = nuevoZoom;
         aplicarZoom();
-        // Mantener el punto medio del pinch bajo los dedos
         const ratio = S.zoom / gesto.zoomIni;
         const rectWrap = wrap.getBoundingClientRect();
         const cxRel = gesto.centroX - rectWrap.left;
@@ -1289,7 +1462,6 @@ function inicializarGestosTactiles(){
     if(e.touches.length === 0){
       gesto.modo = null;
     } else if(e.touches.length === 1){
-      // Pasó de pinch a un dedo: reiniciar como pan
       gesto.modo = 'pan';
       gesto.startX = e.touches[0].clientX;
       gesto.startY = e.touches[0].clientY;
@@ -1324,8 +1496,10 @@ function onCanvasClick(opt){
 }
 function renderCasas(){
   if(!S.canvas||!S.barrio)return;
+  // FIX: quitar TODAS las casas del canvas (no solo las del barrio actual)
+  // Esto evita que casas de otro equipo/barrio queden flotando
   S.canvas.getObjects().slice().forEach(o=>{
-    if(o.idCasa&&S.casas[o.idCasa]&&S.casas[o.idCasa].barrioId===S.barrio.id)S.canvas.remove(o);
+    if(o.idCasa) S.canvas.remove(o);
   });
   Object.values(S.casas).forEach(c=>{
     if(c.barrioId!==S.barrio.id||c.eliminado)return;
@@ -1335,7 +1509,6 @@ function renderCasas(){
   S.canvas.renderAll();S.canvas.calcOffset();
 }
 function construirGrupoCasa(c){
-  // Casas más pequeñas por defecto
   const ancho=c.ancho||44,alto=c.alto||28;
   const fuente=Math.max(8,Math.min(12,ancho/5));
   const rect=new fabric.Rect({
@@ -1371,7 +1544,6 @@ function crearCasa(){
   const rw=wrap.getBoundingClientRect(),rc=cont.getBoundingClientRect();
   const cx=(rw.left+rw.width/2-rc.left)/S.zoom,cy=(rw.top+rw.height/2-rc.top)/S.zoom;
   const idCasa='CASA-'+uid();
-  // Casa más pequeña al crearla
   const casa={idCasa,barrioId:S.barrio.id,nomenclatura:idCasa,left:cx-22,top:cy-14,ancho:44,alto:28,angulo:0,estado:'Pendiente',eliminado:false,actualizadoEn:nowISO(),actualizadoPor:S.usuario?(S.usuario.displayName||S.usuario.email):'local'};
   S.casas[idCasa]=casa;lsSet(keyCasa(S.equipo,idCasa),casa);
   const g=construirGrupoCasa(casa);S.canvas.add(g);
@@ -1468,7 +1640,7 @@ function eliminarSeleccionado(){
 }
 function aplicarColorEstado(obj){
   if(!obj.idCasa)return;
-  if(obj._destacada) return; // no pisar el destacado
+  if(obj._destacada) return;
   const casa=S.casas[obj.idCasa];if(!casa)return;
   const rect=obj._objects.find(o=>o.type==='rect');if(!rect)return;
   const color=ESTADOS_HEX[casa.estado]||'#bd4b42';
@@ -1495,7 +1667,7 @@ function aplicarZoom(){
 function actualizarZoomUI(){document.getElementById('zoom-nivel').textContent=Math.round(S.zoom*100)+'%';}
 
 /* =========================================================
-   DESTACAR CASA BUSCADA (brillo pulsante + auto-scroll)
+   DESTACAR CASA BUSCADA
    ========================================================= */
 function cancelarDestacado(){
   if(_destacarTimer){ clearInterval(_destacarTimer); _destacarTimer = null; }
@@ -1783,7 +1955,8 @@ function ejecutarBusqueda(q){
 }
 function irACasa(idCasa){
   const c=S.casas[idCasa];if(!c)return;
-  cerrarModal('modal-busqueda');
+  // Cerrar modales abiertos
+  ['modal-busqueda','modal-agenda'].forEach(id=>cerrarModal(id));
   if(S.barrio && S.barrio.id !== c.barrioId){
     cambiarBarrio(c.barrioId);
     setTimeout(()=>{
