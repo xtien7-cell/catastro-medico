@@ -97,7 +97,7 @@ input,select,textarea{font-family:inherit}
 #toolbar .grow{flex:1}
 
 #workspace{display:grid;grid-template-columns:1fr 340px;min-height:0;min-width:0}
-#mapa-wrapper{position:relative;overflow:auto;background:#0a1520;padding:20px;-webkit-overflow-scrolling:touch;min-height:0;min-width:0;touch-action:pan-x pan-y}
+#mapa-wrapper{position:relative;overflow:auto;background:#0a1520;padding:20px;-webkit-overflow-scrolling:touch;min-height:0;min-width:0;touch-action:none;overscroll-behavior:contain}
 #mapa-wrapper::-webkit-scrollbar{width:12px;height:12px}
 #mapa-wrapper::-webkit-scrollbar-thumb{background:#294150;border-radius:6px}
 #mapa-wrapper::-webkit-scrollbar-track{background:#0a1520}
@@ -1205,6 +1205,104 @@ function initCanvas(){
     log('Canvas OK','ok');
   }catch(e){log('Error canvas: '+e.message,'error');}
 }
+
+/* =========================================================
+   GESTOS TÁCTILES (pan + pinch-zoom)
+   ========================================================= */
+function inicializarGestosTactiles(){
+  const wrap = document.getElementById('mapa-wrapper');
+  if(!wrap) return;
+
+  const gesto = {
+    modo: null,           // 'pan' | 'pinch' | null
+    // pan
+    startX: 0, startY: 0,
+    scrollIniL: 0, scrollIniT: 0,
+    // pinch
+    distIni: 0, zoomIni: 1,
+    centroX: 0, centroY: 0
+  };
+
+  function getDist(t1, t2){
+    return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+  }
+  function getCentro(t1, t2){
+    return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+  }
+
+  wrap.addEventListener('touchstart', function(e){
+    // En modo edición, fabric maneja todo (mover casas)
+    if(S.modoEdicion){
+      gesto.modo = null;
+      return;
+    }
+    if(e.touches.length === 2){
+      const t1 = e.touches[0], t2 = e.touches[1];
+      const c = getCentro(t1, t2);
+      gesto.modo = 'pinch';
+      gesto.distIni = getDist(t1, t2);
+      gesto.zoomIni = S.zoom;
+      gesto.centroX = c.x;
+      gesto.centroY = c.y;
+      gesto.scrollIniL = wrap.scrollLeft;
+      gesto.scrollIniT = wrap.scrollTop;
+    } else if(e.touches.length === 1){
+      gesto.modo = 'pan';
+      gesto.startX = e.touches[0].clientX;
+      gesto.startY = e.touches[0].clientY;
+      gesto.scrollIniL = wrap.scrollLeft;
+      gesto.scrollIniT = wrap.scrollTop;
+    }
+  }, { passive: true });
+
+  wrap.addEventListener('touchmove', function(e){
+    if(S.modoEdicion) return;
+
+    if(gesto.modo === 'pinch' && e.touches.length === 2){
+      e.preventDefault();
+      const t1 = e.touches[0], t2 = e.touches[1];
+      const distAct = getDist(t1, t2);
+      if(gesto.distIni < 5) return;
+      const factor = distAct / gesto.distIni;
+      const nuevoZoom = Math.max(0.2, Math.min(3, gesto.zoomIni * factor));
+      if(Math.abs(nuevoZoom - S.zoom) > 0.005){
+        S.zoom = nuevoZoom;
+        aplicarZoom();
+        // Mantener el punto medio del pinch bajo los dedos
+        const ratio = S.zoom / gesto.zoomIni;
+        const rectWrap = wrap.getBoundingClientRect();
+        const cxRel = gesto.centroX - rectWrap.left;
+        const cyRel = gesto.centroY - rectWrap.top;
+        wrap.scrollLeft = (gesto.scrollIniL + cxRel) * ratio - cxRel;
+        wrap.scrollTop = (gesto.scrollIniT + cyRel) * ratio - cyRel;
+      }
+    } else if(gesto.modo === 'pan' && e.touches.length === 1){
+      e.preventDefault();
+      const dx = e.touches[0].clientX - gesto.startX;
+      const dy = e.touches[0].clientY - gesto.startY;
+      wrap.scrollLeft = gesto.scrollIniL - dx;
+      wrap.scrollTop = gesto.scrollIniT - dy;
+    }
+  }, { passive: false });
+
+  wrap.addEventListener('touchend', function(e){
+    if(e.touches.length === 0){
+      gesto.modo = null;
+    } else if(e.touches.length === 1){
+      // Pasó de pinch a un dedo: reiniciar como pan
+      gesto.modo = 'pan';
+      gesto.startX = e.touches[0].clientX;
+      gesto.startY = e.touches[0].clientY;
+      gesto.scrollIniL = wrap.scrollLeft;
+      gesto.scrollIniT = wrap.scrollTop;
+    }
+  }, { passive: true });
+
+  wrap.addEventListener('touchcancel', function(){
+    gesto.modo = null;
+  }, { passive: true });
+}
+
 function onCasaMovida(e){
   const obj=e.target;if(!obj||!obj.idCasa)return;
   const casa=S.casas[obj.idCasa];if(!casa)return;
@@ -1235,10 +1333,6 @@ function renderCasas(){
   });
   aplicarModo();aplicarFiltrosVisuales();
   S.canvas.renderAll();S.canvas.calcOffset();
-  // Re-aplicar destacado si sigue activo
-  if(_destacarTimer && S.seleccion){
-    // no hacer nada especial; el timer repinta
-  }
 }
 function construirGrupoCasa(c){
   // Casas más pequeñas por defecto
@@ -1357,8 +1451,6 @@ function aplicarModo(){
     if(!o._destacada) aplicarColorEstado(o);
   });
   S.canvas.renderAll();
-  const wrap = document.getElementById('mapa-wrapper');
-  if(wrap) wrap.style.touchAction = S.modoEdicion ? 'none' : 'pan-x pan-y';
 }
 function eliminarSeleccionado(){
   if(!S.canvas)return;
@@ -1423,7 +1515,6 @@ function cancelarDestacado(){
 
 function destacarCasa(idCasa){
   cancelarDestacado();
-  // Esperar a que el canvas y el barrio estén listos
   intentarDestacar(idCasa, 0);
 }
 
@@ -1445,17 +1536,13 @@ function intentarDestacar(idCasa, intentos){
     setTimeout(()=>intentarDestacar(idCasa, intentos+1), 200);
     return;
   }
-  // Centrar vista en la casa
   centrarEnCasa(casa);
-  // Aplicar pulso dorado
   let fase = 0;
   const aplicar = () => {
     if(!obj.canvas) { cancelarDestacado(); return; }
     obj._destacada = true;
     const rect = obj._objects.find(x=>x.type==='rect');
-    const t = obj._objects.find(x=>x.type==='textbox'||x.type==='text');
     if(rect){
-      // Alterna entre dos tonos dorados y sombra pulsante
       const intensidad = fase % 2 === 0 ? 1 : 0.55;
       rect.set({
         fill: 'rgba(255, 215, 0, '+(0.35*intensidad+0.15)+')',
@@ -1475,7 +1562,6 @@ function intentarDestacar(idCasa, intentos){
   };
   aplicar();
   _destacarTimer = setInterval(aplicar, 450);
-  // Auto-detener a los 6 segundos
   _destacarFinTimer = setTimeout(()=>{
     cancelarDestacado();
   }, 6000);
@@ -1486,7 +1572,6 @@ function centrarEnCasa(casa){
   if(!wrap) return;
   const cont = document.getElementById('canvas-zoom-container');
   if(!cont) return;
-  // Centro de la casa en coordenadas del canvas
   const cx = (casa.left + (casa.ancho||44)/2) * S.zoom;
   const cy = (casa.top + (casa.alto||28)/2) * S.zoom;
   const contLeft = cont.offsetLeft || 0;
@@ -2051,6 +2136,7 @@ window.addEventListener('load',()=>{
   actualizarUIUnidadOperativa();
 
   initCanvas();
+  inicializarGestosTactiles();
   renderFiltros();
 
   S.equipo = equipoActivoGuardado();
