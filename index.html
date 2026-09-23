@@ -112,7 +112,7 @@ input,select,textarea{font-family:inherit}
 #sin-equipo h2{color:#8ee0cb}
 #sin-mapa p,#sin-equipo p{margin:0;color:#a3bac6;font-size:13px}
 
-/* ===== FAB: Botón flotante de nomenclatura (siempre visible al editar) ===== */
+/* FAB: Botón flotante de nomenclatura */
 #fab-nomenclatura{
   position:absolute;
   bottom:24px;
@@ -479,7 +479,6 @@ input,select,textarea{font-family:inherit}
               <div id="canvas-fabric"><canvas id="c"></canvas></div>
             </div>
           </div>
-          <!-- FAB: Nomenclatura flotante -->
           <button id="fab-nomenclatura" onclick="ponerNomenclatura()" title="Nomenclatura">
             ✍️
             <span class="fab-label">Nombrar casa</span>
@@ -732,7 +731,7 @@ const S = {
   filtrosActivos:[], modoEdicion:false, zoom:1,
   canvas:null, seleccion:null, tabMatriz:'barrio', pacienteMatriz:[],
   pendientes:0, ultimoSync:null, unsubs:[],
-  unsubEquipos:null, unsubUO:null
+  unsubEquipos:null
 };
 const CONDICIONES_COLOR = {
   'Embarazada':'#e91e63','Niños menores de 2 años':'#ff9800','Discapacidad':'#9c27b0',
@@ -742,11 +741,8 @@ const CONDICIONES_COLOR = {
 };
 const ESTADOS_HEX = {Pendiente:'#bd4b42',Visitada:'#147a68',Fallida:'#bd8822',Cerrada:'#3a5261',Abandonada:'#1e3a4d'};
 
-/* Timers para destacado */
 let _destacarTimer = null;
 let _destacarFinTimer = null;
-
-/* Agenda */
 let agendaTab = 'dia';
 
 /* =========================================================
@@ -787,7 +783,6 @@ function guardarEquipoActivo(id){localStorage.setItem(keyEquipoActivo(),id);}
    SINCRONIZACIÓN DE LISTA DE EQUIPOS (EAIS + TEST)
    ========================================================= */
 function mergeListasEquipos(local, remoto){
-  // Union por id. Si existe en ambos, se conserva el más reciente o el remoto.
   const map = new Map();
   (local||[]).forEach(e=>map.set(e.id, e));
   (remoto||[]).forEach(e=>{
@@ -795,7 +790,6 @@ function mergeListasEquipos(local, remoto){
     if(!existente){
       map.set(e.id, e);
     } else {
-      // Preferir el que tenga 'test' o 'uo' más recientes si aplica
       const merged = Object.assign({}, existente, e);
       map.set(e.id, merged);
     }
@@ -822,42 +816,39 @@ async function bajarListaEquiposDeNube(){
     const doc = await db.collection('config').doc('equipos').get();
     const local = cargarEquipos();
     if(!doc.exists){
-      // No hay nada en la nube: subir lo local
       if(local.length > 0) await subirListaEquiposANube();
       return;
     }
     const remoto = doc.data().lista || [];
-    const merged = mergeListasEquipos(local, remoto);
-    guardarEquipos(merged);
-    actualizarUIEquipos();
-    // Si la unión produjo más que el remoto, subir para que todos la tengan
-    if(merged.length !== remoto.length){
-      await subirListaEquiposANube();
+    // Solo bajar si tengo MENOS equipos que la nube
+    if(remoto.length > local.length){
+      const merged = mergeListasEquipos(local, remoto);
+      guardarEquipos(merged);
+      actualizarUIEquipos();
+      log('Lista de equipos bajada ('+merged.length+')','ok');
     }
-    log('Lista de equipos sincronizada ('+merged.length+')','ok');
   }catch(e){ log('Error bajando lista equipos: '+e.message,'error'); }
 }
 
 function iniciarListenerEquipos(){
   if(!S.usuario) return;
-  if(S.unsubEquipos){ try{S.unsubEquipos();}catch(e){} }
+  if(S.unsubEquipos){ try{S.unsubEquipos();}catch(e){} S.unsubEquipos = null; }
+  let firmaRemotaAnterior = '';
   S.unsubEquipos = db.collection('config').doc('equipos').onSnapshot(d=>{
     if(!d.exists) return;
     const remoto = d.data().lista || [];
+    const firmaRemota = JSON.stringify(remoto.map(e=>({id:e.id, test:!!e.test, uo:e.uo||''})));
+    if(firmaRemota === firmaRemotaAnterior) return;
+    firmaRemotaAnterior = firmaRemota;
+
     const local = cargarEquipos();
-    // Comparar por ids + metadata para evitar bucles
-    const localJson = JSON.stringify(local.map(e=>({id:e.id, test:!!e.test, uo:e.uo||''})));
-    const remotoJson = JSON.stringify(remoto.map(e=>({id:e.id, test:!!e.test, uo:e.uo||''})));
-    if(localJson === remotoJson) return;
+    const firmaLocal = JSON.stringify(local.map(e=>({id:e.id, test:!!e.test, uo:e.uo||''})));
+    if(firmaLocal === firmaRemota) return;
+
     const merged = mergeListasEquipos(local, remoto);
     guardarEquipos(merged);
     actualizarUIEquipos();
-    log('Lista de equipos actualizada desde la nube','ok');
-    // Si mi lista local tenía equipos que la nube no tiene, subir
-    const idsRemotos = new Set(remoto.map(e=>e.id));
-    if(local.some(e=>!idsRemotos.has(e.id))){
-      subirListaEquiposANube();
-    }
+    log('Lista de equipos actualizada desde la nube ('+merged.length+')','ok');
   }, err=>log('Listener equipos: '+err.message,'error'));
 }
 
@@ -868,16 +859,22 @@ function cargarUO(){return lsGet(UO_KEY,null);}
 function guardarUO(uo){lsSet(UO_KEY,uo);}
 
 function abrirModalUnidad(){
-  const uo = S.uo || {};
-  document.getElementById('uo-nombre').value = uo.nombre || '';
-  document.getElementById('uo-codigo').value = uo.codigo || '';
-  document.getElementById('uo-provincia').value = uo.provincia || '';
-  document.getElementById('uo-ciudad').value = uo.ciudad || '';
-  document.getElementById('uo-parroquia').value = uo.parroquia || '';
-  document.getElementById('uo-direccion').value = uo.direccion || '';
-  document.getElementById('uo-eais-count').value = uo.eaisCount || 1;
-  renderEAISManage();
-  abrirModal('modal-unidad');
+  try{
+    const uo = S.uo || {};
+    document.getElementById('uo-nombre').value = uo.nombre || '';
+    document.getElementById('uo-codigo').value = uo.codigo || '';
+    document.getElementById('uo-provincia').value = uo.provincia || '';
+    document.getElementById('uo-ciudad').value = uo.ciudad || '';
+    document.getElementById('uo-parroquia').value = uo.parroquia || '';
+    document.getElementById('uo-direccion').value = uo.direccion || '';
+    document.getElementById('uo-eais-count').value = uo.eaisCount || 1;
+    renderEAISManage();
+    abrirModal('modal-unidad');
+    log('Modal Unidad Operativa abierto','ok');
+  }catch(e){
+    log('Error abrirModalUnidad: '+e.message,'error');
+    alert('Error al abrir Unidad Operativa: '+e.message);
+  }
 }
 
 function renderEAISManage(){
@@ -917,7 +914,6 @@ function eliminarEquipoCompleto(idEquipo, dobleConfirmacion){
   keysABorrar.forEach(k=>localStorage.removeItem(k));
   const lista = cargarEquipos().filter(e=>e.id!==idEquipo);
   guardarEquipos(lista);
-  // Sincronizar la lista nueva
   subirListaEquiposANube();
   if(S.usuario){
     const ref = db.collection('catastros').doc(idEquipo);
@@ -975,7 +971,6 @@ function guardarUnidadOperativa(){
     }
   }
   guardarEquipos(lista);
-  // Sincronizar lista de equipos con la nube
   subirListaEquiposANube();
   actualizarUIUnidadOperativa();
   actualizarUIEquipos();
@@ -1046,9 +1041,15 @@ function equiposVisibles(){
    TEST MODAL
    ========================================================= */
 function abrirModalTest(){
-  document.getElementById('test-nombre').value = '';
-  renderTestLista();
-  abrirModal('modal-test');
+  try{
+    document.getElementById('test-nombre').value = '';
+    renderTestLista();
+    abrirModal('modal-test');
+    log('Modal TEST abierto','ok');
+  }catch(e){
+    log('Error abrirModalTest: '+e.message,'error');
+    alert('Error al abrir TEST: '+e.message);
+  }
 }
 
 function renderTestLista(){
@@ -1077,7 +1078,6 @@ function crearEquipoPruebaDesdeModal(){
   while(lista.find(e => e.id === n)) { n = base + '_' + (i++); }
   lista.push({ id: n, fecha: nowISO(), test: true });
   guardarEquipos(lista);
-  // Sincronizar lista con la nube
   subirListaEquiposANube();
   if(S.equipo) guardarTodoLocal();
   S.equipo = n;
@@ -1508,7 +1508,6 @@ function initCanvas(){
       const t=opt.target;if(!t||!t.idCasa)return;
       abrirModalFicha(t.idCasa);
     });
-    // Eventos para actualizar visibilidad del FAB
     S.canvas.on('selection:created',actualizarVisibilidadFAB);
     S.canvas.on('selection:updated',actualizarVisibilidadFAB);
     S.canvas.on('selection:cleared',actualizarVisibilidadFAB);
@@ -1516,7 +1515,6 @@ function initCanvas(){
   }catch(e){log('Error canvas: '+e.message,'error');}
 }
 
-/* FAB: mostrar solo cuando hay una casa seleccionada en modo edición */
 function actualizarVisibilidadFAB(){
   const fab = document.getElementById('fab-nomenclatura');
   if(!fab) return;
@@ -1533,7 +1531,7 @@ function actualizarVisibilidadFAB(){
 }
 
 /* =========================================================
-   GESTOS TÁCTILES (pan + pinch-zoom)
+   GESTOS TÁCTILES
    ========================================================= */
 function inicializarGestosTactiles(){
   const wrap = document.getElementById('mapa-wrapper');
@@ -1555,10 +1553,7 @@ function inicializarGestosTactiles(){
   }
 
   wrap.addEventListener('touchstart', function(e){
-    if(S.modoEdicion){
-      gesto.modo = null;
-      return;
-    }
+    if(S.modoEdicion){ gesto.modo = null; return; }
     if(e.touches.length === 2){
       const t1 = e.touches[0], t2 = e.touches[1];
       const c = getCentro(t1, t2);
@@ -1580,7 +1575,6 @@ function inicializarGestosTactiles(){
 
   wrap.addEventListener('touchmove', function(e){
     if(S.modoEdicion) return;
-
     if(gesto.modo === 'pinch' && e.touches.length === 2){
       e.preventDefault();
       const t1 = e.touches[0], t2 = e.touches[1];
@@ -1619,16 +1613,13 @@ function inicializarGestosTactiles(){
     }
   }, { passive: true });
 
-  wrap.addEventListener('touchcancel', function(){
-    gesto.modo = null;
-  }, { passive: true });
+  wrap.addEventListener('touchcancel', function(){ gesto.modo = null; }, { passive: true });
 }
 
 function onCasaMovida(e){
   const obj=e.target;if(!obj||!obj.idCasa)return;
   const casa=S.casas[obj.idCasa];if(!casa)return;
   const antes={left:casa.left,top:casa.top,ancho:casa.ancho,alto:casa.alto,angulo:casa.angulo||0};
-  // REDONDEO: enteros para que no se muevan entre dispositivos
   casa.left = Math.round(obj.left);
   casa.top = Math.round(obj.top);
   casa.ancho = Math.round(obj.width*(obj.scaleX||1));
@@ -1693,7 +1684,6 @@ function crearCasa(){
   const rw=wrap.getBoundingClientRect(),rc=cont.getBoundingClientRect();
   const cx=(rw.left+rw.width/2-rc.left)/S.zoom,cy=(rw.top+rw.height/2-rc.top)/S.zoom;
   const idCasa='CASA-'+uid();
-  // REDONDEO: posiciones enteras
   const casa={idCasa,barrioId:S.barrio.id,nomenclatura:idCasa,
     left:Math.round(cx-22),
     top:Math.round(cy-14),
@@ -1893,9 +1883,7 @@ function intentarDestacar(idCasa, intentos){
   };
   aplicar();
   _destacarTimer = setInterval(aplicar, 450);
-  _destacarFinTimer = setTimeout(()=>{
-    cancelarDestacado();
-  }, 6000);
+  _destacarFinTimer = setTimeout(()=>{ cancelarDestacado(); }, 6000);
 }
 
 function centrarEnCasa(casa){
@@ -2143,20 +2131,50 @@ function abrirMatriz(tipo){
   } else if(tipo==='eais'){
     S.barrios.forEach(b=>lista=lista.concat(recolectarPacientesBarrio(b.id)));titulo='🏥 '+S.equipo;
   } else {
-    if(!S.usuario){tbody.innerHTML='<tr><td colspan="13" style="text-align:center;padding:20px;color:#ffa89e">Conecta con Google para ver el total</td></tr>';abrirModal('modal-matriz');return;}
-    db.collection('catastros').get().then(snap=>{
-      const todos=[];const promesas=[];
-      snap.forEach(doc=>{
-        promesas.push(doc.ref.collection('fichas').get().then(fs=>{
-          fs.forEach(f=>{
-            const data=f.data();if(!data.integrantes)return;
-            data.integrantes.forEach(i=>todos.push(Object.assign({equipo:doc.id,casa:f.id,estado:'—'},i)));
+    if(!S.usuario){
+      tbody.innerHTML='<tr><td colspan="13" style="text-align:center;padding:20px;color:#ffa89e">Conecta con Google para ver el total de la unidad</td></tr>';
+      abrirModal('modal-matriz');
+      return;
+    }
+    // Leer todos los equipos + sus subcolecciones
+    db.collection('catastros').get().then(async snap=>{
+      const todos=[];
+      const equipoIds=[];
+      snap.forEach(doc=>equipoIds.push(doc.id));
+      for(const eqId of equipoIds){
+        try{
+          const fichasSnap = await db.collection('catastros').doc(eqId).collection('fichas').get();
+          const casasSnap = await db.collection('catastros').doc(eqId).collection('casas').get();
+          const casasMap = {};
+          casasSnap.forEach(c=>{ casasMap[c.id] = c.data(); });
+          fichasSnap.forEach(f=>{
+            const data=f.data();
+            if(!data.integrantes || data.integrantes.length === 0) return;
+            const casa = casasMap[f.id] || {};
+            const nomenclatura = casa.nomenclatura || f.id;
+            const estado = casa.estado || '—';
+            const eliminada = casa.eliminado === true;
+            if(eliminada) return;
+            data.integrantes.forEach(i=>{
+              todos.push(Object.assign({
+                equipo: eqId,
+                casa: nomenclatura,
+                estado: estado
+              }, i));
+            });
           });
-        }));
-      });
-      Promise.all(promesas).then(()=>{S.pacienteMatriz=todos;renderMatriz(todos,'🌎 Todos los equipos ('+snap.size+')');});
-    }).catch(e=>{tbody.innerHTML='<tr><td colspan="13" style="text-align:center;color:#ffa89e">Error: '+e.message+'</td></tr>';});
-    abrirModal('modal-matriz');return;
+        }catch(err){
+          log('Error leyendo '+eqId+': '+err.message,'error');
+        }
+      }
+      S.pacienteMatriz=todos;
+      renderMatriz(todos, '🌎 Total de la unidad · '+equipoIds.length+' equipos');
+    }).catch(e=>{
+      tbody.innerHTML='<tr><td colspan="13" style="text-align:center;color:#ffa89e">Error: '+e.message+'</td></tr>';
+      log('Error total: '+e.message,'error');
+    });
+    abrirModal('modal-matriz');
+    return;
   }
   S.pacienteMatriz=lista;renderMatriz(lista,titulo);abrirModal('modal-matriz');
 }
@@ -2199,7 +2217,6 @@ function initFirebaseAuth(){
       btn.style.background='#134e42';btn.style.color='#8ee0cb';btn.style.borderColor='#1a8a75';
       controls.style.display='block';
       bajarUnidadDeNube();
-      // NUEVO: sincronizar lista de equipos (EAIS + TEST)
       bajarListaEquiposDeNube();
       iniciarListenerEquipos();
       iniciarListenersFirestore();
