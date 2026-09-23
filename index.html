@@ -774,7 +774,22 @@ const UO_KEY = 'cat_v2_unidad_operativa';
 
 function lsGet(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch{return def;}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){log('LS lleno: '+e.message,'error');}}
-function cargarEquipos(){return lsGet(keyEquipos(),[]);}
+
+/* =========================================================
+   CARGAR EQUIPOS (CON SANITIZACIÓN)
+   ========================================================= */
+function cargarEquipos(){
+  const raw = lsGet(keyEquipos(), []);
+  if(!Array.isArray(raw)) return [];
+  // Sanitizar: solo objetos con id string válido
+  const limpio = raw.filter(e => e && typeof e === 'object' && typeof e.id === 'string' && e.id.length > 0);
+  // Si hubo cambios, guardar la versión limpia para no repetir el problema
+  if(limpio.length !== raw.length){
+    try{ lsSet(keyEquipos(), limpio); }catch(e){}
+    log('Lista de equipos sanitizada: ' + (raw.length - limpio.length) + ' entradas inválidas removidas','info');
+  }
+  return limpio;
+}
 function guardarEquipos(l){lsSet(keyEquipos(),l);}
 function equipoActivoGuardado(){return localStorage.getItem(keyEquipoActivo());}
 function guardarEquipoActivo(id){localStorage.setItem(keyEquipoActivo(),id);}
@@ -784,8 +799,12 @@ function guardarEquipoActivo(id){localStorage.setItem(keyEquipoActivo(),id);}
    ========================================================= */
 function mergeListasEquipos(local, remoto){
   const map = new Map();
-  (local||[]).forEach(e=>map.set(e.id, e));
-  (remoto||[]).forEach(e=>{
+  const limpiar = (arr) => {
+    if(!Array.isArray(arr)) return [];
+    return arr.filter(e => e && typeof e === 'object' && typeof e.id === 'string' && e.id.length > 0);
+  };
+  limpiar(local).forEach(e=>map.set(e.id, e));
+  limpiar(remoto).forEach(e=>{
     const existente = map.get(e.id);
     if(!existente){
       map.set(e.id, e);
