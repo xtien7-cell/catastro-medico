@@ -431,7 +431,6 @@ input,select,textarea{font-family:inherit}
       <div id="toolbar">
         <span class="banner-modo" id="banner-modo">✏️ MODO EDICIÓN: arrastra, escala o rota las casas</span>
         <button class="primary" onclick="crearCasa()">➕ <span class="txt">Casa</span></button>
-        <button onclick="ponerNomenclatura()">✍️ <span class="txt">Nomen.</span></button>
         <button id="btn-editar" onclick="modoEdicion()">🖱️ <span class="txt">Editar</span></button>
         <button onclick="fijarCasas()">📌 <span class="txt">Fijar</span></button>
         <button class="danger" onclick="eliminarSeleccionado()">🗑️</button>
@@ -486,6 +485,29 @@ input,select,textarea{font-family:inherit}
 </div>
 
 <div id="overlay" onclick="toggleSidebar()"></div>
+
+<!-- MODAL NOMENCLATURA -->
+<div class="modal" id="modal-nomenclatura">
+  <div class="modal-content" style="max-width:440px">
+    <button class="modal-close" onclick="cerrarModal('modal-nomenclatura')">×</button>
+    <h2>✍️ Nomenclatura de la casa</h2>
+    <p style="color:#8ba5b5;font-size:12.5px;line-height:1.5;margin-bottom:14px">
+      Escribe un nombre único para esta casa dentro del barrio. Ejemplos: <strong style="color:#8ee0cb">MZ14-C15</strong>, <strong style="color:#8ee0cb">SANANTONIO-101</strong>, <strong style="color:#8ee0cb">MZ01-C03</strong>.
+    </p>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nomenclatura</label>
+        <input id="nomen-input" placeholder="Ej: MZ14-C15" maxlength="30" autocomplete="off"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarNomenclatura();}">
+      </div>
+    </div>
+    <p style="color:#8ba5b5;font-size:11.5px;margin-top:4px" id="nomen-hint"></p>
+    <div class="modal-footer">
+      <button style="background:#147a68" onclick="confirmarNomenclatura()">💾 Guardar</button>
+      <button style="background:#3a5261" onclick="cerrarModal('modal-nomenclatura')">Cancelar</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL UNIDAD OPERATIVA -->
 <div class="modal" id="modal-unidad">
@@ -716,16 +738,11 @@ input,select,textarea{font-family:inherit}
 <script>
 /* =========================================================
    BIGSTORE - IndexedDB para archivos pesados (mapas + canvas)
-   =========================================================
-   - Guarda únicamente las keys que contienen "_mapa_" o "_canvas_".
-   - Mantiene una caché en memoria (BigCache) para acceso síncrono.
-   - Migra automáticamente de localStorage la primera vez.
    ========================================================= */
 const BigStore = {
   db: null,
   ready: false,
-  cache: {},           // cache en memoria (sincrónico)
-  _writeQueue: [],     // cola de escrituras pendientes
+  cache: {},
 
   async init(){
     return new Promise((resolve) => {
@@ -764,7 +781,6 @@ const BigStore = {
   },
 
   async _migrarDeLocalStorage(){
-    // Buscar keys grandes en localStorage y migrarlas a IndexedDB
     const aMigrar = [];
     for(let i=0;i<localStorage.length;i++){
       const k = localStorage.key(i);
@@ -803,23 +819,18 @@ const BigStore = {
   },
 
   get(k){
-    // Primero de la caché en memoria
     if(k in this.cache) return this.cache[k];
-    // Fallback a localStorage (por si no migró aún)
     try { return localStorage.getItem(k); } catch(e){ return null; }
   },
 
   set(k, v){
-    // Actualizar caché inmediatamente (síncrono)
     this.cache[k] = v;
-    // Escribir en IndexedDB en background
     if(this.db){
       try {
         const tx = this.db.transaction('kv','readwrite');
         tx.objectStore('kv').put(v, k);
       } catch(e){ log('Error IDB set: '+e.message,'error'); }
     } else {
-      // Sin IndexedDB: guardar en localStorage como fallback
       try { localStorage.setItem(k, v); } catch(e){}
     }
   },
@@ -836,27 +847,17 @@ const BigStore = {
   },
 
   keys(){
-    // Devuelve todas las keys grandes (cache + localStorage)
     const set = new Set(Object.keys(this.cache));
     for(let i=0;i<localStorage.length;i++){
       const k = localStorage.key(i);
       if(k && this.esKeyGrande(k)) set.add(k);
     }
     return Array.from(set);
-  },
-
-  async sizeBytes(){
-    let total = 0;
-    for(const k of Object.keys(this.cache)){
-      const v = this.cache[k];
-      if(typeof v === 'string') total += v.length * 2; // aprox 2 bytes por char UTF-16
-    }
-    return total;
   }
 };
 
 /* =========================================================
-   PERSISTENCIA (lsGet / lsSet) - Rutea a BigStore o localStorage
+   PERSISTENCIA (lsGet / lsSet)
    ========================================================= */
 function lsGet(k,def){
   try {
@@ -873,7 +874,6 @@ function lsSet(k,v){
     else {
       try { localStorage.setItem(k, s); }
       catch(e){
-        // Si localStorage está lleno, intentar guardar en BigStore aunque no sea "grande"
         if(BigStore.ready){
           log('localStorage lleno, derivando '+k+' a IndexedDB','warning');
           BigStore.set(k, s);
@@ -929,6 +929,9 @@ let _destacarTimer = null;
 let _destacarFinTimer = null;
 let agendaTab = 'dia';
 
+/* Para detección de doble tap */
+let _ultimoTap = {ts:0, id:null, x:0, y:0};
+
 /* =========================================================
    UTILIDADES
    ========================================================= */
@@ -942,6 +945,15 @@ function abrirModal(id){document.getElementById(id).classList.add('open');}
 function cerrarModal(id){document.getElementById(id).classList.remove('open');}
 function toggleSection(header){header.parentElement.classList.toggle('collapsed');}
 function fmtBytes(b){if(b<1024)return b+' B';if(b<1024*1024)return (b/1024).toFixed(1)+' KB';return (b/1024/1024).toFixed(2)+' MB';}
+
+/* Extrae posición de un evento (mouse o touch) */
+function getEventPos(e){
+  if(!e) return {x:0, y:0};
+  if(e.changedTouches && e.changedTouches.length > 0) return {x:e.changedTouches[0].clientX, y:e.changedTouches[0].clientY};
+  if(e.touches && e.touches.length > 0) return {x:e.touches[0].clientX, y:e.touches[0].clientY};
+  if(e.clientX != null) return {x:e.clientX, y:e.clientY};
+  return {x:0, y:0};
+}
 
 /* =========================================================
    PERSISTENCIA AUXILIAR (keys)
@@ -1105,17 +1117,14 @@ function eliminarEquipoCompleto(idEquipo, dobleConfirmacion){
     if(!confirm('¿Eliminar '+idEquipo+'?\n\nSe borrarán sus casas, fichas y visitas.'))return false;
   }
   const prefijo = 'cat_v2_'+idEquipo+'_';
-  // Borrar de localStorage
   const keysLS = [];
   for(let i=0;i<localStorage.length;i++){
     const k = localStorage.key(i);
     if(k && k.startsWith(prefijo)) keysLS.push(k);
   }
   keysLS.forEach(k=>localStorage.removeItem(k));
-  // Borrar de BigStore (IndexedDB)
   const keysBig = BigStore.keys().filter(k=>k.startsWith(prefijo));
   keysBig.forEach(k=>BigStore.remove(k));
-  // Borrar de la lista
   const lista = cargarEquipos().filter(e=>e.id!==idEquipo);
   guardarEquipos(lista);
   subirListaEquiposANube();
@@ -1589,7 +1598,6 @@ function guardarTodoLocal(){
 function cargarCacheLocalEquipo(){
   if(!S.equipo)return;
   const pref='cat_v2_'+S.equipo+'_';
-  // LocalStorage
   for(let i=0;i<localStorage.length;i++){
     const k=localStorage.key(i);if(!k||!k.startsWith(pref))continue;
     const r=k.substring(pref.length);
@@ -1599,7 +1607,6 @@ function cargarCacheLocalEquipo(){
     else if(r.startsWith('hist_'))S.historial[r.substring(5)]=lsGet(k,[]);
     else if(r.startsWith('mapa_'))S.mapas[r.substring(5)]=lsGet(k,null);
   }
-  // BigStore (mapas y canvas)
   BigStore.keys().forEach(k=>{
     if(!k.startsWith(pref))return;
     const r=k.substring(pref.length);
@@ -1717,10 +1724,36 @@ function initCanvas(){
 
     S.canvas.on('object:modified',onCasaMovida);
     S.canvas.on('mouse:down',onCanvasClick);
-    S.canvas.on('mouse:dblclick',function(opt){
-      const t=opt.target;if(!t||!t.idCasa)return;
-      abrirModalFicha(t.idCasa);
+
+    /* ===== NUEVO: Detección de doble clic/tap ===== */
+    S.canvas.on('mouse:up', function(opt){
+      const t = opt.target;
+      // Si no hay objetivo con idCasa, resetear y salir
+      if(!t || !t.idCasa){
+        _ultimoTap = {ts:0, id:null, x:0, y:0};
+        return;
+      }
+      const pos = getEventPos(opt.e);
+      const ahora = Date.now();
+      const mismo = _ultimoTap.id === t.idCasa;
+      const rapido = (ahora - _ultimoTap.ts) < 400;
+      const cerca = Math.hypot(pos.x - _ultimoTap.x, pos.y - _ultimoTap.y) < 30;
+
+      if(mismo && rapido && cerca){
+        // ¡Doble clic/tap detectado!
+        if(S.modoEdicion){
+          // En modo edición → abrir nomenclatura
+          ponerNomenclatura();
+        } else {
+          // Fuera de edición → abrir ficha completa
+          abrirModalFicha(t.idCasa);
+        }
+        _ultimoTap = {ts:0, id:null, x:0, y:0};
+        return;
+      }
+      _ultimoTap = {ts:ahora, id:t.idCasa, x:pos.x, y:pos.y};
     });
+
     S.canvas.on('selection:created',actualizarVisibilidadFAB);
     S.canvas.on('selection:updated',actualizarVisibilidadFAB);
     S.canvas.on('selection:cleared',actualizarVisibilidadFAB);
@@ -1910,18 +1943,40 @@ function crearCasa(){
   S.canvas.renderAll();
   actualizarVisibilidadFAB();
   subirCasa(idCasa);marcarPendiente();actualizarStats();
-  toast('Casa creada. Arrástrala a su posición.','info');
+  toast('Casa creada. Haz doble clic para nombrarla.','info');
 }
+
+/* ===== NUEVO: Modal de nomenclatura ===== */
 function ponerNomenclatura(){
   if(!S.canvas)return;
   const obj=S.canvas.getActiveObject();
-  if(!obj||!obj.idCasa){toast('Selecciona una casa','error');return;}
+  if(!obj||!obj.idCasa){toast('Selecciona una casa primero','error');return;}
   const casa=S.casas[obj.idCasa];if(!casa)return;
-  const nuevo=prompt('Nomenclatura única en este barrio (ej. MZ14-C15):',casa.nomenclatura||'');
-  if(!nuevo||!nuevo.trim())return;
-  const limpio=nuevo.trim();
-  const dup=Object.values(S.casas).find(c=>c.barrioId===casa.barrioId&&c.idCasa!==casa.idCasa&&c.nomenclatura===limpio&&!c.eliminado);
-  if(dup){toast('Ya existe esa nomenclatura en este barrio','error');return;}
+  document.getElementById('nomen-input').value = casa.nomenclatura || '';
+  // Mostrar pistas en el modal
+  const hint = document.getElementById('nomen-hint');
+  const barrio = S.barrios.find(b=>b.id===casa.barrioId);
+  if(hint && barrio){
+    hint.textContent = 'Barrio: ' + barrio.nombre + ' · Debe ser única en este barrio.';
+  }
+  abrirModal('modal-nomenclatura');
+  // Enfocar y seleccionar el input
+  setTimeout(()=>{
+    const inp = document.getElementById('nomen-input');
+    if(inp){ inp.focus(); inp.select(); }
+  }, 120);
+}
+
+function confirmarNomenclatura(){
+  if(!S.canvas)return;
+  const obj=S.canvas.getActiveObject();
+  if(!obj||!obj.idCasa){toast('No hay casa seleccionada','error');cerrarModal('modal-nomenclatura');return;}
+  const casa=S.casas[obj.idCasa];if(!casa){cerrarModal('modal-nomenclatura');return;}
+  const limpio = (document.getElementById('nomen-input').value||'').trim();
+  if(!limpio){toast('Escribe una nomenclatura','error');return;}
+  if(limpio === casa.nomenclatura){cerrarModal('modal-nomenclatura');return;}
+  const dup=Object.values(S.casas).find(c=>c.barrioId===casa.barrioId && c.idCasa!==casa.idCasa && c.nomenclatura===limpio && !c.eliminado);
+  if(dup){toast('Ya existe "'+limpio+'" en este barrio','error');return;}
   const antes=casa.nomenclatura;
   casa.nomenclatura=limpio;casa.actualizadoEn=nowISO();
   casa.actualizadoPor=S.usuario?(S.usuario.displayName||S.usuario.email):'local';
@@ -1930,14 +1985,17 @@ function ponerNomenclatura(){
   if(t)t.set('text',limpio);
   S.canvas.renderAll();
   agregarHistorial(casa.idCasa,'casa',{nomenclatura:antes},{nomenclatura:limpio},'Renombrado: '+antes+' → '+limpio);
-  subirCasa(casa.idCasa);marcarPendiente();toast('Nomenclatura actualizada','success');
+  subirCasa(casa.idCasa);marcarPendiente();
+  cerrarModal('modal-nomenclatura');
+  toast('Nomenclatura actualizada','success');
 }
+
 function modoEdicion(){
   S.modoEdicion=!S.modoEdicion;
   aplicarModo();
   actualizarBotonEditar();
   actualizarVisibilidadFAB();
-  toast(S.modoEdicion?'✏️ Modo edición: arrastra y escala las casas':'📌 Casas fijadas',S.modoEdicion?'info':'success');
+  toast(S.modoEdicion?'✏️ Modo edición: doble clic para nombrar':'📌 Casas fijadas',S.modoEdicion?'info':'success');
 }
 function fijarCasas(){
   S.modoEdicion=false;
@@ -2468,7 +2526,6 @@ function descargarExcel(){
     parroquia: S.uo ? (S.uo.parroquia || '') : ''
   };
 
-  // === HOJA 1: Consolidado de pacientes ===
   const datosPacientes = S.pacienteMatriz.map(p=>({
     'Unidad Operativa': contexto.uoNombre || p.uoNombre || '',
     'Código UO': contexto.uoCodigo || p.uoCodigo || '',
@@ -2499,7 +2556,6 @@ function descargarExcel(){
     {wch:24},{wch:24},{wch:20},{wch:26}
   ];
 
-  // === HOJA 2: Resumen de casas ===
   const casasMap = {};
   S.pacienteMatriz.forEach(p=>{
     const key = (p.equipo||'')+'|'+(p.barrio||'')+'|'+(p.casa||'');
@@ -2524,12 +2580,10 @@ function descargarExcel(){
     {wch:22},{wch:14},{wch:14},{wch:14},{wch:10},{wch:16},{wch:14},{wch:12},{wch:16}
   ];
 
-  // === Crear libro con hojas comunes ===
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, wsPac, 'Consolidado UO');
   XLSX.utils.book_append_sheet(wb, wsCasas, 'Catastro de casas');
 
-  // === HOJAS POR EAIS ===
   const porEAIS = {};
   S.pacienteMatriz.forEach(p=>{
     const eais = p.equipo || 'SIN_EAIS';
@@ -2556,9 +2610,7 @@ function descargarExcel(){
       'Condiciones': (p.condiciones || []).join(', ')
     }));
     const ws = XLSX.utils.json_to_sheet(datos);
-    // Sanitizar nombre de la hoja (Excel no permite ciertos caracteres y máximo 31 chars)
     let nombreHoja = String(eais).replace(/[\\\/\?\*\[\]:]/g, '_').substring(0,31) || 'EAIS';
-    // Evitar duplicados si ya existe
     let sufijo = 1;
     let nombreFinal = nombreHoja;
     while(wb.SheetNames.includes(nombreFinal)){
@@ -2567,7 +2619,6 @@ function descargarExcel(){
     XLSX.utils.book_append_sheet(wb, ws, nombreFinal);
   });
 
-  // === Descargar ===
   const fechaStr = new Date().toISOString().split('T')[0];
   XLSX.writeFile(wb, 'Catastro_'+(S.equipo||'UO')+'_'+fechaStr+'.xlsx');
   toast('Excel descargado ('+wb.SheetNames.length+' hojas)','success');
@@ -2586,7 +2637,6 @@ async function recalcularStorage(){
   const barra = document.getElementById('storage-bar-fill');
   detalle.innerHTML = '<p style="text-align:center;color:#8ba5b5;padding:12px">Calculando...</p>';
 
-  // Calcular tamaños
   let sizeLS = 0;
   const itemsLS = [];
   for(let i=0;i<localStorage.length;i++){
@@ -2607,9 +2657,7 @@ async function recalcularStorage(){
     itemsBig.push({key:k, size});
   }
 
-  // Estimar límite
-  const LIMITE_LS = 5 * 1024 * 1024; // 5 MB
-  const LIMITE_REFERENCIA = 100 * 1024 * 1024; // 100 MB referencia para IDB
+  const LIMITE_LS = 5 * 1024 * 1024;
   const total = sizeLS + sizeBig;
   const pct = Math.min(100, (sizeLS / LIMITE_LS) * 100);
 
@@ -2623,7 +2671,6 @@ async function recalcularStorage(){
   html += '<br><strong style="color:#ffd77a">Total:</strong> '+fmtBytes(total);
   html += '</div>';
 
-  // Top 15 keys más grandes
   const todos = [...itemsLS, ...itemsBig].sort((a,b)=>b.size - a.size).slice(0,15);
   if(todos.length === 0){
     html += '<p style="text-align:center;color:#8ba5b5;padding:12px">Sin datos almacenados.</p>';
@@ -2648,7 +2695,6 @@ function limpiarMapasHuerfanos(){
   const equiposValidos = new Set(cargarEquipos().map(e=>e.id));
   const huerfanos = [];
   BigStore.keys().forEach(k=>{
-    // Keys tipo: cat_v2_{equipo}_mapa_{id} o cat_v2_{equipo}_canvas_{id}
     const m = k.match(/^cat_v2_([^_]+)_(mapa|canvas)_/);
     if(m && !equiposValidos.has(m[1])){
       huerfanos.push(k);
@@ -2931,11 +2977,9 @@ function importarJSON(e){
       const d=JSON.parse(ev.target.result);
       if(!d.casas||!d.barrios)throw new Error('Formato inválido');
       const pref='cat_v2_'+S.equipo+'_';
-      // Borrar localStorage
       const keysLS=[];
       for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(pref))keysLS.push(k);}
       keysLS.forEach(k=>localStorage.removeItem(k));
-      // Borrar BigStore
       BigStore.keys().filter(k=>k.startsWith(pref)).forEach(k=>BigStore.remove(k));
       S.barrios=d.barrios||[];S.casas=d.casas||{};S.fichas=d.fichas||{};S.visitas=d.visitas||{};S.historial=d.historial||{};S.mapas=d.mapas||{};
       if(d.uo){S.uo=d.uo;guardarUO(d.uo);actualizarUIUnidadOperativa();}
@@ -2958,14 +3002,12 @@ function importarJSON(e){
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('visible');}
 
 /* =========================================================
-   INICIO (ASYNC porque IndexedDB tarda un momento)
+   INICIO
    ========================================================= */
 window.addEventListener('load', async () => {
-  // PRIMERO: inicializar IndexedDB (migra datos existentes de localStorage)
   log('🚀 Iniciando Catastro v2...','info');
   await BigStore.init();
 
-  // Manifest
   try{
     const manifest={name:'Catastro Médico v2',short_name:'Catastro',start_url:'.',display:'standalone',background_color:'#0c273b',theme_color:'#0c273b'};
     const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
