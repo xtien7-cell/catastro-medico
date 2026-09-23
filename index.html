@@ -83,8 +83,8 @@ input,select,textarea{font-family:inherit}
 .filtro input{accent-color:#147a68}
 .dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
 
-#main{display:grid;grid-template-rows:auto 1fr auto;min-height:0;min-width:0;background:#0f1a24}
-#toolbar{background:#172a36;border-bottom:1px solid #1e3a4d;padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+#main{display:grid;grid-template-rows:auto 1fr auto;min-height:0;min-width:0;background:#0f1a24;position:relative}
+#toolbar{background:#172a36;border-bottom:1px solid #1e3a4d;padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;position:relative;z-index:10}
 #toolbar button,#toolbar select{border:1px solid #294150;background:#203641;padding:7px 11px;border-radius:7px;font-size:12px;color:#e7f0f7;display:flex;align-items:center;gap:5px;transition:background .12s}
 #toolbar button:hover{background:#2f4351}
 #toolbar button.primary{background:#147a68;color:#fff;border-color:#1a8a75}
@@ -98,7 +98,7 @@ input,select,textarea{font-family:inherit}
 #toolbar .zoom span{padding:0 8px;font-size:12px;font-weight:600;min-width:46px;text-align:center;color:#a3bac6}
 #toolbar .grow{flex:1}
 
-#workspace{display:grid;grid-template-columns:1fr 340px;min-height:0;min-width:0}
+#workspace{display:grid;grid-template-columns:1fr 340px;min-height:0;min-width:0;position:relative}
 #mapa-wrapper{position:relative;overflow:auto;background:#0a1520;padding:20px;-webkit-overflow-scrolling:touch;min-height:0;min-width:0;touch-action:none;overscroll-behavior:contain}
 #mapa-wrapper::-webkit-scrollbar{width:12px;height:12px}
 #mapa-wrapper::-webkit-scrollbar-thumb{background:#294150;border-radius:6px}
@@ -111,6 +111,45 @@ input,select,textarea{font-family:inherit}
 #sin-mapa h2,#sin-equipo h2{margin:0 0 8px;color:#ffd77a;font-size:16px;font-weight:600}
 #sin-equipo h2{color:#8ee0cb}
 #sin-mapa p,#sin-equipo p{margin:0;color:#a3bac6;font-size:13px}
+
+/* ===== FAB: Botón flotante de nomenclatura (siempre visible al editar) ===== */
+#fab-nomenclatura{
+  position:absolute;
+  bottom:24px;
+  right:24px;
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  background:linear-gradient(135deg,#bd8822,#9c6e1a);
+  color:#fff;
+  border:3px solid #ffd77a;
+  font-size:24px;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 8px 24px rgba(0,0,0,.6),0 0 20px rgba(255,215,0,.3);
+  z-index:55;
+  cursor:pointer;
+  transition:transform .15s,box-shadow .15s;
+}
+#fab-nomenclatura:hover{transform:scale(1.08);box-shadow:0 10px 30px rgba(0,0,0,.7),0 0 30px rgba(255,215,0,.5)}
+#fab-nomenclatura:active{transform:scale(.95)}
+#fab-nomenclatura.visible{display:flex}
+#fab-nomenclatura .fab-label{
+  position:absolute;
+  bottom:70px;
+  right:0;
+  background:#172a36;
+  color:#ffd77a;
+  padding:5px 10px;
+  border-radius:6px;
+  font-size:11px;
+  font-weight:700;
+  white-space:nowrap;
+  border:1px solid #bd8822;
+  box-shadow:0 4px 12px rgba(0,0,0,.5);
+  pointer-events:none;
+}
 
 #casa-panel{background:#111f2b;border-left:1px solid #1e3a4d;overflow-y:auto;padding:14px;min-height:0;display:flex;flex-direction:column}
 #casa-panel::-webkit-scrollbar{width:8px}
@@ -216,7 +255,6 @@ input,select,textarea{font-family:inherit}
 .resultado-item strong{color:#8ec8ff;display:block;margin-bottom:2px}
 .resultado-item small{color:#8ba5b5;display:block;font-size:11px}
 
-/* Agenda */
 #agenda-resultados{max-height:60vh;overflow-y:auto;padding-right:4px}
 .agenda-grupo-fecha{font-size:11px;color:#c8b3ff;text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin-bottom:8px;padding:7px 11px;background:#2a1a3a;border-left:3px solid #7c4dff;border-radius:5px;display:inline-block}
 .agenda-item{background:#1a2c3d;border:1px solid #1e3a4d;border-left:4px solid #7c4dff;border-radius:8px;padding:11px 12px;margin-bottom:8px;cursor:pointer;transition:background .12s}
@@ -285,6 +323,8 @@ input,select,textarea{font-family:inherit}
   #stats-bar{grid-template-columns:repeat(2,1fr)}
   #topbar h1{font-size:12px}
   #topbar .pill{font-size:11px;padding:5px 9px;max-width:140px}
+  #fab-nomenclatura{bottom:16px;right:16px;width:54px;height:54px;font-size:22px}
+  #fab-nomenclatura .fab-label{display:none}
 }
 </style>
 </head>
@@ -439,6 +479,11 @@ input,select,textarea{font-family:inherit}
               <div id="canvas-fabric"><canvas id="c"></canvas></div>
             </div>
           </div>
+          <!-- FAB: Nomenclatura flotante -->
+          <button id="fab-nomenclatura" onclick="ponerNomenclatura()" title="Nomenclatura">
+            ✍️
+            <span class="fab-label">Nombrar casa</span>
+          </button>
         </div>
 
         <aside id="casa-panel">
@@ -503,6 +548,7 @@ input,select,textarea{font-family:inherit}
     <h2>🧪 Equipos de prueba (TEST)</h2>
     <p style="color:#8ba5b5;font-size:12.5px;line-height:1.6;margin-bottom:14px">
       Los equipos TEST son espacios aislados para ensayar cambios, importaciones y trabajo simultáneo sin afectar a los EAIS reales.
+      Se sincronizan entre todos los dispositivos conectados.
     </p>
 
     <h3>Crear nuevo</h3>
@@ -685,7 +731,8 @@ const S = {
   uo:null,
   filtrosActivos:[], modoEdicion:false, zoom:1,
   canvas:null, seleccion:null, tabMatriz:'barrio', pacienteMatriz:[],
-  pendientes:0, ultimoSync:null, unsubs:[]
+  pendientes:0, ultimoSync:null, unsubs:[],
+  unsubEquipos:null, unsubUO:null
 };
 const CONDICIONES_COLOR = {
   'Embarazada':'#e91e63','Niños menores de 2 años':'#ff9800','Discapacidad':'#9c27b0',
@@ -735,6 +782,84 @@ function cargarEquipos(){return lsGet(keyEquipos(),[]);}
 function guardarEquipos(l){lsSet(keyEquipos(),l);}
 function equipoActivoGuardado(){return localStorage.getItem(keyEquipoActivo());}
 function guardarEquipoActivo(id){localStorage.setItem(keyEquipoActivo(),id);}
+
+/* =========================================================
+   SINCRONIZACIÓN DE LISTA DE EQUIPOS (EAIS + TEST)
+   ========================================================= */
+function mergeListasEquipos(local, remoto){
+  // Union por id. Si existe en ambos, se conserva el más reciente o el remoto.
+  const map = new Map();
+  (local||[]).forEach(e=>map.set(e.id, e));
+  (remoto||[]).forEach(e=>{
+    const existente = map.get(e.id);
+    if(!existente){
+      map.set(e.id, e);
+    } else {
+      // Preferir el que tenga 'test' o 'uo' más recientes si aplica
+      const merged = Object.assign({}, existente, e);
+      map.set(e.id, merged);
+    }
+  });
+  return Array.from(map.values());
+}
+
+async function subirListaEquiposANube(){
+  if(!S.usuario) return;
+  try{
+    const lista = cargarEquipos();
+    await db.collection('config').doc('equipos').set({
+      lista: lista,
+      actualizadoEn: nowISO(),
+      actualizadoPor: S.usuario.displayName || S.usuario.email || ''
+    }, {merge:true});
+    log('Lista de equipos subida ('+lista.length+')','ok');
+  }catch(e){ log('Error subiendo lista equipos: '+e.message,'error'); }
+}
+
+async function bajarListaEquiposDeNube(){
+  if(!S.usuario) return;
+  try{
+    const doc = await db.collection('config').doc('equipos').get();
+    const local = cargarEquipos();
+    if(!doc.exists){
+      // No hay nada en la nube: subir lo local
+      if(local.length > 0) await subirListaEquiposANube();
+      return;
+    }
+    const remoto = doc.data().lista || [];
+    const merged = mergeListasEquipos(local, remoto);
+    guardarEquipos(merged);
+    actualizarUIEquipos();
+    // Si la unión produjo más que el remoto, subir para que todos la tengan
+    if(merged.length !== remoto.length){
+      await subirListaEquiposANube();
+    }
+    log('Lista de equipos sincronizada ('+merged.length+')','ok');
+  }catch(e){ log('Error bajando lista equipos: '+e.message,'error'); }
+}
+
+function iniciarListenerEquipos(){
+  if(!S.usuario) return;
+  if(S.unsubEquipos){ try{S.unsubEquipos();}catch(e){} }
+  S.unsubEquipos = db.collection('config').doc('equipos').onSnapshot(d=>{
+    if(!d.exists) return;
+    const remoto = d.data().lista || [];
+    const local = cargarEquipos();
+    // Comparar por ids + metadata para evitar bucles
+    const localJson = JSON.stringify(local.map(e=>({id:e.id, test:!!e.test, uo:e.uo||''})));
+    const remotoJson = JSON.stringify(remoto.map(e=>({id:e.id, test:!!e.test, uo:e.uo||''})));
+    if(localJson === remotoJson) return;
+    const merged = mergeListasEquipos(local, remoto);
+    guardarEquipos(merged);
+    actualizarUIEquipos();
+    log('Lista de equipos actualizada desde la nube','ok');
+    // Si mi lista local tenía equipos que la nube no tiene, subir
+    const idsRemotos = new Set(remoto.map(e=>e.id));
+    if(local.some(e=>!idsRemotos.has(e.id))){
+      subirListaEquiposANube();
+    }
+  }, err=>log('Listener equipos: '+err.message,'error'));
+}
 
 /* =========================================================
    UNIDAD OPERATIVA
@@ -792,6 +917,8 @@ function eliminarEquipoCompleto(idEquipo, dobleConfirmacion){
   keysABorrar.forEach(k=>localStorage.removeItem(k));
   const lista = cargarEquipos().filter(e=>e.id!==idEquipo);
   guardarEquipos(lista);
+  // Sincronizar la lista nueva
+  subirListaEquiposANube();
   if(S.usuario){
     const ref = db.collection('catastros').doc(idEquipo);
     Promise.all(['casas','fichas','visitas','historial','mapas','respaldos'].map(col=>
@@ -848,6 +975,8 @@ function guardarUnidadOperativa(){
     }
   }
   guardarEquipos(lista);
+  // Sincronizar lista de equipos con la nube
+  subirListaEquiposANube();
   actualizarUIUnidadOperativa();
   actualizarUIEquipos();
   actualizarTopbar();
@@ -948,6 +1077,8 @@ function crearEquipoPruebaDesdeModal(){
   while(lista.find(e => e.id === n)) { n = base + '_' + (i++); }
   lista.push({ id: n, fecha: nowISO(), test: true });
   guardarEquipos(lista);
+  // Sincronizar lista con la nube
+  subirListaEquiposANube();
   if(S.equipo) guardarTodoLocal();
   S.equipo = n;
   guardarEquipoActivo(n);
@@ -1212,7 +1343,6 @@ function seleccionarEquipo(id){
 function iniciarEquipo(){
   cancelarDestacado();
   desconectarListeners();
-  // ===== FIX: limpiar canvas completamente al cambiar de equipo =====
   if(S.canvas){
     try { S.canvas.clear(); } catch(e){}
     S.canvas.backgroundColor = 'transparent';
@@ -1221,6 +1351,7 @@ function iniciarEquipo(){
   S.barrio=null;S.casas={};S.fichas={};S.visitas={};S.historial={};S.mapas={};
   S.barrios=S.equipo?lsGet(keyBarrios(S.equipo),[]):[];
   S.seleccion=null;cerrarPanelCasa();
+  actualizarVisibilidadFAB();
   document.getElementById('casa-panel-content').style.display='none';
   document.getElementById('casa-panel-empty').style.display='block';
   actualizarUIEquipos();renderSelectorBarrios();actualizarStats();
@@ -1326,7 +1457,6 @@ function cambiarBarrio(id){
   if(!mapa){
     document.getElementById('sin-mapa').style.display='block';
     document.getElementById('canvas-zoom-container').style.display='none';
-    // FIX: limpiar canvas si no hay mapa
     if(S.canvas){ try{S.canvas.clear();S.canvas.renderAll();}catch(e){} }
     return;
   }
@@ -1335,7 +1465,6 @@ function cambiarBarrio(id){
   const img=document.getElementById('mapa-imagen');
   img.onload=function(){
     if(!S.canvas)return;
-    // FIX: limpiar canvas ANTES de renderizar las nuevas casas
     try { S.canvas.clear(); } catch(e){}
     S.canvas.setWidth(img.width);S.canvas.setHeight(img.height);
     S.canvas.backgroundColor='transparent';S.canvas.setZoom(1);S.canvas.calcOffset();
@@ -1379,8 +1508,28 @@ function initCanvas(){
       const t=opt.target;if(!t||!t.idCasa)return;
       abrirModalFicha(t.idCasa);
     });
+    // Eventos para actualizar visibilidad del FAB
+    S.canvas.on('selection:created',actualizarVisibilidadFAB);
+    S.canvas.on('selection:updated',actualizarVisibilidadFAB);
+    S.canvas.on('selection:cleared',actualizarVisibilidadFAB);
     log('Canvas OK','ok');
   }catch(e){log('Error canvas: '+e.message,'error');}
+}
+
+/* FAB: mostrar solo cuando hay una casa seleccionada en modo edición */
+function actualizarVisibilidadFAB(){
+  const fab = document.getElementById('fab-nomenclatura');
+  if(!fab) return;
+  if(!S.canvas || !S.modoEdicion){
+    fab.classList.remove('visible');
+    return;
+  }
+  const obj = S.canvas.getActiveObject();
+  if(obj && obj.idCasa){
+    fab.classList.add('visible');
+  } else {
+    fab.classList.remove('visible');
+  }
 }
 
 /* =========================================================
@@ -1479,11 +1628,12 @@ function onCasaMovida(e){
   const obj=e.target;if(!obj||!obj.idCasa)return;
   const casa=S.casas[obj.idCasa];if(!casa)return;
   const antes={left:casa.left,top:casa.top,ancho:casa.ancho,alto:casa.alto,angulo:casa.angulo||0};
-  casa.left=obj.left;
-  casa.top=obj.top;
-  casa.ancho=obj.width*(obj.scaleX||1);
-  casa.alto=obj.height*(obj.scaleY||1);
-  casa.angulo=obj.angle||0;
+  // REDONDEO: enteros para que no se muevan entre dispositivos
+  casa.left = Math.round(obj.left);
+  casa.top = Math.round(obj.top);
+  casa.ancho = Math.round(obj.width*(obj.scaleX||1));
+  casa.alto = Math.round(obj.height*(obj.scaleY||1));
+  casa.angulo = Math.round(obj.angle||0);
   casa.actualizadoEn=nowISO();casa.actualizadoPor=S.usuario?(S.usuario.displayName||S.usuario.email):'local';
   lsSet(keyCasa(S.equipo,casa.idCasa),casa);
   agregarHistorial(casa.idCasa,'casa',antes,{left:casa.left,top:casa.top,ancho:casa.ancho,alto:casa.alto,angulo:casa.angulo},'Movimiento de casa');
@@ -1496,8 +1646,6 @@ function onCanvasClick(opt){
 }
 function renderCasas(){
   if(!S.canvas||!S.barrio)return;
-  // FIX: quitar TODAS las casas del canvas (no solo las del barrio actual)
-  // Esto evita que casas de otro equipo/barrio queden flotando
   S.canvas.getObjects().slice().forEach(o=>{
     if(o.idCasa) S.canvas.remove(o);
   });
@@ -1522,7 +1670,8 @@ function construirGrupoCasa(c){
     fontWeight:'bold', splitByGrapheme:true
   });
   const grupo=new fabric.Group([rect,text],{
-    left:c.left, top:c.top,
+    left:Math.round(c.left||0),
+    top:Math.round(c.top||0),
     angle: c.angulo||0,
     hasControls:true, hasBorders:true,
     selectable:true, evented:true,
@@ -1544,12 +1693,19 @@ function crearCasa(){
   const rw=wrap.getBoundingClientRect(),rc=cont.getBoundingClientRect();
   const cx=(rw.left+rw.width/2-rc.left)/S.zoom,cy=(rw.top+rw.height/2-rc.top)/S.zoom;
   const idCasa='CASA-'+uid();
-  const casa={idCasa,barrioId:S.barrio.id,nomenclatura:idCasa,left:cx-22,top:cy-14,ancho:44,alto:28,angulo:0,estado:'Pendiente',eliminado:false,actualizadoEn:nowISO(),actualizadoPor:S.usuario?(S.usuario.displayName||S.usuario.email):'local'};
+  // REDONDEO: posiciones enteras
+  const casa={idCasa,barrioId:S.barrio.id,nomenclatura:idCasa,
+    left:Math.round(cx-22),
+    top:Math.round(cy-14),
+    ancho:44,alto:28,angulo:0,estado:'Pendiente',eliminado:false,
+    actualizadoEn:nowISO(),
+    actualizadoPor:S.usuario?(S.usuario.displayName||S.usuario.email):'local'};
   S.casas[idCasa]=casa;lsSet(keyCasa(S.equipo,idCasa),casa);
   const g=construirGrupoCasa(casa);S.canvas.add(g);
   if(!S.modoEdicion){S.modoEdicion=true;aplicarModo();actualizarBotonEditar();}
   S.canvas.setActiveObject(g);
   S.canvas.renderAll();
+  actualizarVisibilidadFAB();
   subirCasa(idCasa);marcarPendiente();actualizarStats();
   toast('Casa creada. Arrástrala a su posición.','info');
 }
@@ -1577,12 +1733,14 @@ function modoEdicion(){
   S.modoEdicion=!S.modoEdicion;
   aplicarModo();
   actualizarBotonEditar();
+  actualizarVisibilidadFAB();
   toast(S.modoEdicion?'✏️ Modo edición: arrastra y escala las casas':'📌 Casas fijadas',S.modoEdicion?'info':'success');
 }
 function fijarCasas(){
   S.modoEdicion=false;
   aplicarModo();
   actualizarBotonEditar();
+  actualizarVisibilidadFAB();
   if(S.canvas)S.canvas.discardActiveObject();
   toast('Casas fijadas','success');
 }
@@ -1635,6 +1793,7 @@ function eliminarSeleccionado(){
   casa.eliminado=true;casa.actualizadoEn=nowISO();
   lsSet(keyCasa(S.equipo,casa.idCasa),casa);
   S.canvas.remove(obj);S.canvas.discardActiveObject();S.canvas.renderAll();
+  actualizarVisibilidadFAB();
   agregarHistorial(casa.idCasa,'casa',{eliminado:false},{eliminado:true},'Casa eliminada');
   subirCasa(casa.idCasa);marcarPendiente();cerrarPanelCasa();actualizarStats();toast('Casa eliminada','success');
 }
@@ -1955,7 +2114,6 @@ function ejecutarBusqueda(q){
 }
 function irACasa(idCasa){
   const c=S.casas[idCasa];if(!c)return;
-  // Cerrar modales abiertos
   ['modal-busqueda','modal-agenda'].forEach(id=>cerrarModal(id));
   if(S.barrio && S.barrio.id !== c.barrioId){
     cambiarBarrio(c.barrioId);
@@ -2041,12 +2199,16 @@ function initFirebaseAuth(){
       btn.style.background='#134e42';btn.style.color='#8ee0cb';btn.style.borderColor='#1a8a75';
       controls.style.display='block';
       bajarUnidadDeNube();
+      // NUEVO: sincronizar lista de equipos (EAIS + TEST)
+      bajarListaEquiposDeNube();
+      iniciarListenerEquipos();
       iniciarListenersFirestore();
       setTimeout(()=>respaldoAutomaticoDiario(),3000);
     } else {
       btn.textContent='🔗 Conectar con Google';
       btn.style.background='#147a68';btn.style.color='#fff';btn.style.borderColor='#1a8a75';
       controls.style.display='none';desconectarListeners();
+      if(S.unsubEquipos){ try{S.unsubEquipos();}catch(e){} S.unsubEquipos=null; }
     }
     actualizarIndicadorBackup();
   });
