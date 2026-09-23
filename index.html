@@ -112,11 +112,11 @@ input,select,textarea{font-family:inherit}
 #sin-equipo h2{color:#8ee0cb}
 #sin-mapa p,#sin-equipo p{margin:0;color:#a3bac6;font-size:13px}
 
-/* FAB: Botón flotante de nomenclatura */
+/* FAB nomenclatura - ahora es hijo directo de #workspace, no del wrapper con scroll */
 #fab-nomenclatura{
   position:absolute;
   bottom:24px;
-  right:24px;
+  right:364px;
   width:60px;
   height:60px;
   border-radius:50%;
@@ -479,16 +479,16 @@ input,select,textarea{font-family:inherit}
               <div id="canvas-fabric"><canvas id="c"></canvas></div>
             </div>
           </div>
-          <button id="fab-nomenclatura" onclick="ponerNomenclatura()" title="Nomenclatura">
-            ✍️
-            <span class="fab-label">Nombrar casa</span>
-          </button>
         </div>
 
         <aside id="casa-panel">
           <div class="empty" id="casa-panel-empty">Haz clic en una casa del mapa para ver su ficha.</div>
           <div id="casa-panel-content" style="display:none"></div>
         </aside>
+        <button id="fab-nomenclatura" onclick="ponerNomenclatura()" title="Nomenclatura">
+          ✍️
+          <span class="fab-label">Nombrar casa</span>
+        </button>
       </div>
 
       <div id="stats-bar">
@@ -781,9 +781,7 @@ function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){log(
 function cargarEquipos(){
   const raw = lsGet(keyEquipos(), []);
   if(!Array.isArray(raw)) return [];
-  // Sanitizar: solo objetos con id string válido
   const limpio = raw.filter(e => e && typeof e === 'object' && typeof e.id === 'string' && e.id.length > 0);
-  // Si hubo cambios, guardar la versión limpia para no repetir el problema
   if(limpio.length !== raw.length){
     try{ lsSet(keyEquipos(), limpio); }catch(e){}
     log('Lista de equipos sanitizada: ' + (raw.length - limpio.length) + ' entradas inválidas removidas','info');
@@ -795,7 +793,7 @@ function equipoActivoGuardado(){return localStorage.getItem(keyEquipoActivo());}
 function guardarEquipoActivo(id){localStorage.setItem(keyEquipoActivo(),id);}
 
 /* =========================================================
-   SINCRONIZACIÓN DE LISTA DE EQUIPOS (EAIS + TEST)
+   SINCRONIZACIÓN DE LISTA DE EQUIPOS
    ========================================================= */
 function mergeListasEquipos(local, remoto){
   const map = new Map();
@@ -839,7 +837,6 @@ async function bajarListaEquiposDeNube(){
       return;
     }
     const remoto = doc.data().lista || [];
-    // Solo bajar si tengo MENOS equipos que la nube
     if(remoto.length > local.length){
       const merged = mergeListasEquipos(local, remoto);
       guardarEquipos(merged);
@@ -2155,54 +2152,102 @@ function abrirMatriz(tipo){
       abrirModal('modal-matriz');
       return;
     }
-    // Leer todos los equipos + sus subcolecciones
-    db.collection('catastros').get().then(async snap=>{
-      const todos=[];
-      const equipoIds=[];
-      snap.forEach(doc=>equipoIds.push(doc.id));
-      for(const eqId of equipoIds){
-        try{
-          const fichasSnap = await db.collection('catastros').doc(eqId).collection('fichas').get();
-          const casasSnap = await db.collection('catastros').doc(eqId).collection('casas').get();
-          const casasMap = {};
-          casasSnap.forEach(c=>{ casasMap[c.id] = c.data(); });
-          fichasSnap.forEach(f=>{
-            const data=f.data();
-            if(!data.integrantes || data.integrantes.length === 0) return;
-            const casa = casasMap[f.id] || {};
-            const nomenclatura = casa.nomenclatura || f.id;
-            const estado = casa.estado || '—';
-            const eliminada = casa.eliminado === true;
-            if(eliminada) return;
-            data.integrantes.forEach(i=>{
-              todos.push(Object.assign({
-                equipo: eqId,
-                casa: nomenclatura,
-                estado: estado
-              }, i));
-            });
-          });
-        }catch(err){
-          log('Error leyendo '+eqId+': '+err.message,'error');
-        }
-      }
-      S.pacienteMatriz=todos;
-      renderMatriz(todos, '🌎 Total de la unidad · '+equipoIds.length+' equipos');
-    }).catch(e=>{
-      tbody.innerHTML='<tr><td colspan="13" style="text-align:center;color:#ffa89e">Error: '+e.message+'</td></tr>';
-      log('Error total: '+e.message,'error');
-    });
     abrirModal('modal-matriz');
+    tbody.innerHTML='<tr><td colspan="13" style="text-align:center;padding:20px">Cargando todos los equipos...</td></tr>';
+    (async () => {
+      try{
+        // Leer UO y todos los equipos en paralelo
+        const [uoDoc, equiposSnap] = await Promise.all([
+          db.collection('config').doc('unidad_operativa').get(),
+          db.collection('catastros').get()
+        ]);
+        const uoData = uoDoc.exists ? uoDoc.data() : null;
+        const equipoIds = [];
+        equiposSnap.forEach(doc => equipoIds.push(doc.id));
+        // Asegurar que el equipo activo esté incluido (aunque no se haya subido aún)
+        if(S.equipo && !equipoIds.includes(S.equipo)) equipoIds.push(S.equipo);
+
+        const todos = [];
+        for(const eqId of equipoIds){
+          try{
+            let casas = {};
+            let fichas = {};
+            let barrios = [];
+
+            if(eqId === S.equipo){
+              // Usar datos locales (siempre más frescos para el equipo activo)
+              casas = S.casas;
+              fichas = S.fichas;
+              barrios = S.barrios;
+            } else {
+              // Leer de Firestore
+              const [casasSnap, fichasSnap, metaSnap] = await Promise.all([
+                db.collection('catastros').doc(eqId).collection('casas').get(),
+                db.collection('catastros').doc(eqId).collection('fichas').get(),
+                db.collection('catastros').doc(eqId).collection('meta').doc('info').get()
+              ]);
+              casasSnap.forEach(c => { casas[c.id] = c.data(); });
+              fichasSnap.forEach(f => { fichas[f.id] = f.data(); });
+              if(metaSnap.exists) barrios = metaSnap.data().barrios || [];
+            }
+
+            Object.entries(fichas).forEach(([idCasa, ficha])=>{
+              if(!ficha || !ficha.integrantes || ficha.integrantes.length === 0) return;
+              const casa = casas[idCasa] || {};
+              if(casa.eliminado) return;
+              const barrio = barrios.find(b=>b.id===casa.barrioId);
+              const barrioNombre = barrio ? barrio.nombre : '';
+              ficha.integrantes.forEach(i=>{
+                todos.push(Object.assign({
+                  equipo: eqId,
+                  barrio: barrioNombre,
+                  casa: casa.nomenclatura || idCasa,
+                  estado: casa.estado || '—',
+                  provincia: uoData ? (uoData.provincia || '') : '',
+                  canton: uoData ? (uoData.ciudad || '') : '',
+                  parroquia: uoData ? (uoData.parroquia || '') : '',
+                  uoNombre: uoData ? (uoData.nombre || '') : '',
+                  uoCodigo: uoData ? (uoData.codigo || '') : ''
+                }, i));
+              });
+            });
+          }catch(err){
+            log('Error leyendo '+eqId+': '+err.message,'error');
+          }
+        }
+        S.pacienteMatriz = todos;
+        renderMatriz(todos, '🌎 Total de la unidad · '+equipoIds.length+' equipo(s)');
+      }catch(e){
+        tbody.innerHTML='<tr><td colspan="13" style="text-align:center;color:#ffa89e">Error: '+e.message+'</td></tr>';
+        log('Error total: '+e.message,'error');
+      }
+    })();
     return;
   }
   S.pacienteMatriz=lista;renderMatriz(lista,titulo);abrirModal('modal-matriz');
 }
 function recolectarPacientesBarrio(idB){
   const arr=[];
+  const barrio = S.barrios.find(b=>b.id===idB);
+  const barrioNombre = barrio ? barrio.nombre : '';
+  const ctx = {
+    equipo: S.equipo || '',
+    barrio: barrioNombre,
+    provincia: S.uo ? (S.uo.provincia || '') : '',
+    canton: S.uo ? (S.uo.ciudad || '') : '',
+    parroquia: S.uo ? (S.uo.parroquia || '') : '',
+    uoNombre: S.uo ? (S.uo.nombre || '') : '',
+    uoCodigo: S.uo ? (S.uo.codigo || '') : ''
+  };
   Object.values(S.casas).forEach(c=>{
     if(c.barrioId!==idB||c.eliminado)return;
     const f=S.fichas[c.idCasa];if(!f||!f.integrantes)return;
-    f.integrantes.forEach(i=>arr.push(Object.assign({casa:c.nomenclatura,estado:c.estado},i)));
+    f.integrantes.forEach(i=>{
+      arr.push(Object.assign({}, ctx, {
+        casa: c.nomenclatura,
+        estado: c.estado
+      }, i));
+    });
   });
   return arr;
 }
@@ -2217,8 +2262,38 @@ function renderMatriz(lista,titulo){
 }
 function descargarExcel(){
   if(!S.pacienteMatriz||S.pacienteMatriz.length===0){toast('Sin datos','error');return;}
-  const datos=S.pacienteMatriz.map(p=>({'Casa':p.casa||'','Estado':p.estado||'','Nombre':p.nombre||'','Cédula':p.cedula||'','Edad':p.edad||'','Sexo':p.sexo||'','Contacto':p.contacto||'','Escolaridad':p.escolaridad||'','Grupo':p.grupoDispensarial||'','Vacunas':p.vacunasCompletas||'','Enfermedades':p.enfermedades||'','Medicamentos':p.medicamentos||'','Evento':p.eventoSalud||'','Condiciones':(p.condiciones||[]).join(', ')}));
-  const wb=XLSX.utils.book_new();const ws=XLSX.utils.json_to_sheet(datos);XLSX.utils.book_append_sheet(wb,ws,'Pacientes');
+  const datos=S.pacienteMatriz.map(p=>({
+    'Unidad Operativa': p.uoNombre || '',
+    'Código UO': p.uoCodigo || '',
+    'Provincia': p.provincia || '',
+    'Cantón': p.canton || '',
+    'Parroquia': p.parroquia || '',
+    'EAIS': p.equipo || '',
+    'Barrio': p.barrio || '',
+    'Casa': p.casa || '',
+    'Estado': p.estado || '',
+    'Nombre': p.nombre || '',
+    'Cédula': p.cedula || '',
+    'Edad': p.edad || '',
+    'Sexo': p.sexo || '',
+    'Contacto': p.contacto || '',
+    'Escolaridad': p.escolaridad || '',
+    'Grupo': p.grupoDispensarial || '',
+    'Vacunas': p.vacunasCompletas || '',
+    'Enfermedades': p.enfermedades || '',
+    'Medicamentos': p.medicamentos || '',
+    'Evento de salud': p.eventoSalud || '',
+    'Condiciones': (p.condiciones || []).join(', ')
+  }));
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.json_to_sheet(datos);
+  ws['!cols']=[
+    {wch:22},{wch:12},{wch:14},{wch:14},{wch:14},
+    {wch:10},{wch:16},{wch:14},{wch:12},
+    {wch:24},{wch:14},{wch:6},{wch:10},{wch:14},{wch:12},
+    {wch:8},{wch:12},{wch:24},{wch:24},{wch:20},{wch:26}
+  ];
+  XLSX.utils.book_append_sheet(wb,ws,'Pacientes');
   XLSX.writeFile(wb,'catastro_'+S.equipo+'_'+new Date().toISOString().split('T')[0]+'.xlsx');
   toast('Excel descargado','success');
 }
