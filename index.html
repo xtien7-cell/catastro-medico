@@ -112,43 +112,20 @@ input,select,textarea{font-family:inherit}
 #sin-equipo h2{color:#8ee0cb}
 #sin-mapa p,#sin-equipo p{margin:0;color:#a3bac6;font-size:13px}
 
-/* FAB nomenclatura - ahora es hijo directo de #workspace, no del wrapper con scroll */
 #fab-nomenclatura{
-  position:absolute;
-  bottom:24px;
-  right:364px;
-  width:60px;
-  height:60px;
-  border-radius:50%;
-  background:linear-gradient(135deg,#bd8822,#9c6e1a);
-  color:#fff;
-  border:3px solid #ffd77a;
-  font-size:24px;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  box-shadow:0 8px 24px rgba(0,0,0,.6),0 0 20px rgba(255,215,0,.3);
-  z-index:55;
-  cursor:pointer;
+  position:absolute;bottom:24px;right:364px;width:60px;height:60px;border-radius:50%;
+  background:linear-gradient(135deg,#bd8822,#9c6e1a);color:#fff;border:3px solid #ffd77a;font-size:24px;
+  display:none;align-items:center;justify-content:center;
+  box-shadow:0 8px 24px rgba(0,0,0,.6),0 0 20px rgba(255,215,0,.3);z-index:55;cursor:pointer;
   transition:transform .15s,box-shadow .15s;
 }
 #fab-nomenclatura:hover{transform:scale(1.08);box-shadow:0 10px 30px rgba(0,0,0,.7),0 0 30px rgba(255,215,0,.5)}
 #fab-nomenclatura:active{transform:scale(.95)}
 #fab-nomenclatura.visible{display:flex}
 #fab-nomenclatura .fab-label{
-  position:absolute;
-  bottom:70px;
-  right:0;
-  background:#172a36;
-  color:#ffd77a;
-  padding:5px 10px;
-  border-radius:6px;
-  font-size:11px;
-  font-weight:700;
-  white-space:nowrap;
-  border:1px solid #bd8822;
-  box-shadow:0 4px 12px rgba(0,0,0,.5);
-  pointer-events:none;
+  position:absolute;bottom:70px;right:0;background:#172a36;color:#ffd77a;
+  padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;
+  border:1px solid #bd8822;box-shadow:0 4px 12px rgba(0,0,0,.5);pointer-events:none;
 }
 
 #casa-panel{background:#111f2b;border-left:1px solid #1e3a4d;overflow-y:auto;padding:14px;min-height:0;display:flex;flex-direction:column}
@@ -271,6 +248,12 @@ input,select,textarea{font-family:inherit}
 .hist-item strong{color:#e7f0f7}
 .hist-item button{background:#246a9c;color:#fff;border:0;border-radius:5px;padding:5px 11px;font-size:11px;font-weight:600;margin-top:8px}
 .hist-item button:hover{background:#2878b8}
+
+.storage-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#1a2c3d;border-radius:7px;margin-bottom:6px;font-size:12px}
+.storage-item .key{color:#8ec8ff;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%}
+.storage-item .val{color:#ffd77a;font-weight:700}
+.storage-bar{height:8px;background:#0a1520;border-radius:4px;overflow:hidden;margin:8px 0 14px;border:1px solid #2f4a5f}
+.storage-bar-fill{height:100%;background:linear-gradient(90deg,#147a68,#bd8822,#bd4b42);transition:width .3s}
 
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:#172a36;color:#e7f0f7;padding:12px 22px;border-radius:10px;font-size:13.5px;font-weight:600;z-index:3000;transition:all .3s;max-width:90vw;text-align:center;pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,.5);border:1px solid #294150}
 #toast.visible{transform:translateX(-50%) translateY(0)}
@@ -438,6 +421,7 @@ input,select,textarea{font-family:inherit}
           <button class="btn btn-blue" onclick="abrirMatriz('eais')">📊 Pacientes del EAIS</button>
           <button class="btn btn-gray" onclick="exportarJSON()">📤 Exportar JSON</button>
           <button class="btn btn-gray" onclick="document.getElementById('import-input').click()">📥 Importar JSON</button>
+          <button class="btn btn-dark" onclick="abrirInfoAlmacenamiento()">💾 Info de almacenamiento</button>
           <input type="file" id="import-input" accept=".json" style="display:none" onchange="importarJSON(event)">
         </div>
       </div>
@@ -698,10 +682,210 @@ input,select,textarea{font-family:inherit}
   </div>
 </div>
 
+<!-- MODAL INFO ALMACENAMIENTO -->
+<div class="modal" id="modal-storage">
+  <div class="modal-content" style="max-width:620px">
+    <button class="modal-close" onclick="cerrarModal('modal-storage')">×</button>
+    <h2>💾 Uso de almacenamiento local</h2>
+    <p style="color:#8ba5b5;font-size:12.5px;line-height:1.5;margin-bottom:14px">
+      Los mapas y el canvas se guardan en <strong>IndexedDB</strong> (sin límite práctico).
+      Los datos pequeños (fichas, visitas, casas) siguen en localStorage.
+    </p>
+
+    <h3>Distribución</h3>
+    <div class="storage-bar"><div class="storage-bar-fill" id="storage-bar-fill" style="width:0%"></div></div>
+    <div id="storage-detalle"></div>
+
+    <h3 style="margin-top:20px">Acciones</h3>
+    <div class="modal-footer" style="flex-direction:column;gap:8px">
+      <button style="background:#2878b8;width:100%" onclick="recalcularStorage()">🔄 Recalcular</button>
+      <button style="background:#9c6e1a;width:100%" onclick="limpiarMapasHuerfanos()">🧹 Limpiar mapas huérfanos</button>
+      <button style="background:#9c3a32;width:100%" onclick="borrarTodoLocal()">⚠️ Borrar TODO el caché local</button>
+    </div>
+
+    <div id="storage-nota" style="margin-top:14px;font-size:11.5px;color:#8ba5b5;line-height:1.5">
+      <strong style="color:#ffd77a">Nota:</strong> "Borrar todo" no afecta la nube. Solo limpia este dispositivo.
+      Si tienes cambios pendientes de subir, hazlo antes.
+    </div>
+  </div>
+</div>
+
 <div id="log-panel" onclick="this.classList.remove('visible')"></div>
 <div id="toast"></div>
 
 <script>
+/* =========================================================
+   BIGSTORE - IndexedDB para archivos pesados (mapas + canvas)
+   =========================================================
+   - Guarda únicamente las keys que contienen "_mapa_" o "_canvas_".
+   - Mantiene una caché en memoria (BigCache) para acceso síncrono.
+   - Migra automáticamente de localStorage la primera vez.
+   ========================================================= */
+const BigStore = {
+  db: null,
+  ready: false,
+  cache: {},           // cache en memoria (sincrónico)
+  _writeQueue: [],     // cola de escrituras pendientes
+
+  async init(){
+    return new Promise((resolve) => {
+      try {
+        const req = indexedDB.open('catastro_v2_big', 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if(!db.objectStoreNames.contains('kv')){
+            db.createObjectStore('kv');
+          }
+        };
+        req.onsuccess = async (e) => {
+          this.db = e.target.result;
+          await this._migrarDeLocalStorage();
+          await this._cargarCache();
+          this.ready = true;
+          log('IndexedDB listo ('+Object.keys(this.cache).length+' keys grandes cargadas)','ok');
+          resolve();
+        };
+        req.onerror = () => {
+          log('IndexedDB no disponible, se usará localStorage para todo','warning');
+          this.ready = false;
+          resolve();
+        };
+      } catch(e){
+        log('IndexedDB excepción: '+e.message,'error');
+        this.ready = false;
+        resolve();
+      }
+    });
+  },
+
+  esKeyGrande(k){
+    if(typeof k !== 'string') return false;
+    return k.includes('_mapa_') || k.includes('_canvas_');
+  },
+
+  async _migrarDeLocalStorage(){
+    // Buscar keys grandes en localStorage y migrarlas a IndexedDB
+    const aMigrar = [];
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k && this.esKeyGrande(k)) aMigrar.push(k);
+    }
+    if(aMigrar.length === 0) return;
+    log('Migrando '+aMigrar.length+' keys grandes a IndexedDB...','info');
+    const tx = this.db.transaction('kv','readwrite');
+    const store = tx.objectStore('kv');
+    for(const k of aMigrar){
+      const v = localStorage.getItem(k);
+      if(v != null){
+        store.put(v, k);
+        try{ localStorage.removeItem(k); }catch(e){}
+      }
+    }
+    return new Promise(res => { tx.oncomplete = () => res(); tx.onerror = () => res(); });
+  },
+
+  async _cargarCache(){
+    return new Promise((resolve) => {
+      const tx = this.db.transaction('kv','readonly');
+      const store = tx.objectStore('kv');
+      const req = store.openCursor();
+      req.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if(cursor){
+          this.cache[cursor.key] = cursor.value;
+          cursor.continue();
+        } else {
+          resolve();
+        }
+      };
+      req.onerror = () => resolve();
+    });
+  },
+
+  get(k){
+    // Primero de la caché en memoria
+    if(k in this.cache) return this.cache[k];
+    // Fallback a localStorage (por si no migró aún)
+    try { return localStorage.getItem(k); } catch(e){ return null; }
+  },
+
+  set(k, v){
+    // Actualizar caché inmediatamente (síncrono)
+    this.cache[k] = v;
+    // Escribir en IndexedDB en background
+    if(this.db){
+      try {
+        const tx = this.db.transaction('kv','readwrite');
+        tx.objectStore('kv').put(v, k);
+      } catch(e){ log('Error IDB set: '+e.message,'error'); }
+    } else {
+      // Sin IndexedDB: guardar en localStorage como fallback
+      try { localStorage.setItem(k, v); } catch(e){}
+    }
+  },
+
+  remove(k){
+    delete this.cache[k];
+    if(this.db){
+      try {
+        const tx = this.db.transaction('kv','readwrite');
+        tx.objectStore('kv').delete(k);
+      } catch(e){}
+    }
+    try { localStorage.removeItem(k); } catch(e){}
+  },
+
+  keys(){
+    // Devuelve todas las keys grandes (cache + localStorage)
+    const set = new Set(Object.keys(this.cache));
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k && this.esKeyGrande(k)) set.add(k);
+    }
+    return Array.from(set);
+  },
+
+  async sizeBytes(){
+    let total = 0;
+    for(const k of Object.keys(this.cache)){
+      const v = this.cache[k];
+      if(typeof v === 'string') total += v.length * 2; // aprox 2 bytes por char UTF-16
+    }
+    return total;
+  }
+};
+
+/* =========================================================
+   PERSISTENCIA (lsGet / lsSet) - Rutea a BigStore o localStorage
+   ========================================================= */
+function lsGet(k,def){
+  try {
+    let v;
+    if(BigStore.ready && BigStore.esKeyGrande(k)) v = BigStore.get(k);
+    else v = localStorage.getItem(k);
+    return v ? JSON.parse(v) : def;
+  } catch(e){ return def; }
+}
+function lsSet(k,v){
+  try {
+    const s = JSON.stringify(v);
+    if(BigStore.ready && BigStore.esKeyGrande(k)) BigStore.set(k, s);
+    else {
+      try { localStorage.setItem(k, s); }
+      catch(e){
+        // Si localStorage está lleno, intentar guardar en BigStore aunque no sea "grande"
+        if(BigStore.ready){
+          log('localStorage lleno, derivando '+k+' a IndexedDB','warning');
+          BigStore.set(k, s);
+        } else {
+          log('LS lleno y sin IndexedDB disponible: '+e.message,'error');
+          throw e;
+        }
+      }
+    }
+  } catch(e){ log('Error guardando '+k+': '+e.message,'error'); }
+}
+
 /* =========================================================
    FIREBASE
    ========================================================= */
@@ -757,9 +941,10 @@ function escapeHTML(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'
 function abrirModal(id){document.getElementById(id).classList.add('open');}
 function cerrarModal(id){document.getElementById(id).classList.remove('open');}
 function toggleSection(header){header.parentElement.classList.toggle('collapsed');}
+function fmtBytes(b){if(b<1024)return b+' B';if(b<1024*1024)return (b/1024).toFixed(1)+' KB';return (b/1024/1024).toFixed(2)+' MB';}
 
 /* =========================================================
-   PERSISTENCIA
+   PERSISTENCIA AUXILIAR (keys)
    ========================================================= */
 function keyEquipos(){return 'cat_v2_equipos';}
 function keyEquipoActivo(){return 'cat_v2_equipo_activo';}
@@ -771,9 +956,6 @@ function keyHistorial(eq,id){return 'cat_v2_'+eq+'_hist_'+id;}
 function keyMapa(eq,b){return 'cat_v2_'+eq+'_mapa_'+b;}
 function keyBackupFecha(eq){return 'cat_v2_'+eq+'_lastbackup';}
 const UO_KEY = 'cat_v2_unidad_operativa';
-
-function lsGet(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch{return def;}}
-function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){log('LS lleno: '+e.message,'error');}}
 
 /* =========================================================
    CARGAR EQUIPOS (CON SANITIZACIÓN)
@@ -922,12 +1104,18 @@ function eliminarEquipoCompleto(idEquipo, dobleConfirmacion){
   } else {
     if(!confirm('¿Eliminar '+idEquipo+'?\n\nSe borrarán sus casas, fichas y visitas.'))return false;
   }
-  const keysABorrar = [];
+  const prefijo = 'cat_v2_'+idEquipo+'_';
+  // Borrar de localStorage
+  const keysLS = [];
   for(let i=0;i<localStorage.length;i++){
     const k = localStorage.key(i);
-    if(k && k.startsWith('cat_v2_'+idEquipo+'_')) keysABorrar.push(k);
+    if(k && k.startsWith(prefijo)) keysLS.push(k);
   }
-  keysABorrar.forEach(k=>localStorage.removeItem(k));
+  keysLS.forEach(k=>localStorage.removeItem(k));
+  // Borrar de BigStore (IndexedDB)
+  const keysBig = BigStore.keys().filter(k=>k.startsWith(prefijo));
+  keysBig.forEach(k=>BigStore.remove(k));
+  // Borrar de la lista
   const lista = cargarEquipos().filter(e=>e.id!==idEquipo);
   guardarEquipos(lista);
   subirListaEquiposANube();
@@ -1401,6 +1589,7 @@ function guardarTodoLocal(){
 function cargarCacheLocalEquipo(){
   if(!S.equipo)return;
   const pref='cat_v2_'+S.equipo+'_';
+  // LocalStorage
   for(let i=0;i<localStorage.length;i++){
     const k=localStorage.key(i);if(!k||!k.startsWith(pref))continue;
     const r=k.substring(pref.length);
@@ -1410,6 +1599,12 @@ function cargarCacheLocalEquipo(){
     else if(r.startsWith('hist_'))S.historial[r.substring(5)]=lsGet(k,[]);
     else if(r.startsWith('mapa_'))S.mapas[r.substring(5)]=lsGet(k,null);
   }
+  // BigStore (mapas y canvas)
+  BigStore.keys().forEach(k=>{
+    if(!k.startsWith(pref))return;
+    const r=k.substring(pref.length);
+    if(r.startsWith('mapa_'))S.mapas[r.substring(5)]=lsGet(k,null);
+  });
 }
 
 /* =========================================================
@@ -1456,7 +1651,9 @@ function eliminarBarrio(){
     if(c.barrioId===idB){c.eliminado=true;c.actualizadoEn=nowISO();lsSet(keyCasa(S.equipo,c.idCasa),c);subirCasa(c.idCasa);}
   });
   S.barrios=S.barrios.filter(b=>b.id!==idB);lsSet(keyBarrios(S.equipo),S.barrios);
-  delete S.mapas[idB];localStorage.removeItem(keyMapa(S.equipo,idB));
+  delete S.mapas[idB];
+  lsSet(keyMapa(S.equipo,idB),null);
+  BigStore.remove(keyMapa(S.equipo,idB));
   if(S.usuario)db.collection('catastros').doc(S.equipo).collection('mapas').doc(idB).delete().catch(()=>{});
   S.barrio=null;
   if(S.barrios.length>0)cambiarBarrio(S.barrios[0].id);
@@ -2156,7 +2353,6 @@ function abrirMatriz(tipo){
     tbody.innerHTML='<tr><td colspan="13" style="text-align:center;padding:20px">Cargando todos los equipos...</td></tr>';
     (async () => {
       try{
-        // Leer UO y todos los equipos en paralelo
         const [uoDoc, equiposSnap] = await Promise.all([
           db.collection('config').doc('unidad_operativa').get(),
           db.collection('catastros').get()
@@ -2164,7 +2360,6 @@ function abrirMatriz(tipo){
         const uoData = uoDoc.exists ? uoDoc.data() : null;
         const equipoIds = [];
         equiposSnap.forEach(doc => equipoIds.push(doc.id));
-        // Asegurar que el equipo activo esté incluido (aunque no se haya subido aún)
         if(S.equipo && !equipoIds.includes(S.equipo)) equipoIds.push(S.equipo);
 
         const todos = [];
@@ -2175,12 +2370,10 @@ function abrirMatriz(tipo){
             let barrios = [];
 
             if(eqId === S.equipo){
-              // Usar datos locales (siempre más frescos para el equipo activo)
               casas = S.casas;
               fichas = S.fichas;
               barrios = S.barrios;
             } else {
-              // Leer de Firestore
               const [casasSnap, fichasSnap, metaSnap] = await Promise.all([
                 db.collection('catastros').doc(eqId).collection('casas').get(),
                 db.collection('catastros').doc(eqId).collection('fichas').get(),
@@ -2260,14 +2453,28 @@ function renderMatriz(lista,titulo){
     return '<tr><td><strong>'+escapeHTML(p.casa||'')+'</strong></td><td><span class="estado-tag" style="background:'+col+'">'+escapeHTML(p.estado||'')+'</span></td><td>'+escapeHTML(p.nombre||'')+'</td><td>'+escapeHTML(p.cedula||'')+'</td><td>'+escapeHTML(p.edad||'')+'</td><td>'+escapeHTML(p.sexo||'')+'</td><td>'+escapeHTML(p.contacto||'')+'</td><td>'+escapeHTML(p.grupoDispensarial||'')+'</td><td>'+escapeHTML(p.vacunasCompletas||'')+'</td><td>'+escapeHTML(p.enfermedades||'')+'</td><td>'+escapeHTML(p.medicamentos||'')+'</td><td>'+escapeHTML(p.eventoSalud||'')+'</td><td>'+escapeHTML((p.condiciones||[]).join(', '))+'</td></tr>';
   }).join('');
 }
+
+/* =========================================================
+   EXPORTAR EXCEL MULTI-HOJA
+   ========================================================= */
 function descargarExcel(){
   if(!S.pacienteMatriz||S.pacienteMatriz.length===0){toast('Sin datos','error');return;}
-  const datos=S.pacienteMatriz.map(p=>({
-    'Unidad Operativa': p.uoNombre || '',
-    'Código UO': p.uoCodigo || '',
-    'Provincia': p.provincia || '',
-    'Cantón': p.canton || '',
-    'Parroquia': p.parroquia || '',
+
+  const contexto = {
+    uoNombre: S.uo ? (S.uo.nombre || '') : '',
+    uoCodigo: S.uo ? (S.uo.codigo || '') : '',
+    provincia: S.uo ? (S.uo.provincia || '') : '',
+    canton: S.uo ? (S.uo.ciudad || '') : '',
+    parroquia: S.uo ? (S.uo.parroquia || '') : ''
+  };
+
+  // === HOJA 1: Consolidado de pacientes ===
+  const datosPacientes = S.pacienteMatriz.map(p=>({
+    'Unidad Operativa': contexto.uoNombre || p.uoNombre || '',
+    'Código UO': contexto.uoCodigo || p.uoCodigo || '',
+    'Provincia': contexto.provincia || p.provincia || '',
+    'Cantón': contexto.canton || p.canton || '',
+    'Parroquia': contexto.parroquia || p.parroquia || '',
     'EAIS': p.equipo || '',
     'Barrio': p.barrio || '',
     'Casa': p.casa || '',
@@ -2285,17 +2492,197 @@ function descargarExcel(){
     'Evento de salud': p.eventoSalud || '',
     'Condiciones': (p.condiciones || []).join(', ')
   }));
-  const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.json_to_sheet(datos);
-  ws['!cols']=[
-    {wch:22},{wch:12},{wch:14},{wch:14},{wch:14},
-    {wch:10},{wch:16},{wch:14},{wch:12},
-    {wch:24},{wch:14},{wch:6},{wch:10},{wch:14},{wch:12},
-    {wch:8},{wch:12},{wch:24},{wch:24},{wch:20},{wch:26}
+  const wsPac = XLSX.utils.json_to_sheet(datosPacientes);
+  wsPac['!cols']=[
+    {wch:22},{wch:12},{wch:14},{wch:14},{wch:14},{wch:10},{wch:16},{wch:14},{wch:12},
+    {wch:24},{wch:14},{wch:6},{wch:10},{wch:14},{wch:12},{wch:8},{wch:12},
+    {wch:24},{wch:24},{wch:20},{wch:26}
   ];
-  XLSX.utils.book_append_sheet(wb,ws,'Pacientes');
-  XLSX.writeFile(wb,'catastro_'+S.equipo+'_'+new Date().toISOString().split('T')[0]+'.xlsx');
-  toast('Excel descargado','success');
+
+  // === HOJA 2: Resumen de casas ===
+  const casasMap = {};
+  S.pacienteMatriz.forEach(p=>{
+    const key = (p.equipo||'')+'|'+(p.barrio||'')+'|'+(p.casa||'');
+    if(!casasMap[key]){
+      casasMap[key] = {
+        'Unidad Operativa': contexto.uoNombre || p.uoNombre || '',
+        'Provincia': contexto.provincia || p.provincia || '',
+        'Cantón': contexto.canton || p.canton || '',
+        'Parroquia': contexto.parroquia || p.parroquia || '',
+        'EAIS': p.equipo || '',
+        'Barrio': p.barrio || '',
+        'Casa': p.casa || '',
+        'Estado': p.estado || '',
+        'Total integrantes': 0
+      };
+    }
+    casasMap[key]['Total integrantes']++;
+  });
+  const datosCasas = Object.values(casasMap);
+  const wsCasas = XLSX.utils.json_to_sheet(datosCasas);
+  wsCasas['!cols']=[
+    {wch:22},{wch:14},{wch:14},{wch:14},{wch:10},{wch:16},{wch:14},{wch:12},{wch:16}
+  ];
+
+  // === Crear libro con hojas comunes ===
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, wsPac, 'Consolidado UO');
+  XLSX.utils.book_append_sheet(wb, wsCasas, 'Catastro de casas');
+
+  // === HOJAS POR EAIS ===
+  const porEAIS = {};
+  S.pacienteMatriz.forEach(p=>{
+    const eais = p.equipo || 'SIN_EAIS';
+    if(!porEAIS[eais]) porEAIS[eais] = [];
+    porEAIS[eais].push(p);
+  });
+  Object.keys(porEAIS).sort().forEach(eais=>{
+    const arr = porEAIS[eais];
+    const datos = arr.map(p=>({
+      'Barrio': p.barrio || '',
+      'Casa': p.casa || '',
+      'Estado': p.estado || '',
+      'Nombre': p.nombre || '',
+      'Cédula': p.cedula || '',
+      'Edad': p.edad || '',
+      'Sexo': p.sexo || '',
+      'Contacto': p.contacto || '',
+      'Escolaridad': p.escolaridad || '',
+      'Grupo': p.grupoDispensarial || '',
+      'Vacunas': p.vacunasCompletas || '',
+      'Enfermedades': p.enfermedades || '',
+      'Medicamentos': p.medicamentos || '',
+      'Evento de salud': p.eventoSalud || '',
+      'Condiciones': (p.condiciones || []).join(', ')
+    }));
+    const ws = XLSX.utils.json_to_sheet(datos);
+    // Sanitizar nombre de la hoja (Excel no permite ciertos caracteres y máximo 31 chars)
+    let nombreHoja = String(eais).replace(/[\\\/\?\*\[\]:]/g, '_').substring(0,31) || 'EAIS';
+    // Evitar duplicados si ya existe
+    let sufijo = 1;
+    let nombreFinal = nombreHoja;
+    while(wb.SheetNames.includes(nombreFinal)){
+      nombreFinal = (nombreHoja.substring(0,28) + '_' + (sufijo++)).substring(0,31);
+    }
+    XLSX.utils.book_append_sheet(wb, ws, nombreFinal);
+  });
+
+  // === Descargar ===
+  const fechaStr = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, 'Catastro_'+(S.equipo||'UO')+'_'+fechaStr+'.xlsx');
+  toast('Excel descargado ('+wb.SheetNames.length+' hojas)','success');
+}
+
+/* =========================================================
+   INFO ALMACENAMIENTO
+   ========================================================= */
+function abrirInfoAlmacenamiento(){
+  abrirModal('modal-storage');
+  recalcularStorage();
+}
+
+async function recalcularStorage(){
+  const detalle = document.getElementById('storage-detalle');
+  const barra = document.getElementById('storage-bar-fill');
+  detalle.innerHTML = '<p style="text-align:center;color:#8ba5b5;padding:12px">Calculando...</p>';
+
+  // Calcular tamaños
+  let sizeLS = 0;
+  const itemsLS = [];
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(!k) continue;
+    const v = localStorage.getItem(k) || '';
+    const size = (k.length + v.length) * 2;
+    sizeLS += size;
+    itemsLS.push({key:k, size});
+  }
+
+  let sizeBig = 0;
+  const itemsBig = [];
+  for(const k of Object.keys(BigStore.cache)){
+    const v = BigStore.cache[k];
+    const size = (k.length + (typeof v === 'string' ? v.length : 0)) * 2;
+    sizeBig += size;
+    itemsBig.push({key:k, size});
+  }
+
+  // Estimar límite
+  const LIMITE_LS = 5 * 1024 * 1024; // 5 MB
+  const LIMITE_REFERENCIA = 100 * 1024 * 1024; // 100 MB referencia para IDB
+  const total = sizeLS + sizeBig;
+  const pct = Math.min(100, (sizeLS / LIMITE_LS) * 100);
+
+  barra.style.width = pct.toFixed(1) + '%';
+
+  let html = '';
+  html += '<div style="margin-bottom:10px;padding:10px;background:#172a36;border-radius:6px;font-size:12px;color:#a3bac6">';
+  html += '<strong style="color:#8ee0cb">localStorage:</strong> '+fmtBytes(sizeLS)+' / ~'+fmtBytes(LIMITE_LS);
+  if(pct > 80) html += ' <span style="color:#ffa89e;font-weight:700">(¡Cerca del límite!)</span>';
+  html += '<br><strong style="color:#8ee0cb">IndexedDB:</strong> '+fmtBytes(sizeBig)+' (mapas + canvas)';
+  html += '<br><strong style="color:#ffd77a">Total:</strong> '+fmtBytes(total);
+  html += '</div>';
+
+  // Top 15 keys más grandes
+  const todos = [...itemsLS, ...itemsBig].sort((a,b)=>b.size - a.size).slice(0,15);
+  if(todos.length === 0){
+    html += '<p style="text-align:center;color:#8ba5b5;padding:12px">Sin datos almacenados.</p>';
+  } else {
+    html += '<div style="font-size:11px;color:#617886;text-transform:uppercase;letter-spacing:.4px;margin:10px 0 6px;font-weight:700">Top archivos más pesados</div>';
+    todos.forEach(it=>{
+      const nombreCorto = it.key.length > 40 ? it.key.substring(0,37)+'...' : it.key;
+      const esBig = BigStore.esKeyGrande(it.key);
+      html += '<div class="storage-item">';
+      html += '<span class="key" title="'+escapeHTML(it.key)+'">'+(esBig?'🗺️ ':'📄 ')+escapeHTML(nombreCorto)+'</span>';
+      html += '<span class="val">'+fmtBytes(it.size)+'</span>';
+      html += '</div>';
+    });
+  }
+
+  detalle.innerHTML = html;
+}
+
+function limpiarMapasHuerfanos(){
+  if(!confirm('¿Buscar y eliminar mapas/canvas huérfanos?\n\nSe eliminan los que no pertenecen a ningún equipo registrado.'))return;
+
+  const equiposValidos = new Set(cargarEquipos().map(e=>e.id));
+  const huerfanos = [];
+  BigStore.keys().forEach(k=>{
+    // Keys tipo: cat_v2_{equipo}_mapa_{id} o cat_v2_{equipo}_canvas_{id}
+    const m = k.match(/^cat_v2_([^_]+)_(mapa|canvas)_/);
+    if(m && !equiposValidos.has(m[1])){
+      huerfanos.push(k);
+    }
+  });
+
+  if(huerfanos.length === 0){
+    toast('Sin huérfanos que limpiar','info');
+    return;
+  }
+
+  huerfanos.forEach(k=>BigStore.remove(k));
+  toast(huerfanos.length+' archivos huérfanos eliminados','success');
+  log('Limpiados: '+huerfanos.join(', '),'ok');
+  setTimeout(recalcularStorage, 300);
+}
+
+function borrarTodoLocal(){
+  if(!confirm('⚠️ BORRAR TODO EL CACHÉ LOCAL\n\nSe eliminarán todas las casas, fichas, visitas, mapas y canvas de este dispositivo.\n\nLa nube NO se afecta. Si tienes cambios sin subir, se perderán.\n\n¿Continuar?'))return;
+  if(!confirm('Confirma una vez más.'))return;
+
+  const keysLS = [];
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(k && k.startsWith('cat_v2_')) keysLS.push(k);
+  }
+  keysLS.forEach(k=>localStorage.removeItem(k));
+
+  const keysBig = BigStore.keys();
+  keysBig.forEach(k=>BigStore.remove(k));
+
+  toast('Caché local borrado','success');
+  log('Borrado local completo','ok');
+  setTimeout(()=>location.reload(), 1000);
 }
 
 /* =========================================================
@@ -2525,7 +2912,7 @@ async function descargarRespaldo(id){
 }
 
 /* =========================================================
-   EXPORTAR / IMPORTAR
+   EXPORTAR / IMPORTAR JSON
    ========================================================= */
 function exportarJSON(){
   if(!S.equipo){toast('Sin equipo','error');return;}
@@ -2543,9 +2930,13 @@ function importarJSON(e){
     try{
       const d=JSON.parse(ev.target.result);
       if(!d.casas||!d.barrios)throw new Error('Formato inválido');
-      const pref='cat_v2_'+S.equipo+'_';const keys=[];
-      for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(pref))keys.push(k);}
-      keys.forEach(k=>localStorage.removeItem(k));
+      const pref='cat_v2_'+S.equipo+'_';
+      // Borrar localStorage
+      const keysLS=[];
+      for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(pref))keysLS.push(k);}
+      keysLS.forEach(k=>localStorage.removeItem(k));
+      // Borrar BigStore
+      BigStore.keys().filter(k=>k.startsWith(pref)).forEach(k=>BigStore.remove(k));
       S.barrios=d.barrios||[];S.casas=d.casas||{};S.fichas=d.fichas||{};S.visitas=d.visitas||{};S.historial=d.historial||{};S.mapas=d.mapas||{};
       if(d.uo){S.uo=d.uo;guardarUO(d.uo);actualizarUIUnidadOperativa();}
       lsSet(keyBarrios(S.equipo),S.barrios);
@@ -2567,11 +2958,14 @@ function importarJSON(e){
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('visible');}
 
 /* =========================================================
-   INICIO
+   INICIO (ASYNC porque IndexedDB tarda un momento)
    ========================================================= */
-window.addEventListener('load',()=>{
-  log('🚀 Iniciando Catastro v2','info');
+window.addEventListener('load', async () => {
+  // PRIMERO: inicializar IndexedDB (migra datos existentes de localStorage)
+  log('🚀 Iniciando Catastro v2...','info');
+  await BigStore.init();
 
+  // Manifest
   try{
     const manifest={name:'Catastro Médico v2',short_name:'Catastro',start_url:'.',display:'standalone',background_color:'#0c273b',theme_color:'#0c273b'};
     const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
