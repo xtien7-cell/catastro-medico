@@ -84,7 +84,7 @@ input,select,textarea{font-family:inherit}
 .dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
 
 #main{display:grid;grid-template-rows:auto 1fr auto;min-height:0;min-width:0;background:#0f1a24;position:relative}
-#toolbar{background:#172a36;border-bottom:1px solid #1e3a4d;padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;position:relative;z-index:10}
+#toolbar{background:#172a36;border-bottom:1px solid #1e3a4d;padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;position:relative;z-index:10;min-height:52px}
 #toolbar button,#toolbar select{border:1px solid #294150;background:#203641;padding:7px 11px;border-radius:7px;font-size:12px;color:#e7f0f7;display:flex;align-items:center;gap:5px;transition:background .12s}
 #toolbar button:hover{background:#2f4351}
 #toolbar button.primary{background:#147a68;color:#fff;border-color:#1a8a75}
@@ -308,6 +308,20 @@ input,select,textarea{font-family:inherit}
   #topbar .pill{font-size:11px;padding:5px 9px;max-width:140px}
   #fab-nomenclatura{bottom:16px;right:16px;width:54px;height:54px;font-size:22px}
   #fab-nomenclatura .fab-label{display:none}
+
+  /* TOOLBAR SCROLLABLE EN MÓVIL — garantiza que nunca se pierda un botón */
+  #toolbar{
+    overflow-x:auto;
+    flex-wrap:nowrap;
+    -webkit-overflow-scrolling:touch;
+    padding:6px 10px;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+  }
+  #toolbar::-webkit-scrollbar{display:none}
+  #toolbar > button, #toolbar > .zoom, #toolbar > .banner-modo{flex-shrink:0}
+  #toolbar .grow{display:none}
+  #toolbar .banner-modo{font-size:10px;padding:4px 8px;margin-right:6px}
 }
 </style>
 </head>
@@ -429,7 +443,7 @@ input,select,textarea{font-family:inherit}
 
     <div id="main">
       <div id="toolbar">
-        <span class="banner-modo" id="banner-modo">✏️ MODO EDICIÓN: arrastra, escala o rota las casas</span>
+        <span class="banner-modo" id="banner-modo">✏️ MODO EDICIÓN: doble clic para nombrar</span>
         <button class="primary" onclick="crearCasa()">➕ <span class="txt">Casa</span></button>
         <button id="btn-editar" onclick="modoEdicion()">🖱️ <span class="txt">Editar</span></button>
         <button onclick="fijarCasas()">📌 <span class="txt">Fijar</span></button>
@@ -737,7 +751,7 @@ input,select,textarea{font-family:inherit}
 
 <script>
 /* =========================================================
-   BIGSTORE - IndexedDB para archivos pesados (mapas + canvas)
+   BIGSTORE - IndexedDB
    ========================================================= */
 const BigStore = {
   db: null,
@@ -857,7 +871,7 @@ const BigStore = {
 };
 
 /* =========================================================
-   PERSISTENCIA (lsGet / lsSet)
+   PERSISTENCIA
    ========================================================= */
 function lsGet(k,def){
   try {
@@ -905,6 +919,10 @@ db.enablePersistence({synchronizeTabs:true}).catch(e=>log('Persistencia: '+e.cod
 const ES_MOVIL = /Android|iPhone|iPad|iPod|Mobile|webOS|BlackBerry|Opera Mini|IEMobile/i.test(navigator.userAgent) ||
                  (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
 
+/* Dimensiones base de la casa (fijas en todos los dispositivos) */
+const CASA_BASE_W = 44;
+const CASA_BASE_H = 28;
+
 /* =========================================================
    ESTADO
    ========================================================= */
@@ -928,8 +946,6 @@ const ESTADOS_HEX = {Pendiente:'#bd4b42',Visitada:'#147a68',Fallida:'#bd8822',Ce
 let _destacarTimer = null;
 let _destacarFinTimer = null;
 let agendaTab = 'dia';
-
-/* Para detección de doble tap */
 let _ultimoTap = {ts:0, id:null, x:0, y:0};
 
 /* =========================================================
@@ -946,7 +962,6 @@ function cerrarModal(id){document.getElementById(id).classList.remove('open');}
 function toggleSection(header){header.parentElement.classList.toggle('collapsed');}
 function fmtBytes(b){if(b<1024)return b+' B';if(b<1024*1024)return (b/1024).toFixed(1)+' KB';return (b/1024/1024).toFixed(2)+' MB';}
 
-/* Extrae posición de un evento (mouse o touch) */
 function getEventPos(e){
   if(!e) return {x:0, y:0};
   if(e.changedTouches && e.changedTouches.length > 0) return {x:e.changedTouches[0].clientX, y:e.changedTouches[0].clientY};
@@ -970,7 +985,7 @@ function keyBackupFecha(eq){return 'cat_v2_'+eq+'_lastbackup';}
 const UO_KEY = 'cat_v2_unidad_operativa';
 
 /* =========================================================
-   CARGAR EQUIPOS (CON SANITIZACIÓN)
+   CARGAR EQUIPOS
    ========================================================= */
 function cargarEquipos(){
   const raw = lsGet(keyEquipos(), []);
@@ -1577,6 +1592,8 @@ function iniciarEquipo(){
   }
   document.getElementById('sin-equipo').style.display='none';
   cargarCacheLocalEquipo();
+  // Limpiar fichas/visitas huérfanas (sin casa válida)
+  limpiarHuerfanos();
   if(S.barrios.length===0){
     document.getElementById('sin-mapa').style.display='block';
     document.getElementById('canvas-zoom-container').style.display='none';
@@ -1588,6 +1605,30 @@ function iniciarEquipo(){
   actualizarIndicadorBackup();
   if(S.usuario)iniciarListenersFirestore();
 }
+
+function limpiarHuerfanos(){
+  if(!S.equipo) return;
+  let eliminados = 0;
+  const casaIds = new Set(Object.keys(S.casas));
+  Object.keys(S.fichas).forEach(idCasa => {
+    if(!casaIds.has(idCasa)){
+      delete S.fichas[idCasa];
+      localStorage.removeItem(keyFicha(S.equipo, idCasa));
+      eliminados++;
+    }
+  });
+  Object.keys(S.visitas).forEach(idCasa => {
+    if(!casaIds.has(idCasa)){
+      delete S.visitas[idCasa];
+      localStorage.removeItem(keyVisitas(S.equipo, idCasa));
+      eliminados++;
+    }
+  });
+  if(eliminados > 0){
+    log('Limpiados ' + eliminados + ' registros huérfanos', 'info');
+  }
+}
+
 function guardarTodoLocal(){
   if(!S.equipo)return;
   Object.entries(S.casas).forEach(([id,c])=>lsSet(keyCasa(S.equipo,id),c));
@@ -1650,23 +1691,113 @@ function crearBarrio(){
   };
   reader.readAsDataURL(file);
 }
+
+/* =========================================================
+   ELIMINAR BARRIO — PURGA TOTAL (locales + nube)
+   ========================================================= */
 function eliminarBarrio(){
   if(!S.barrio){toast('Sin barrio','error');return;}
-  if(!confirm('¿Eliminar el barrio "'+S.barrio.nombre+'" y todas sus casas?'))return;
-  const idB=S.barrio.id;
-  Object.values(S.casas).forEach(c=>{
-    if(c.barrioId===idB){c.eliminado=true;c.actualizadoEn=nowISO();lsSet(keyCasa(S.equipo,c.idCasa),c);subirCasa(c.idCasa);}
+  const idB = S.barrio.id;
+  const nombreB = S.barrio.nombre;
+
+  // Contar datos a eliminar
+  const casasDelBarrio = Object.values(S.casas).filter(c => c.barrioId === idB);
+  const nCasas = casasDelBarrio.length;
+  let nFichas = 0;
+  let nVisitas = 0;
+  casasDelBarrio.forEach(c => {
+    if(S.fichas[c.idCasa]) nFichas++;
+    if(S.visitas[c.idCasa] && S.visitas[c.idCasa].length) nVisitas += S.visitas[c.idCasa].length;
   });
-  S.barrios=S.barrios.filter(b=>b.id!==idB);lsSet(keyBarrios(S.equipo),S.barrios);
+
+  // Confirmación 1 con detalles
+  const msg1 = '⚠️ ELIMINAR EL BARRIO "' + nombreB + '"\n\n' +
+    'Se eliminará PERMANENTEMENTE:\n' +
+    '· ' + nCasas + ' casas\n' +
+    '· ' + nFichas + ' fichas de pacientes\n' +
+    '· ' + nVisitas + ' registros de visitas\n' +
+    '· El mapa del barrio\n\n' +
+    '⚠️ Esta acción NO se puede deshacer.\n\n' +
+    '¿Continuar?';
+  if(!confirm(msg1)) return;
+
+  // Confirmación 2 final
+  const msg2 = 'CONFIRMA UNA VEZ MÁS\n\n' +
+    'Se borrarán definitivamente ' + nCasas + ' casas y ' + nFichas + ' fichas de "' + nombreB + '".\n\n' +
+    'Aceptar para ELIMINAR, Cancelar para abortar.';
+  if(!confirm(msg2)) return;
+
+  // Eliminar cada casa y todos sus datos asociados
+  casasDelBarrio.forEach(c => {
+    const idCasa = c.idCasa;
+
+    // 1. localStorage
+    localStorage.removeItem(keyCasa(S.equipo, idCasa));
+    localStorage.removeItem(keyFicha(S.equipo, idCasa));
+    localStorage.removeItem(keyVisitas(S.equipo, idCasa));
+    localStorage.removeItem(keyHistorial(S.equipo, idCasa));
+
+    // 2. Estado en memoria
+    delete S.casas[idCasa];
+    delete S.fichas[idCasa];
+    delete S.visitas[idCasa];
+    delete S.historial[idCasa];
+
+    // 3. Firestore (todo en paralelo por casa)
+    if(S.usuario){
+      const casaRef = db.collection('catastros').doc(S.equipo);
+      casaRef.collection('casas').doc(idCasa).delete()
+        .catch(e => log('Error borrando casa nube: ' + e.message, 'error'));
+      casaRef.collection('fichas').doc(idCasa).delete()
+        .catch(e => log('Error borrando ficha nube: ' + e.message, 'error'));
+      casaRef.collection('visitas').where('idCasa', '==', idCasa).get()
+        .then(snap => snap.forEach(d => d.ref.delete()))
+        .catch(e => log('Error borrando visitas nube: ' + e.message, 'error'));
+      // Historial: borrar todas las entradas asociadas a esta casa
+      casaRef.collection('historial').get()
+        .then(snap => {
+          snap.forEach(d => {
+            const data = d.data();
+            // Intentar identificar entradas de esta casa
+            if(data && (data.idCasa === idCasa || (data.resumen && data.resumen.includes(idCasa)))){
+              d.ref.delete().catch(()=>{});
+            }
+          });
+        })
+        .catch(() => {});
+    }
+  });
+
+  // Eliminar el barrio de la lista
+  S.barrios = S.barrios.filter(b => b.id !== idB);
+  lsSet(keyBarrios(S.equipo), S.barrios);
+
+  // Eliminar el mapa del barrio
   delete S.mapas[idB];
-  lsSet(keyMapa(S.equipo,idB),null);
-  BigStore.remove(keyMapa(S.equipo,idB));
-  if(S.usuario)db.collection('catastros').doc(S.equipo).collection('mapas').doc(idB).delete().catch(()=>{});
-  S.barrio=null;
-  if(S.barrios.length>0)cambiarBarrio(S.barrios[0].id);
-  else{renderSelectorBarrios();document.getElementById('sin-mapa').style.display='block';document.getElementById('canvas-zoom-container').style.display='none';}
-  subirMetaEquipo();marcarPendiente();actualizarStats();toast('Barrio eliminado','success');
+  localStorage.removeItem(keyMapa(S.equipo, idB));
+  BigStore.remove(keyMapa(S.equipo, idB));
+  if(S.usuario){
+    db.collection('catastros').doc(S.equipo).collection('mapas').doc(idB).delete()
+      .catch(e => log('Error borrando mapa nube: ' + e.message, 'error'));
+  }
+
+  // Actualizar UI
+  S.barrio = null;
+  if(S.barrios.length > 0){
+    cambiarBarrio(S.barrios[0].id);
+  } else {
+    renderSelectorBarrios();
+    document.getElementById('sin-mapa').style.display = 'block';
+    document.getElementById('canvas-zoom-container').style.display = 'none';
+  }
+
+  subirMetaEquipo();
+  marcarPendiente();
+  actualizarStats();
+  log('Barrio eliminado con TODOS sus datos: ' + nombreB, 'ok');
+  toast('Barrio "' + nombreB + '" eliminado con todos sus datos', 'success');
 }
+
 function cambiarBarrio(id){
   if(!id)return;
   cancelarDestacado();
@@ -1725,10 +1856,8 @@ function initCanvas(){
     S.canvas.on('object:modified',onCasaMovida);
     S.canvas.on('mouse:down',onCanvasClick);
 
-    /* ===== NUEVO: Detección de doble clic/tap ===== */
     S.canvas.on('mouse:up', function(opt){
       const t = opt.target;
-      // Si no hay objetivo con idCasa, resetear y salir
       if(!t || !t.idCasa){
         _ultimoTap = {ts:0, id:null, x:0, y:0};
         return;
@@ -1740,12 +1869,9 @@ function initCanvas(){
       const cerca = Math.hypot(pos.x - _ultimoTap.x, pos.y - _ultimoTap.y) < 30;
 
       if(mismo && rapido && cerca){
-        // ¡Doble clic/tap detectado!
         if(S.modoEdicion){
-          // En modo edición → abrir nomenclatura
           ponerNomenclatura();
         } else {
-          // Fuera de edición → abrir ficha completa
           abrirModalFicha(t.idCasa);
         }
         _ultimoTap = {ts:0, id:null, x:0, y:0};
@@ -1862,20 +1988,68 @@ function inicializarGestosTactiles(){
   wrap.addEventListener('touchcancel', function(){ gesto.modo = null; }, { passive: true });
 }
 
+/* =========================================================
+   ON CASA MOVIDA — normaliza escala para tamaño consistente
+   ========================================================= */
 function onCasaMovida(e){
-  const obj=e.target;if(!obj||!obj.idCasa)return;
-  const casa=S.casas[obj.idCasa];if(!casa)return;
-  const antes={left:casa.left,top:casa.top,ancho:casa.ancho,alto:casa.alto,angulo:casa.angulo||0};
+  const obj = e.target;
+  if(!obj || !obj.idCasa) return;
+  const casa = S.casas[obj.idCasa];
+  if(!casa) return;
+
+  // Capturar dimensiones reales renderizadas
+  const anchoReal = Math.round(obj.getScaledWidth());
+  const altoReal = Math.round(obj.getScaledHeight());
+
+  // Guardar el estado anterior para el historial
+  const antes = {
+    left:casa.left,
+    top:casa.top,
+    ancho:casa.ancho,
+    alto:casa.alto,
+    angulo:casa.angulo||0
+  };
+
+  // Actualizar datos
   casa.left = Math.round(obj.left);
   casa.top = Math.round(obj.top);
-  casa.ancho = Math.round(obj.width*(obj.scaleX||1));
-  casa.alto = Math.round(obj.height*(obj.scaleY||1));
-  casa.angulo = Math.round(obj.angle||0);
-  casa.actualizadoEn=nowISO();casa.actualizadoPor=S.usuario?(S.usuario.displayName||S.usuario.email):'local';
-  lsSet(keyCasa(S.equipo,casa.idCasa),casa);
-  agregarHistorial(casa.idCasa,'casa',antes,{left:casa.left,top:casa.top,ancho:casa.ancho,alto:casa.alto,angulo:casa.angulo},'Movimiento de casa');
-  subirCasa(casa.idCasa);marcarPendiente();
+  casa.ancho = anchoReal;
+  casa.alto = altoReal;
+  casa.angulo = Math.round(obj.angle || 0);
+  casa.actualizadoEn = nowISO();
+  casa.actualizadoPor = S.usuario ? (S.usuario.displayName || S.usuario.email) : 'local';
+
+  // Guardar en localStorage
+  lsSet(keyCasa(S.equipo, casa.idCasa), casa);
+  agregarHistorial(casa.idCasa, 'casa', antes,
+    {left:casa.left, top:casa.top, ancho:casa.ancho, alto:casa.alto, angulo:casa.angulo},
+    'Movimiento de casa');
+  subirCasa(casa.idCasa);
+  marcarPendiente();
+
+  // Normalizar el objeto en el canvas: eliminar la escala acumulada
+  // y reconstruirlo con las dimensiones reales.
+  // Esto se hace diferido para no interferir con el evento actual.
+  setTimeout(() => {
+    if(!S.canvas) return;
+    try{
+      const existente = S.canvas.getObjects().find(o => o.idCasa === casa.idCasa);
+      if(!existente) return;
+      const estabaActivo = S.canvas.getActiveObject() === existente;
+      S.canvas.remove(existente);
+      const nuevo = construirGrupoCasa(casa);
+      S.canvas.add(nuevo);
+      if(estabaActivo){
+        S.canvas.setActiveObject(nuevo);
+      }
+      S.canvas.renderAll();
+      S.canvas.calcOffset();
+    }catch(err){
+      log('Error normalizando casa: ' + err.message, 'error');
+    }
+  }, 30);
 }
+
 function onCanvasClick(opt){
   const t=opt.target;if(!t||!t.idCasa)return;
   if(S.modoEdicion)return;
@@ -1893,36 +2067,45 @@ function renderCasas(){
   aplicarModo();aplicarFiltrosVisuales();
   S.canvas.renderAll();S.canvas.calcOffset();
 }
+
+/* =========================================================
+   CONSTRUIR CASA — siempre con dimensiones exactas
+   ========================================================= */
 function construirGrupoCasa(c){
-  const ancho=c.ancho||44,alto=c.alto||28;
-  const fuente=Math.max(8,Math.min(12,ancho/5));
-  const rect=new fabric.Rect({
-    width:ancho, height:alto,
-    fill:'rgba(189,75,66,0.35)', stroke:'#bd4b42',
-    strokeWidth:2, rx:5, ry:5
+  const ancho = c.ancho || CASA_BASE_W;
+  const alto = c.alto || CASA_BASE_H;
+  const fuente = Math.max(8, Math.min(12, ancho / 5));
+  const rect = new fabric.Rect({
+    width: ancho, height: alto,
+    fill: 'rgba(189,75,66,0.35)', stroke: '#bd4b42',
+    strokeWidth: 2, rx: 5, ry: 5
   });
-  const text=new fabric.Textbox(c.nomenclatura||c.idCasa,{
-    fontSize:fuente, fontFamily:'Segoe UI', fill:'#0c273b',
-    textAlign:'center', width:ancho, top:alto*0.25, left:0,
-    fontWeight:'bold', splitByGrapheme:true
+  const text = new fabric.Textbox(c.nomenclatura || c.idCasa, {
+    fontSize: fuente, fontFamily: 'Segoe UI', fill: '#0c273b',
+    textAlign: 'center', width: ancho, top: alto * 0.25, left: 0,
+    fontWeight: 'bold', splitByGrapheme: true
   });
-  const grupo=new fabric.Group([rect,text],{
-    left:Math.round(c.left||0),
-    top:Math.round(c.top||0),
-    angle: c.angulo||0,
-    hasControls:true, hasBorders:true,
-    selectable:true, evented:true,
-    lockMovementX:false, lockMovementY:false,
-    lockScalingX:false, lockScalingY:false,
-    lockRotation:false,
-    minScaleLimit:0.15,
-    rotatingPointOffset:24,
-    originX:'left', originY:'top'
+  const grupo = new fabric.Group([rect, text], {
+    left: Math.round(c.left || 0),
+    top: Math.round(c.top || 0),
+    angle: c.angulo || 0,
+    // IMPORTANTE: scale siempre en 1, dimensiones ya incluidas en el ancho/alto
+    scaleX: 1,
+    scaleY: 1,
+    hasControls: true, hasBorders: true,
+    selectable: true, evented: true,
+    lockMovementX: false, lockMovementY: false,
+    lockScalingX: false, lockScalingY: false,
+    lockRotation: false,
+    minScaleLimit: 0.15,
+    rotatingPointOffset: 24,
+    originX: 'left', originY: 'top'
   });
-  grupo.set('idCasa',c.idCasa);
+  grupo.set('idCasa', c.idCasa);
   grupo.setCoords();
   return grupo;
 }
+
 function crearCasa(){
   if(!S.canvas||!S.barrio||!S.equipo){toast('Selecciona equipo y barrio','error');return;}
   const wrap=document.getElementById('mapa-wrapper');
@@ -1930,37 +2113,49 @@ function crearCasa(){
   const rw=wrap.getBoundingClientRect(),rc=cont.getBoundingClientRect();
   const cx=(rw.left+rw.width/2-rc.left)/S.zoom,cy=(rw.top+rw.height/2-rc.top)/S.zoom;
   const idCasa='CASA-'+uid();
-  const casa={idCasa,barrioId:S.barrio.id,nomenclatura:idCasa,
-    left:Math.round(cx-22),
-    top:Math.round(cy-14),
-    ancho:44,alto:28,angulo:0,estado:'Pendiente',eliminado:false,
-    actualizadoEn:nowISO(),
-    actualizadoPor:S.usuario?(S.usuario.displayName||S.usuario.email):'local'};
-  S.casas[idCasa]=casa;lsSet(keyCasa(S.equipo,idCasa),casa);
-  const g=construirGrupoCasa(casa);S.canvas.add(g);
+  const casa={
+    idCasa,
+    barrioId: S.barrio.id,
+    nomenclatura: idCasa,
+    left: Math.round(cx - CASA_BASE_W/2),
+    top: Math.round(cy - CASA_BASE_H/2),
+    ancho: CASA_BASE_W,
+    alto: CASA_BASE_H,
+    angulo: 0,
+    estado: 'Pendiente',
+    eliminado: false,
+    actualizadoEn: nowISO(),
+    actualizadoPor: S.usuario ? (S.usuario.displayName || S.usuario.email) : 'local'
+  };
+  S.casas[idCasa]=casa;
+  lsSet(keyCasa(S.equipo,idCasa),casa);
+  const g=construirGrupoCasa(casa);
+  S.canvas.add(g);
   if(!S.modoEdicion){S.modoEdicion=true;aplicarModo();actualizarBotonEditar();}
   S.canvas.setActiveObject(g);
   S.canvas.renderAll();
   actualizarVisibilidadFAB();
-  subirCasa(idCasa);marcarPendiente();actualizarStats();
+  subirCasa(idCasa);
+  marcarPendiente();
+  actualizarStats();
   toast('Casa creada. Haz doble clic para nombrarla.','info');
 }
 
-/* ===== NUEVO: Modal de nomenclatura ===== */
+/* =========================================================
+   MODAL NOMENCLATURA
+   ========================================================= */
 function ponerNomenclatura(){
   if(!S.canvas)return;
   const obj=S.canvas.getActiveObject();
   if(!obj||!obj.idCasa){toast('Selecciona una casa primero','error');return;}
   const casa=S.casas[obj.idCasa];if(!casa)return;
   document.getElementById('nomen-input').value = casa.nomenclatura || '';
-  // Mostrar pistas en el modal
   const hint = document.getElementById('nomen-hint');
   const barrio = S.barrios.find(b=>b.id===casa.barrioId);
   if(hint && barrio){
     hint.textContent = 'Barrio: ' + barrio.nombre + ' · Debe ser única en este barrio.';
   }
   abrirModal('modal-nomenclatura');
-  // Enfocar y seleccionar el input
   setTimeout(()=>{
     const inp = document.getElementById('nomen-input');
     if(inp){ inp.focus(); inp.select(); }
@@ -2162,8 +2357,8 @@ function centrarEnCasa(casa){
   if(!wrap) return;
   const cont = document.getElementById('canvas-zoom-container');
   if(!cont) return;
-  const cx = (casa.left + (casa.ancho||44)/2) * S.zoom;
-  const cy = (casa.top + (casa.alto||28)/2) * S.zoom;
+  const cx = (casa.left + (casa.ancho||CASA_BASE_W)/2) * S.zoom;
+  const cy = (casa.top + (casa.alto||CASA_BASE_H)/2) * S.zoom;
   const contLeft = cont.offsetLeft || 0;
   const contTop = cont.offsetTop || 0;
   const targetScrollL = contLeft + cx - wrap.clientWidth/2;
@@ -2402,6 +2597,7 @@ function abrirMatriz(tipo){
   } else if(tipo==='eais'){
     S.barrios.forEach(b=>lista=lista.concat(recolectarPacientesBarrio(b.id)));titulo='🏥 '+S.equipo;
   } else {
+    // ============= TOTAL UO =============
     if(!S.usuario){
       tbody.innerHTML='<tr><td colspan="13" style="text-align:center;padding:20px;color:#ffa89e">Conecta con Google para ver el total de la unidad</td></tr>';
       abrirModal('modal-matriz');
@@ -2410,45 +2606,55 @@ function abrirMatriz(tipo){
     abrirModal('modal-matriz');
     tbody.innerHTML='<tr><td colspan="13" style="text-align:center;padding:20px">Cargando todos los equipos...</td></tr>';
     (async () => {
-      try{
-        const [uoDoc, equiposSnap] = await Promise.all([
-          db.collection('config').doc('unidad_operativa').get(),
-          db.collection('catastros').get()
-        ]);
-        const uoData = uoDoc.exists ? uoDoc.data() : null;
-        const equipoIds = [];
-        equiposSnap.forEach(doc => equipoIds.push(doc.id));
+      try {
+        // 1) UO — intentar leer de la nube, si falla usar local
+        let uoData = S.uo;
+        try {
+          const uoDoc = await db.collection('config').doc('unidad_operativa').get();
+          if(uoDoc.exists) uoData = uoDoc.data();
+        } catch(e){ /* usar local */ }
+
+        // 2) Lista de equipos desde LOCAL (no requiere permiso de list sobre 'catastros')
+        const equipos = cargarEquipos();
+        const equipoIds = equipos.map(e => e.id);
         if(S.equipo && !equipoIds.includes(S.equipo)) equipoIds.push(S.equipo);
 
         const todos = [];
         for(const eqId of equipoIds){
-          try{
+          try {
             let casas = {};
             let fichas = {};
             let barrios = [];
 
             if(eqId === S.equipo){
+              // Equipo activo: datos locales (más frescos)
               casas = S.casas;
               fichas = S.fichas;
               barrios = S.barrios;
             } else {
-              const [casasSnap, fichasSnap, metaSnap] = await Promise.all([
+              // Otros equipos: leer de Firestore (por subcolección)
+              const [casasSnap, fichasSnap] = await Promise.all([
                 db.collection('catastros').doc(eqId).collection('casas').get(),
-                db.collection('catastros').doc(eqId).collection('fichas').get(),
-                db.collection('catastros').doc(eqId).collection('meta').doc('info').get()
+                db.collection('catastros').doc(eqId).collection('fichas').get()
               ]);
               casasSnap.forEach(c => { casas[c.id] = c.data(); });
               fichasSnap.forEach(f => { fichas[f.id] = f.data(); });
-              if(metaSnap.exists) barrios = metaSnap.data().barrios || [];
+              // Meta (barrios) — opcional
+              try {
+                const metaSnap = await db.collection('catastros').doc(eqId).collection('meta').doc('info').get();
+                if(metaSnap.exists) barrios = metaSnap.data().barrios || [];
+              } catch(e){ /* sin meta */ }
             }
 
-            Object.entries(fichas).forEach(([idCasa, ficha])=>{
+            Object.entries(fichas).forEach(([idCasa, ficha]) => {
               if(!ficha || !ficha.integrantes || ficha.integrantes.length === 0) return;
-              const casa = casas[idCasa] || {};
-              if(casa.eliminado) return;
-              const barrio = barrios.find(b=>b.id===casa.barrioId);
+              const casa = casas[idCasa];
+              // IMPORTANTE: si no hay casa o está eliminada, NO incluir la ficha (huérfana)
+              if(!casa || casa.eliminado) return;
+
+              const barrio = barrios.find(b => b.id === casa.barrioId);
               const barrioNombre = barrio ? barrio.nombre : '';
-              ficha.integrantes.forEach(i=>{
+              ficha.integrantes.forEach(i => {
                 todos.push(Object.assign({
                   equipo: eqId,
                   barrio: barrioNombre,
@@ -2462,13 +2668,14 @@ function abrirMatriz(tipo){
                 }, i));
               });
             });
-          }catch(err){
-            log('Error leyendo '+eqId+': '+err.message,'error');
+          } catch(err){
+            log('Error leyendo ' + eqId + ': ' + err.message, 'error');
           }
         }
+
         S.pacienteMatriz = todos;
-        renderMatriz(todos, '🌎 Total de la unidad · '+equipoIds.length+' equipo(s)');
-      }catch(e){
+        renderMatriz(todos, '🌎 Total de la unidad · ' + equipoIds.length + ' equipo(s)');
+      } catch(e){
         tbody.innerHTML='<tr><td colspan="13" style="text-align:center;color:#ffa89e">Error: '+e.message+'</td></tr>';
         log('Error total: '+e.message,'error');
       }
