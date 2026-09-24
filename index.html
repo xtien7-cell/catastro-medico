@@ -22,7 +22,7 @@ input,select,textarea{font-family:inherit}
 #app{display:grid;grid-template-rows:56px 1fr;height:100vh}
 #topbar{background:linear-gradient(180deg,#0c273b,#0a1e2e);color:#e7f0f7;display:flex;align-items:center;gap:10px;padding:0 16px;box-shadow:0 2px 12px rgba(0,0,0,.35);z-index:20;border-bottom:1px solid #1e3a4d}
 #topbar h1{font-size:15px;margin:0;font-weight:700;letter-spacing:.6px;white-space:nowrap;display:flex;align-items:center;gap:8px}
-#topbar h1 img{width:28px;height:28px;border-radius:7px;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+#topbar h1 img,#topbar h1 svg{width:28px;height:28px;border-radius:7px;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.4)}
 #topbar .spacer{flex:1}
 #topbar .pill{background:#172a36;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;border:1px solid #294150;color:#a3bac6;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
 #topbar .pill.clickable{cursor:pointer}
@@ -114,7 +114,7 @@ input,select,textarea{font-family:inherit}
 #sin-mapa h2,#sin-equipo h2{margin:0 0 8px;color:#ffd77a;font-size:16px;font-weight:600}
 #sin-equipo h2{color:#8ee0cb}
 #sin-mapa p,#sin-equipo p{margin:0;color:#a3bac6;font-size:13px}
-#sin-equipo img{width:110px;height:110px;border-radius:26px;display:block;margin:0 auto 22px;box-shadow:0 12px 32px rgba(0,0,0,.45)}
+#sin-equipo img,#sin-equipo svg{width:110px;height:110px;border-radius:26px;display:block;margin:0 auto 22px;box-shadow:0 12px 32px rgba(0,0,0,.45)}
 
 #fab-nomenclatura{
   position:absolute;bottom:24px;right:364px;width:60px;height:60px;border-radius:50%;
@@ -297,6 +297,51 @@ input,select,textarea{font-family:inherit}
 .eais-item button:hover{background:#bd4b42}
 .eais-item .badge{font-size:10px;color:#8ee0cb;background:#134e42;padding:2px 6px;border-radius:8px;margin-right:6px}
 
+/* ✨ NUEVO === SPLASH DE BIENVENIDA === */
+#splash{
+  position:fixed;inset:0;z-index:9999;
+  background:radial-gradient(circle at 50% 40%, #0e2a40 0%, #0a1e2e 50%, #05111a 100%);
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .8s ease, visibility .8s ease;
+  overflow:hidden;
+}
+#splash.hidden{opacity:0;visibility:hidden;pointer-events:none}
+#splash::before{
+  content:'';position:absolute;inset:-25%;
+  background:radial-gradient(circle at 50% 40%, rgba(0,180,255,.18), transparent 60%);
+  animation:pulseBg 4s ease-in-out infinite;
+}
+@keyframes pulseBg{
+  0%,100%{transform:scale(1);opacity:.85}
+  50%{transform:scale(1.12);opacity:1}
+}
+.splash-content{text-align:center;position:relative;z-index:2}
+.splash-logo{
+  width:128px;height:128px;display:block;margin:0 auto 22px;
+  filter:drop-shadow(0 12px 34px rgba(0,180,255,.55));
+  animation:floatLogo 3s ease-in-out infinite, fadeUp .9s ease-out both;
+}
+@keyframes floatLogo{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-9px)}
+}
+.splash-title{
+  font-size:clamp(38px,10vw,52px);font-weight:800;letter-spacing:8px;margin:0 0 12px;
+  background:linear-gradient(135deg,#7ce0ff,#00e6b8);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:fadeUp .9s ease-out .2s both;
+}
+.splash-subtitle{
+  color:#8ec8ff;font-size:12.5px;letter-spacing:3.5px;line-height:1.75;
+  text-transform:uppercase;margin:0;font-weight:600;
+  animation:fadeUp .9s ease-out .45s both;
+}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(22px)}
+  to{opacity:1;transform:translateY(0)}
+}
+/* ✨ FIN SPLASH */
+
 @media (max-width:768px){
   #body{grid-template-columns:1fr}
   #sidebar{position:fixed;left:-280px;top:56px;bottom:0;width:280px;z-index:16;transition:left .3s;box-shadow:8px 0 24px rgba(0,0,0,.5)}
@@ -309,11 +354,11 @@ input,select,textarea{font-family:inherit}
   #toolbar button span.txt{display:none}
   #stats-bar{grid-template-columns:repeat(2,1fr)}
   #topbar h1{font-size:13px}
-  #topbar h1 img{width:24px;height:24px}
+  #topbar h1 img,#topbar h1 svg{width:24px;height:24px}
   #topbar .pill{font-size:11px;padding:5px 9px;max-width:140px}
   #fab-nomenclatura{bottom:16px;right:16px;width:54px;height:54px;font-size:22px}
   #fab-nomenclatura .fab-label{display:none}
-  #sin-equipo img{width:90px;height:90px}
+  #sin-equipo img,#sin-equipo svg{width:90px;height:90px}
 
   /* TOOLBAR SCROLLABLE EN MÓVIL — garantiza que nunca se pierda un botón */
   #toolbar{
@@ -333,11 +378,47 @@ input,select,textarea{font-family:inherit}
 </head>
 <body>
 
+<!-- ✨ NUEVO === SPLASH DE BIENVENIDA === -->
+<div id="splash">
+  <div class="splash-content">
+    <svg class="splash-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="splashGrad" x1="0%" y1="0%" x2="25%" y2="100%">
+          <stop offset="0%"  stop-color="#33d6ff"/>
+          <stop offset="55%" stop-color="#0099ff"/>
+          <stop offset="100%" stop-color="#0055cc"/>
+        </linearGradient>
+      </defs>
+      <path d="M50,6 C 25,6, 8,26, 8,49 C 8,72, 50,96, 50,96 C 50,96, 92,72, 92,49 C 92,26, 75,6, 50,6 Z"
+            fill="url(#splashGrad)"/>
+      <circle cx="50" cy="47" r="24" fill="#0c273b"/>
+      <rect x="44" y="37" width="12" height="20" rx="2" fill="#00e6b8"/>
+      <rect x="40" y="41" width="20" height="12" rx="2" fill="#00e6b8"/>
+    </svg>
+    <h1 class="splash-title">CAMIT</h1>
+    <p class="splash-subtitle">Catastro Médico<br>Interactivo Territorial</p>
+  </div>
+</div>
+<!-- ✨ FIN SPLASH -->
+
 <div id="app">
   <header id="topbar">
     <button id="btn-hamburguesa" onclick="toggleSidebar()">☰</button>
     <h1>
-      <img src="camit-icon.png" alt="CAMIT" onerror="this.style.display='none'">
+      <!-- ✨ NUEVO: isotipo SVG inline (ya no depende de camit-icon.png) -->
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 5px rgba(0,0,0,.5))">
+        <defs>
+          <linearGradient id="topGrad" x1="0%" y1="0%" x2="25%" y2="100%">
+            <stop offset="0%"  stop-color="#33d6ff"/>
+            <stop offset="55%" stop-color="#0099ff"/>
+            <stop offset="100%" stop-color="#0055cc"/>
+          </linearGradient>
+        </defs>
+        <path d="M50,6 C 25,6, 8,26, 8,49 C 8,72, 50,96, 50,96 C 50,96, 92,72, 92,49 C 92,26, 75,6, 50,6 Z" fill="url(#topGrad)"/>
+        <circle cx="50" cy="47" r="24" fill="#0c273b"/>
+        <rect x="44" y="37" width="12" height="20" rx="2" fill="#00e6b8"/>
+        <rect x="40" y="41" width="20" height="12" rx="2" fill="#00e6b8"/>
+      </svg>
       <span>CAMIT</span>
     </h1>
     <span class="pill uo clickable" id="uo-pill" onclick="abrirModalUnidad()" title="Editar Unidad Operativa">
@@ -472,7 +553,20 @@ input,select,textarea{font-family:inherit}
       <div id="workspace">
         <div id="mapa-wrapper">
           <div id="sin-equipo">
-            <img src="camit-icon.png" alt="CAMIT" onerror="this.style.display='none'">
+            <!-- ✨ NUEVO: isotipo SVG inline -->
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))">
+              <defs>
+                <linearGradient id="noEaisGrad" x1="0%" y1="0%" x2="25%" y2="100%">
+                  <stop offset="0%"  stop-color="#33d6ff"/>
+                  <stop offset="55%" stop-color="#0099ff"/>
+                  <stop offset="100%" stop-color="#0055cc"/>
+                </linearGradient>
+              </defs>
+              <path d="M50,6 C 25,6, 8,26, 8,49 C 8,72, 50,96, 50,96 C 50,96, 92,72, 92,49 C 92,26, 75,6, 50,6 Z" fill="url(#noEaisGrad)"/>
+              <circle cx="50" cy="47" r="24" fill="#0c273b"/>
+              <rect x="44" y="37" width="12" height="20" rx="2" fill="#00e6b8"/>
+              <rect x="40" y="41" width="20" height="12" rx="2" fill="#00e6b8"/>
+            </svg>
             <h2>Selecciona un Equipo</h2>
             <p>Crea o edita la Unidad Operativa para generar equipos EAIS.</p>
           </div>
@@ -760,6 +854,9 @@ input,select,textarea{font-family:inherit}
 <div id="toast"></div>
 
 <script>
+/* ✨ FIX: marca de tiempo para saber cuándo se inició la app (usada por el splash) */
+window._camitStart = Date.now();
+
 /* =========================================================
    BIGSTORE - IndexedDB
    ========================================================= */
@@ -1710,7 +1807,6 @@ function eliminarBarrio(){
   const idB = S.barrio.id;
   const nombreB = S.barrio.nombre;
 
-  // Contar datos a eliminar
   const casasDelBarrio = Object.values(S.casas).filter(c => c.barrioId === idB);
   const nCasas = casasDelBarrio.length;
   let nFichas = 0;
@@ -1720,7 +1816,6 @@ function eliminarBarrio(){
     if(S.visitas[c.idCasa] && S.visitas[c.idCasa].length) nVisitas += S.visitas[c.idCasa].length;
   });
 
-  // Confirmación 1 con detalles
   const msg1 = '⚠️ ELIMINAR EL BARRIO "' + nombreB + '"\n\n' +
     'Se eliminará PERMANENTEMENTE:\n' +
     '· ' + nCasas + ' casas\n' +
@@ -1731,29 +1826,24 @@ function eliminarBarrio(){
     '¿Continuar?';
   if(!confirm(msg1)) return;
 
-  // Confirmación 2 final
   const msg2 = 'CONFIRMA UNA VEZ MÁS\n\n' +
     'Se borrarán definitivamente ' + nCasas + ' casas y ' + nFichas + ' fichas de "' + nombreB + '".\n\n' +
     'Aceptar para ELIMINAR, Cancelar para abortar.';
   if(!confirm(msg2)) return;
 
-  // Eliminar cada casa y todos sus datos asociados
   casasDelBarrio.forEach(c => {
     const idCasa = c.idCasa;
 
-    // 1. localStorage
     localStorage.removeItem(keyCasa(S.equipo, idCasa));
     localStorage.removeItem(keyFicha(S.equipo, idCasa));
     localStorage.removeItem(keyVisitas(S.equipo, idCasa));
     localStorage.removeItem(keyHistorial(S.equipo, idCasa));
 
-    // 2. Estado en memoria
     delete S.casas[idCasa];
     delete S.fichas[idCasa];
     delete S.visitas[idCasa];
     delete S.historial[idCasa];
 
-    // 3. Firestore (todo en paralelo por casa)
     if(S.usuario){
       const casaRef = db.collection('catastros').doc(S.equipo);
       casaRef.collection('casas').doc(idCasa).delete()
@@ -1763,12 +1853,10 @@ function eliminarBarrio(){
       casaRef.collection('visitas').where('idCasa', '==', idCasa).get()
         .then(snap => snap.forEach(d => d.ref.delete()))
         .catch(e => log('Error borrando visitas nube: ' + e.message, 'error'));
-      // Historial: borrar todas las entradas asociadas a esta casa
       casaRef.collection('historial').get()
         .then(snap => {
           snap.forEach(d => {
             const data = d.data();
-            // Intentar identificar entradas de esta casa
             if(data && (data.idCasa === idCasa || (data.resumen && data.resumen.includes(idCasa)))){
               d.ref.delete().catch(()=>{});
             }
@@ -1778,11 +1866,9 @@ function eliminarBarrio(){
     }
   });
 
-  // Eliminar el barrio de la lista
   S.barrios = S.barrios.filter(b => b.id !== idB);
   lsSet(keyBarrios(S.equipo), S.barrios);
 
-  // Eliminar el mapa del barrio
   delete S.mapas[idB];
   localStorage.removeItem(keyMapa(S.equipo, idB));
   BigStore.remove(keyMapa(S.equipo, idB));
@@ -1791,7 +1877,6 @@ function eliminarBarrio(){
       .catch(e => log('Error borrando mapa nube: ' + e.message, 'error'));
   }
 
-  // Actualizar UI
   S.barrio = null;
   if(S.barrios.length > 0){
     cambiarBarrio(S.barrios[0].id);
@@ -1999,7 +2084,8 @@ function inicializarGestosTactiles(){
 }
 
 /* =========================================================
-   ON CASA MOVIDA — normaliza escala para tamaño consistente
+   // ✨ FIX: ON CASA MOVIDA — ya no crece al mover
+   Solo recalcula dimensiones cuando hubo escalado real.
    ========================================================= */
 function onCasaMovida(e){
   const obj = e.target;
@@ -2007,29 +2093,34 @@ function onCasaMovida(e){
   const casa = S.casas[obj.idCasa];
   if(!casa) return;
 
-  // Capturar dimensiones reales renderizadas
-  const anchoReal = Math.round(obj.getScaledWidth());
-  const altoReal = Math.round(obj.getScaledHeight());
-
-  // Guardar el estado anterior para el historial
   const antes = {
-    left:casa.left,
-    top:casa.top,
-    ancho:casa.ancho,
-    alto:casa.alto,
-    angulo:casa.angulo||0
+    left: casa.left, top: casa.top,
+    ancho: casa.ancho, alto: casa.alto,
+    angulo: casa.angulo || 0
   };
 
-  // Actualizar datos
-  casa.left = Math.round(obj.left);
-  casa.top = Math.round(obj.top);
-  casa.ancho = anchoReal;
-  casa.alto = altoReal;
+  // Detectar escalado real (los tiradores modifican scaleX/scaleY)
+  const sx = obj.scaleX || 1;
+  const sy = obj.scaleY || 1;
+  const huboEscalado = Math.abs(sx - 1) > 0.01 || Math.abs(sy - 1) > 0.01;
+
+  let anchoFinal = casa.ancho || CASA_BASE_W;
+  let altoFinal  = casa.alto  || CASA_BASE_H;
+
+  if(huboEscalado){
+    anchoFinal = Math.max(24, Math.round((casa.ancho || CASA_BASE_W) * sx));
+    altoFinal  = Math.max(16, Math.round((casa.alto  || CASA_BASE_H) * sy));
+  }
+  // Si solo fue movimiento → conservamos ancho/alto. Adiós bug de crecimiento.
+
+  casa.left  = Math.round(obj.left);
+  casa.top   = Math.round(obj.top);
+  casa.ancho = anchoFinal;
+  casa.alto  = altoFinal;
   casa.angulo = Math.round(obj.angle || 0);
   casa.actualizadoEn = nowISO();
   casa.actualizadoPor = S.usuario ? (S.usuario.displayName || S.usuario.email) : 'local';
 
-  // Guardar en localStorage
   lsSet(keyCasa(S.equipo, casa.idCasa), casa);
   agregarHistorial(casa.idCasa, 'casa', antes,
     {left:casa.left, top:casa.top, ancho:casa.ancho, alto:casa.alto, angulo:casa.angulo},
@@ -2037,9 +2128,7 @@ function onCasaMovida(e){
   subirCasa(casa.idCasa);
   marcarPendiente();
 
-  // Normalizar el objeto en el canvas: eliminar la escala acumulada
-  // y reconstruirlo con las dimensiones reales.
-  // Esto se hace diferido para no interferir con el evento actual.
+  // Reconstruir con scale=1 y dimensiones exactas
   setTimeout(() => {
     if(!S.canvas) return;
     try{
@@ -2079,27 +2168,34 @@ function renderCasas(){
 }
 
 /* =========================================================
-   CONSTRUIR CASA — siempre con dimensiones exactas
+   // ✨ FIX: CONSTRUIR CASA — sin overflow del texto
    ========================================================= */
 function construirGrupoCasa(c){
   const ancho = c.ancho || CASA_BASE_W;
-  const alto = c.alto || CASA_BASE_H;
-  const fuente = Math.max(8, Math.min(12, ancho / 5));
+  const alto  = c.alto  || CASA_BASE_H;
+  // Fuente adaptada al espacio real, así el texto nunca sobresale del rect
+  const fuente = Math.max(7, Math.min(11, Math.min(ancho / 5, alto / 2.6)));
+
   const rect = new fabric.Rect({
     width: ancho, height: alto,
     fill: 'rgba(189,75,66,0.35)', stroke: '#bd4b42',
-    strokeWidth: 2, rx: 5, ry: 5
+    strokeWidth: 2, rx: 5, ry: 5,
+    originX: 'left', originY: 'top'
   });
+
   const text = new fabric.Textbox(c.nomenclatura || c.idCasa, {
     fontSize: fuente, fontFamily: 'Segoe UI', fill: '#0c273b',
-    textAlign: 'center', width: ancho, top: alto * 0.25, left: 0,
+    textAlign: 'center',
+    width: Math.max(10, ancho - 4),
+    left: ancho / 2, top: alto / 2,
+    originX: 'center', originY: 'center',
     fontWeight: 'bold', splitByGrapheme: true
   });
+
   const grupo = new fabric.Group([rect, text], {
     left: Math.round(c.left || 0),
-    top: Math.round(c.top || 0),
+    top:  Math.round(c.top  || 0),
     angle: c.angulo || 0,
-    // IMPORTANTE: scale siempre en 1, dimensiones ya incluidas en el ancho/alto
     scaleX: 1,
     scaleY: 1,
     hasControls: true, hasBorders: true,
@@ -2617,14 +2713,12 @@ function abrirMatriz(tipo){
     tbody.innerHTML='<tr><td colspan="13" style="text-align:center;padding:20px">Cargando todos los equipos...</td></tr>';
     (async () => {
       try {
-        // 1) UO — intentar leer de la nube, si falla usar local
         let uoData = S.uo;
         try {
           const uoDoc = await db.collection('config').doc('unidad_operativa').get();
           if(uoDoc.exists) uoData = uoDoc.data();
         } catch(e){ /* usar local */ }
 
-        // 2) Lista de equipos desde LOCAL (no requiere permiso de list sobre 'catastros')
         const equipos = cargarEquipos();
         const equipoIds = equipos.map(e => e.id);
         if(S.equipo && !equipoIds.includes(S.equipo)) equipoIds.push(S.equipo);
@@ -2637,19 +2731,16 @@ function abrirMatriz(tipo){
             let barrios = [];
 
             if(eqId === S.equipo){
-              // Equipo activo: datos locales (más frescos)
               casas = S.casas;
               fichas = S.fichas;
               barrios = S.barrios;
             } else {
-              // Otros equipos: leer de Firestore (por subcolección)
               const [casasSnap, fichasSnap] = await Promise.all([
                 db.collection('catastros').doc(eqId).collection('casas').get(),
                 db.collection('catastros').doc(eqId).collection('fichas').get()
               ]);
               casasSnap.forEach(c => { casas[c.id] = c.data(); });
               fichasSnap.forEach(f => { fichas[f.id] = f.data(); });
-              // Meta (barrios) — opcional
               try {
                 const metaSnap = await db.collection('catastros').doc(eqId).collection('meta').doc('info').get();
                 if(metaSnap.exists) barrios = metaSnap.data().barrios || [];
@@ -2659,7 +2750,6 @@ function abrirMatriz(tipo){
             Object.entries(fichas).forEach(([idCasa, ficha]) => {
               if(!ficha || !ficha.integrantes || ficha.integrantes.length === 0) return;
               const casa = casas[idCasa];
-              // IMPORTANTE: si no hay casa o está eliminada, NO incluir la ficha (huérfana)
               if(!casa || casa.eliminado) return;
 
               const barrio = barrios.find(b => b.id === casa.barrioId);
@@ -3275,6 +3365,18 @@ window.addEventListener('load', async () => {
       if(S.canvas&&S.canvas.getActiveObject())eliminarSeleccionado();
     }
   });
+
+  // ✨ NUEVO: Ocultar splash de bienvenida (mínimo 1.6 s visible, luego fundido)
+  const splash = document.getElementById('splash');
+  const splashStart = window._camitStart || Date.now();
+  const elapsed = Date.now() - splashStart;
+  const wait = Math.max(0, 1600 - elapsed);
+  setTimeout(() => {
+    if(splash){
+      splash.classList.add('hidden');
+      setTimeout(() => splash.remove(), 900);
+    }
+  }, wait);
 
   log('Listo','ok');
 });
