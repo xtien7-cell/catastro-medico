@@ -22,7 +22,7 @@ input,select,textarea{font-family:inherit}
 #app{display:grid;grid-template-rows:56px 1fr;height:100vh}
 #topbar{background:linear-gradient(180deg,#0c273b,#0a1e2e);color:#e7f0f7;display:flex;align-items:center;gap:10px;padding:0 16px;box-shadow:0 2px 12px rgba(0,0,0,.35);z-index:20;border-bottom:1px solid #1e3a4d}
 #topbar h1{font-size:15px;margin:0;font-weight:700;letter-spacing:.6px;white-space:nowrap;display:flex;align-items:center;gap:8px}
-#topbar h1 img,#topbar h1 svg{width:28px;height:28px;border-radius:7px;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+#topbar h1 img,#topbar h1 svg{width:28px;height:28px;flex-shrink:0;filter:drop-shadow(0 2px 5px rgba(0,0,0,.5))}
 #topbar .spacer{flex:1}
 #topbar .pill{background:#172a36;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;border:1px solid #294150;color:#a3bac6;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
 #topbar .pill.clickable{cursor:pointer}
@@ -114,7 +114,7 @@ input,select,textarea{font-family:inherit}
 #sin-mapa h2,#sin-equipo h2{margin:0 0 8px;color:#ffd77a;font-size:16px;font-weight:600}
 #sin-equipo h2{color:#8ee0cb}
 #sin-mapa p,#sin-equipo p{margin:0;color:#a3bac6;font-size:13px}
-#sin-equipo img,#sin-equipo svg{width:110px;height:110px;border-radius:26px;display:block;margin:0 auto 22px;box-shadow:0 12px 32px rgba(0,0,0,.45)}
+#sin-equipo img,#sin-equipo svg{width:110px;height:110px;display:block;margin:0 auto 22px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
 
 #fab-nomenclatura{
   position:absolute;bottom:24px;right:364px;width:60px;height:60px;border-radius:50%;
@@ -297,7 +297,7 @@ input,select,textarea{font-family:inherit}
 .eais-item button:hover{background:#bd4b42}
 .eais-item .badge{font-size:10px;color:#8ee0cb;background:#134e42;padding:2px 6px;border-radius:8px;margin-right:6px}
 
-/* ✨ NUEVO === SPLASH DE BIENVENIDA === */
+/* === SPLASH DE BIENVENIDA === */
 #splash{
   position:fixed;inset:0;z-index:9999;
   background:radial-gradient(circle at 50% 40%, #0e2a40 0%, #0a1e2e 50%, #05111a 100%);
@@ -340,7 +340,6 @@ input,select,textarea{font-family:inherit}
   from{opacity:0;transform:translateY(22px)}
   to{opacity:1;transform:translateY(0)}
 }
-/* ✨ FIN SPLASH */
 
 @media (max-width:768px){
   #body{grid-template-columns:1fr}
@@ -360,7 +359,6 @@ input,select,textarea{font-family:inherit}
   #fab-nomenclatura .fab-label{display:none}
   #sin-equipo img,#sin-equipo svg{width:90px;height:90px}
 
-  /* TOOLBAR SCROLLABLE EN MÓVIL — garantiza que nunca se pierda un botón */
   #toolbar{
     overflow-x:auto;
     flex-wrap:nowrap;
@@ -378,46 +376,59 @@ input,select,textarea{font-family:inherit}
 </head>
 <body>
 
-<!-- ✨ NUEVO === SPLASH DE BIENVENIDA === -->
+<!-- SPLASH DE BIENVENIDA -->
 <div id="splash">
   <div class="splash-content">
     <svg class="splash-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="splashGrad" x1="0%" y1="0%" x2="25%" y2="100%">
-          <stop offset="0%"  stop-color="#33d6ff"/>
-          <stop offset="55%" stop-color="#0099ff"/>
-          <stop offset="100%" stop-color="#0055cc"/>
+        <linearGradient id="splashBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00ccff"/>
+          <stop offset="100%" stop-color="#0060d0"/>
+        </linearGradient>
+        <linearGradient id="splashGreen" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#00e8b5"/>
+          <stop offset="100%" stop-color="#00a882"/>
+        </linearGradient>
+        <linearGradient id="splashCheck" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#0078e8"/>
+          <stop offset="50%" stop-color="#00b0d8"/>
+          <stop offset="100%" stop-color="#00e8b5"/>
         </linearGradient>
       </defs>
-      <path d="M50,6 C 25,6, 8,26, 8,49 C 8,72, 50,96, 50,96 C 50,96, 92,72, 92,49 C 92,26, 75,6, 50,6 Z"
-            fill="url(#splashGrad)"/>
-      <circle cx="50" cy="47" r="24" fill="#0c273b"/>
-      <rect x="44" y="37" width="12" height="20" rx="2" fill="#00e6b8"/>
-      <rect x="40" y="41" width="20" height="12" rx="2" fill="#00e6b8"/>
+      <path d="M 70 15 A 33 33 0 1 0 70 80" stroke="url(#splashBlue)" stroke-width="14" fill="none" stroke-linecap="round"/>
+      <path d="M 36 60 L 50 74 L 82 42" stroke="url(#splashCheck)" stroke-width="14" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="44" y="27" width="12" height="32" rx="2" fill="url(#splashGreen)"/>
+      <rect x="34" y="37" width="32" height="12" rx="2" fill="url(#splashGreen)"/>
     </svg>
     <h1 class="splash-title">CAMIT</h1>
     <p class="splash-subtitle">Catastro Médico<br>Interactivo Territorial</p>
   </div>
 </div>
-<!-- ✨ FIN SPLASH -->
 
 <div id="app">
   <header id="topbar">
     <button id="btn-hamburguesa" onclick="toggleSidebar()">☰</button>
     <h1>
-      <!-- ✨ NUEVO: isotipo SVG inline (ya no depende de camit-icon.png) -->
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 5px rgba(0,0,0,.5))">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="topGrad" x1="0%" y1="0%" x2="25%" y2="100%">
-            <stop offset="0%"  stop-color="#33d6ff"/>
-            <stop offset="55%" stop-color="#0099ff"/>
-            <stop offset="100%" stop-color="#0055cc"/>
+          <linearGradient id="topBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#00ccff"/>
+            <stop offset="100%" stop-color="#0060d0"/>
+          </linearGradient>
+          <linearGradient id="topGreen" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#00e8b5"/>
+            <stop offset="100%" stop-color="#00a882"/>
+          </linearGradient>
+          <linearGradient id="topCheck" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#0078e8"/>
+            <stop offset="50%" stop-color="#00b0d8"/>
+            <stop offset="100%" stop-color="#00e8b5"/>
           </linearGradient>
         </defs>
-        <path d="M50,6 C 25,6, 8,26, 8,49 C 8,72, 50,96, 50,96 C 50,96, 92,72, 92,49 C 92,26, 75,6, 50,6 Z" fill="url(#topGrad)"/>
-        <circle cx="50" cy="47" r="24" fill="#0c273b"/>
-        <rect x="44" y="37" width="12" height="20" rx="2" fill="#00e6b8"/>
-        <rect x="40" y="41" width="20" height="12" rx="2" fill="#00e6b8"/>
+        <path d="M 70 15 A 33 33 0 1 0 70 80" stroke="url(#topBlue)" stroke-width="14" fill="none" stroke-linecap="round"/>
+        <path d="M 36 60 L 50 74 L 82 42" stroke="url(#topCheck)" stroke-width="14" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="44" y="27" width="12" height="32" rx="2" fill="url(#topGreen)"/>
+        <rect x="34" y="37" width="32" height="12" rx="2" fill="url(#topGreen)"/>
       </svg>
       <span>CAMIT</span>
     </h1>
@@ -553,19 +564,26 @@ input,select,textarea{font-family:inherit}
       <div id="workspace">
         <div id="mapa-wrapper">
           <div id="sin-equipo">
-            <!-- ✨ NUEVO: isotipo SVG inline -->
-            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
               <defs>
-                <linearGradient id="noEaisGrad" x1="0%" y1="0%" x2="25%" y2="100%">
-                  <stop offset="0%"  stop-color="#33d6ff"/>
-                  <stop offset="55%" stop-color="#0099ff"/>
-                  <stop offset="100%" stop-color="#0055cc"/>
+                <linearGradient id="noEaisBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#00ccff"/>
+                  <stop offset="100%" stop-color="#0060d0"/>
+                </linearGradient>
+                <linearGradient id="noEaisGreen" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#00e8b5"/>
+                  <stop offset="100%" stop-color="#00a882"/>
+                </linearGradient>
+                <linearGradient id="noEaisCheck" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#0078e8"/>
+                  <stop offset="50%" stop-color="#00b0d8"/>
+                  <stop offset="100%" stop-color="#00e8b5"/>
                 </linearGradient>
               </defs>
-              <path d="M50,6 C 25,6, 8,26, 8,49 C 8,72, 50,96, 50,96 C 50,96, 92,72, 92,49 C 92,26, 75,6, 50,6 Z" fill="url(#noEaisGrad)"/>
-              <circle cx="50" cy="47" r="24" fill="#0c273b"/>
-              <rect x="44" y="37" width="12" height="20" rx="2" fill="#00e6b8"/>
-              <rect x="40" y="41" width="20" height="12" rx="2" fill="#00e6b8"/>
+              <path d="M 70 15 A 33 33 0 1 0 70 80" stroke="url(#noEaisBlue)" stroke-width="14" fill="none" stroke-linecap="round"/>
+              <path d="M 36 60 L 50 74 L 82 42" stroke="url(#noEaisCheck)" stroke-width="14" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="44" y="27" width="12" height="32" rx="2" fill="url(#noEaisGreen)"/>
+              <rect x="34" y="37" width="32" height="12" rx="2" fill="url(#noEaisGreen)"/>
             </svg>
             <h2>Selecciona un Equipo</h2>
             <p>Crea o edita la Unidad Operativa para generar equipos EAIS.</p>
@@ -854,7 +872,6 @@ input,select,textarea{font-family:inherit}
 <div id="toast"></div>
 
 <script>
-/* ✨ FIX: marca de tiempo para saber cuándo se inició la app (usada por el splash) */
 window._camitStart = Date.now();
 
 /* =========================================================
@@ -1699,7 +1716,6 @@ function iniciarEquipo(){
   }
   document.getElementById('sin-equipo').style.display='none';
   cargarCacheLocalEquipo();
-  // Limpiar fichas/visitas huérfanas (sin casa válida)
   limpiarHuerfanos();
   if(S.barrios.length===0){
     document.getElementById('sin-mapa').style.display='block';
@@ -2084,8 +2100,7 @@ function inicializarGestosTactiles(){
 }
 
 /* =========================================================
-   // ✨ FIX: ON CASA MOVIDA — ya no crece al mover
-   Solo recalcula dimensiones cuando hubo escalado real.
+   ON CASA MOVIDA — solo recalcula dimensiones si hubo escalado
    ========================================================= */
 function onCasaMovida(e){
   const obj = e.target;
@@ -2099,7 +2114,6 @@ function onCasaMovida(e){
     angulo: casa.angulo || 0
   };
 
-  // Detectar escalado real (los tiradores modifican scaleX/scaleY)
   const sx = obj.scaleX || 1;
   const sy = obj.scaleY || 1;
   const huboEscalado = Math.abs(sx - 1) > 0.01 || Math.abs(sy - 1) > 0.01;
@@ -2108,10 +2122,11 @@ function onCasaMovida(e){
   let altoFinal  = casa.alto  || CASA_BASE_H;
 
   if(huboEscalado){
-    anchoFinal = Math.max(24, Math.round((casa.ancho || CASA_BASE_W) * sx));
-    altoFinal  = Math.max(16, Math.round((casa.alto  || CASA_BASE_H) * sy));
+    // Mínimos reducidos: 12×8 → permite casas muy pequeñas
+    anchoFinal = Math.max(12, Math.round((casa.ancho || CASA_BASE_W) * sx));
+    altoFinal  = Math.max(8,  Math.round((casa.alto  || CASA_BASE_H) * sy));
   }
-  // Si solo fue movimiento → conservamos ancho/alto. Adiós bug de crecimiento.
+  // Si solo fue movimiento → conservamos ancho/alto (no crece)
 
   casa.left  = Math.round(obj.left);
   casa.top   = Math.round(obj.top);
@@ -2128,7 +2143,6 @@ function onCasaMovida(e){
   subirCasa(casa.idCasa);
   marcarPendiente();
 
-  // Reconstruir con scale=1 y dimensiones exactas
   setTimeout(() => {
     if(!S.canvas) return;
     try{
@@ -2168,13 +2182,15 @@ function renderCasas(){
 }
 
 /* =========================================================
-   // ✨ FIX: CONSTRUIR CASA — sin overflow del texto
+   CONSTRUIR CASA — fuente escala con el tamaño, sin overflow
    ========================================================= */
 function construirGrupoCasa(c){
   const ancho = c.ancho || CASA_BASE_W;
   const alto  = c.alto  || CASA_BASE_H;
-  // Fuente adaptada al espacio real, así el texto nunca sobresale del rect
-  const fuente = Math.max(7, Math.min(11, Math.min(ancho / 5, alto / 2.6)));
+
+  // Fuente escala continua con el tamaño de la casa.
+  // Casa base 44×28 → ~9px. Casa 22×14 → ~4.7px. Casa mínima 12×8 → ~3px (piso).
+  const fuente = Math.max(3, Math.min(12, Math.min(ancho / 4.5, alto / 3)));
 
   const rect = new fabric.Rect({
     width: ancho, height: alto,
@@ -2186,7 +2202,7 @@ function construirGrupoCasa(c){
   const text = new fabric.Textbox(c.nomenclatura || c.idCasa, {
     fontSize: fuente, fontFamily: 'Segoe UI', fill: '#0c273b',
     textAlign: 'center',
-    width: Math.max(10, ancho - 4),
+    width: Math.max(4, ancho - 4),
     left: ancho / 2, top: alto / 2,
     originX: 'center', originY: 'center',
     fontWeight: 'bold', splitByGrapheme: true
@@ -2196,14 +2212,13 @@ function construirGrupoCasa(c){
     left: Math.round(c.left || 0),
     top:  Math.round(c.top  || 0),
     angle: c.angulo || 0,
-    scaleX: 1,
-    scaleY: 1,
+    scaleX: 1, scaleY: 1,
     hasControls: true, hasBorders: true,
     selectable: true, evented: true,
     lockMovementX: false, lockMovementY: false,
     lockScalingX: false, lockScalingY: false,
     lockRotation: false,
-    minScaleLimit: 0.15,
+    minScaleLimit: 0.05,
     rotatingPointOffset: 24,
     originX: 'left', originY: 'top'
   });
@@ -2703,7 +2718,6 @@ function abrirMatriz(tipo){
   } else if(tipo==='eais'){
     S.barrios.forEach(b=>lista=lista.concat(recolectarPacientesBarrio(b.id)));titulo='🏥 '+S.equipo;
   } else {
-    // ============= TOTAL UO =============
     if(!S.usuario){
       tbody.innerHTML='<tr><td colspan="13" style="text-align:center;padding:20px;color:#ffa89e">Conecta con Google para ver el total de la unidad</td></tr>';
       abrirModal('modal-matriz');
@@ -2717,7 +2731,7 @@ function abrirMatriz(tipo){
         try {
           const uoDoc = await db.collection('config').doc('unidad_operativa').get();
           if(uoDoc.exists) uoData = uoDoc.data();
-        } catch(e){ /* usar local */ }
+        } catch(e){}
 
         const equipos = cargarEquipos();
         const equipoIds = equipos.map(e => e.id);
@@ -2744,7 +2758,7 @@ function abrirMatriz(tipo){
               try {
                 const metaSnap = await db.collection('catastros').doc(eqId).collection('meta').doc('info').get();
                 if(metaSnap.exists) barrios = metaSnap.data().barrios || [];
-              } catch(e){ /* sin meta */ }
+              } catch(e){}
             }
 
             Object.entries(fichas).forEach(([idCasa, ficha]) => {
@@ -3366,7 +3380,7 @@ window.addEventListener('load', async () => {
     }
   });
 
-  // ✨ NUEVO: Ocultar splash de bienvenida (mínimo 1.6 s visible, luego fundido)
+  // Ocultar splash: mínimo 1.6 s visible, luego fundido
   const splash = document.getElementById('splash');
   const splashStart = window._camitStart || Date.now();
   const elapsed = Date.now() - splashStart;
