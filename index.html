@@ -4,8 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0c273b">
-<title>Catastro Médico v2</title>
+<title>CAMIT — Catastro Médico Interactivo Territorial</title>
 <link rel="manifest" id="manifest-placeholder">
+<link rel="icon" type="image/png" href="camit-icon.png">
+<link rel="apple-touch-icon" href="camit-icon.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -13,13 +15,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#0f1a24;color:#e7f0f7;overflow:hidden;user-select:none}
+html,body{margin:0;height:100%;font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#0f1a24;color:#e7f0f7;overflow:hidden;user-select:none;overscroll-behavior-y:none}
 button{font-family:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit}
 
 #app{display:grid;grid-template-rows:56px 1fr;height:100vh}
 #topbar{background:linear-gradient(180deg,#0c273b,#0a1e2e);color:#e7f0f7;display:flex;align-items:center;gap:10px;padding:0 16px;box-shadow:0 2px 12px rgba(0,0,0,.35);z-index:20;border-bottom:1px solid #1e3a4d}
-#topbar h1{font-size:14px;margin:0;font-weight:600;letter-spacing:.3px;white-space:nowrap}
+#topbar h1{font-size:15px;margin:0;font-weight:700;letter-spacing:.6px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+#topbar h1 img{width:28px;height:28px;border-radius:7px;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.4)}
 #topbar .spacer{flex:1}
 #topbar .pill{background:#172a36;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;border:1px solid #294150;color:#a3bac6;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
 #topbar .pill.clickable{cursor:pointer}
@@ -111,6 +114,7 @@ input,select,textarea{font-family:inherit}
 #sin-mapa h2,#sin-equipo h2{margin:0 0 8px;color:#ffd77a;font-size:16px;font-weight:600}
 #sin-equipo h2{color:#8ee0cb}
 #sin-mapa p,#sin-equipo p{margin:0;color:#a3bac6;font-size:13px}
+#sin-equipo img{width:110px;height:110px;border-radius:26px;display:block;margin:0 auto 22px;box-shadow:0 12px 32px rgba(0,0,0,.45)}
 
 #fab-nomenclatura{
   position:absolute;bottom:24px;right:364px;width:60px;height:60px;border-radius:50%;
@@ -304,10 +308,12 @@ input,select,textarea{font-family:inherit}
   .modal-content{margin:8px auto;padding:14px}
   #toolbar button span.txt{display:none}
   #stats-bar{grid-template-columns:repeat(2,1fr)}
-  #topbar h1{font-size:12px}
+  #topbar h1{font-size:13px}
+  #topbar h1 img{width:24px;height:24px}
   #topbar .pill{font-size:11px;padding:5px 9px;max-width:140px}
   #fab-nomenclatura{bottom:16px;right:16px;width:54px;height:54px;font-size:22px}
   #fab-nomenclatura .fab-label{display:none}
+  #sin-equipo img{width:90px;height:90px}
 
   /* TOOLBAR SCROLLABLE EN MÓVIL — garantiza que nunca se pierda un botón */
   #toolbar{
@@ -330,7 +336,10 @@ input,select,textarea{font-family:inherit}
 <div id="app">
   <header id="topbar">
     <button id="btn-hamburguesa" onclick="toggleSidebar()">☰</button>
-    <h1>🏥 Catastro Médico</h1>
+    <h1>
+      <img src="camit-icon.png" alt="CAMIT" onerror="this.style.display='none'">
+      <span>CAMIT</span>
+    </h1>
     <span class="pill uo clickable" id="uo-pill" onclick="abrirModalUnidad()" title="Editar Unidad Operativa">
       <span class="ico">🏢</span><span id="uo-pill-txt">Sin UO</span>
     </span>
@@ -463,7 +472,8 @@ input,select,textarea{font-family:inherit}
       <div id="workspace">
         <div id="mapa-wrapper">
           <div id="sin-equipo">
-            <h2>🏥 Selecciona un Equipo</h2>
+            <img src="camit-icon.png" alt="CAMIT" onerror="this.style.display='none'">
+            <h2>Selecciona un Equipo</h2>
             <p>Crea o edita la Unidad Operativa para generar equipos EAIS.</p>
           </div>
           <div id="sin-mapa" style="display:none">
@@ -3212,11 +3222,22 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
    INICIO
    ========================================================= */
 window.addEventListener('load', async () => {
-  log('🚀 Iniciando Catastro v2...','info');
+  log('🚀 Iniciando CAMIT...','info');
   await BigStore.init();
 
   try{
-    const manifest={name:'Catastro Médico v2',short_name:'Catastro',start_url:'.',display:'standalone',background_color:'#0c273b',theme_color:'#0c273b'};
+    const manifest={
+      name:'CAMIT — Catastro Médico Interactivo Territorial',
+      short_name:'CAMIT',
+      start_url:'.',
+      display:'standalone',
+      background_color:'#0c273b',
+      theme_color:'#0c273b',
+      icons:[
+        { src:'camit-icon.png', sizes:'192x192', type:'image/png' },
+        { src:'camit-icon.png', sizes:'512x512', type:'image/png' }
+      ]
+    };
     const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
     document.getElementById('manifest-placeholder').href=URL.createObjectURL(blob);
   }catch(e){}
