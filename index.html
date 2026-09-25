@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0c273b">
-<title>CAMIT — Catastro Médico Interactivo Territorial</title>
+<title>CAMIT v3.9 — Catastro Médico Interactivo Territorial</title>
 <link rel="manifest" id="manifest-placeholder">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230c273b'/%3E%3Ctext x='50' y='72' font-size='62' font-weight='bold' text-anchor='middle' fill='%2300e6b8' font-family='sans-serif'%3EC%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230c273b'/%3E%3Ctext x='50' y='72' font-size='62' font-weight='bold' text-anchor='middle' fill='%2300e6b8' font-family='sans-serif'%3EC%3C/text%3E%3C/svg%3E">
@@ -29,6 +29,11 @@ input,select,textarea{font-family:inherit}
   background:#00e6b8;
   box-shadow:0 0 12px #00e6b8,0 0 4px #00e6b8;
   flex-shrink:0;
+}
+#topbar .version-tag{
+  font-size:10px;font-weight:700;color:#7fa8b8;
+  background:#172a36;border:1px solid #294150;
+  padding:2px 7px;border-radius:10px;letter-spacing:.5px;
 }
 #topbar .spacer{flex:1}
 #topbar .pill{background:#172a36;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;border:1px solid #294150;color:#a3bac6;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
@@ -347,6 +352,11 @@ input,select,textarea{font-family:inherit}
   text-transform:uppercase;margin:0;font-weight:600;
   animation:fadeUp .9s ease-out .35s both;
 }
+.splash-version{
+  color:#4a6b80;font-size:11px;letter-spacing:3px;margin-top:22px;
+  font-weight:700;text-transform:uppercase;
+  animation:fadeUp .9s ease-out .55s both;
+}
 @keyframes fadeUp{
   from{opacity:0;transform:translateY(22px)}
   to{opacity:1;transform:translateY(0)}
@@ -558,6 +568,7 @@ input,select,textarea{font-family:inherit}
   #stats-bar{grid-template-columns:repeat(2,1fr)}
   #topbar h1{font-size:13px}
   #topbar .pill{font-size:11px;padding:5px 9px;max-width:140px}
+  #topbar .version-tag{font-size:9px;padding:1px 5px}
   #fab-nomenclatura{bottom:16px;right:16px;width:54px;height:54px;font-size:22px}
   #fab-nomenclatura .fab-label{display:none}
   #sin-equipo::before{font-size:42px;letter-spacing:6px}
@@ -597,6 +608,7 @@ input,select,textarea{font-family:inherit}
   <div class="splash-content">
     <h1 class="splash-title">CAMIT</h1>
     <p class="splash-subtitle">Catastro Médico<br>Interactivo Territorial</p>
+    <p class="splash-version">Versión 3.9</p>
   </div>
 </div>
 
@@ -617,6 +629,7 @@ input,select,textarea{font-family:inherit}
     <button id="btn-hamburguesa" onclick="toggleSidebar()">☰</button>
     <h1>
       <span>CAMIT</span>
+      <span class="version-tag">v3.9</span>
     </h1>
     <span class="pill uo clickable" id="uo-pill" onclick="abrirModalUnidad()" title="Editar Unidad Operativa">
       <span class="ico">🏢</span><span id="uo-pill-txt">Sin UO</span>
@@ -1098,6 +1111,7 @@ input,select,textarea{font-family:inherit}
 
 <script>
 window._camitStart = Date.now();
+const CAMIT_VERSION = '3.9';
 
 /* =========================================================
    BIGSTORE - IndexedDB
@@ -3590,7 +3604,8 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
    INICIO
    ========================================================= */
 window.addEventListener('load', async () => {
-  log('🚀 Iniciando CAMIT...','info');
+  log('🚀 Iniciando CAMIT v'+CAMIT_VERSION+'...','info');
+  log('CAMIT v'+CAMIT_VERSION+' cargada correctamente','ok');
   await BigStore.init();
 
   try{
@@ -3653,7 +3668,6 @@ window.addEventListener('load', async () => {
       splash.classList.add('hidden');
       setTimeout(() => splash.remove(), 900);
     }
-    // Esperar a que termine el fade out y verificar el acuerdo
     setTimeout(() => verificarAcuerdoInicial(), 400);
   }, wait);
 
