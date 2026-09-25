@@ -352,6 +352,199 @@ input,select,textarea{font-family:inherit}
   to{opacity:1;transform:translateY(0)}
 }
 
+/* === ACUERDO DE CONFIDENCIALIDAD === */
+#acuerdo-overlay{
+  position:fixed;inset:0;z-index:10000;
+  background:rgba(0,0,0,.88);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  display:none;align-items:center;justify-content:center;padding:20px;
+  overflow-y:auto;
+}
+#acuerdo-overlay.open{display:flex}
+.acuerdo-box{
+  background:#1e3344;border:1px solid #2f4a5f;border-radius:16px;
+  max-width:780px;width:100%;max-height:92vh;display:flex;flex-direction:column;
+  box-shadow:0 24px 80px rgba(0,0,0,.8);color:#e7f0f7;margin:auto;
+}
+.acuerdo-header{
+  padding:20px 26px;border-bottom:1px solid #2f4a5f;
+  background:linear-gradient(135deg,#134e42,#0f3a34);
+  border-radius:16px 16px 0 0;
+}
+.acuerdo-header h2{
+  margin:0;font-size:17px;color:#e7f0f7;font-weight:700;letter-spacing:.4px;
+  display:flex;align-items:center;gap:12px;
+}
+.acuerdo-header h2::before{
+  content:'';
+  width:12px;height:12px;border-radius:50%;
+  background:#00e6b8;box-shadow:0 0 14px #00e6b8;
+  flex-shrink:0;
+}
+.acuerdo-header .sub{
+  display:block;font-size:11px;color:#8ee0cb;
+  letter-spacing:1.5px;text-transform:uppercase;margin-top:5px;font-weight:600;
+  padding-left:24px;
+}
+.acuerdo-body{
+  padding:24px 30px;overflow-y:auto;
+  font-size:13.5px;line-height:1.75;color:#c9d9e3;
+  user-select:text;-webkit-user-select:text;
+}
+.acuerdo-body::-webkit-scrollbar{width:8px}
+.acuerdo-body::-webkit-scrollbar-thumb{background:#294150;border-radius:4px}
+
+/* Estilos tipo ley */
+.ley-titulo{
+  text-align:center;
+  font-size:15px;
+  font-weight:700;
+  color:#e7f0f7;
+  margin:0 0 10px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  line-height:1.45;
+}
+.ley-sub{
+  text-align:center;
+  font-size:11px;
+  color:#8ba5b5;
+  margin-bottom:22px;
+  letter-spacing:1.2px;
+  line-height:1.7;
+  text-transform:uppercase;
+}
+.ley-estado{
+  display:inline-block;
+  background:#134e42;
+  color:#8ee0cb;
+  padding:4px 12px;
+  border-radius:12px;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:1px;
+  margin-top:8px;
+  border:1px solid #1a8a75;
+}
+.ley-seccion{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  font-size:13px;
+  font-weight:700;
+  color:#8ec8ff;
+  margin:28px 0 16px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+}
+.ley-seccion::before,
+.ley-seccion::after{
+  content:'';
+  flex:1;
+  height:1px;
+  background:linear-gradient(90deg,transparent,#294150,transparent);
+}
+.ley-art{
+  display:flex;
+  gap:10px;
+  margin-bottom:16px;
+  padding:12px 14px 12px 18px;
+  background:#172a36;
+  border-left:3px solid #00e6b8;
+  border-radius:0 6px 6px 0;
+}
+.ley-art-num{
+  font-weight:800;
+  color:#00e6b8;
+  flex-shrink:0;
+  white-space:nowrap;
+  font-size:13.5px;
+  letter-spacing:.3px;
+}
+.ley-art-texto{
+  color:#dbe6ee;
+  text-align:justify;
+  line-height:1.75;
+}
+.ley-art-texto strong{color:#ffd77a;font-weight:600}
+.ley-aceptacion{
+  margin-top:28px;
+  padding:16px 20px;
+  background:linear-gradient(135deg,#0f2c2a,#0f1a24);
+  border:1px solid #1a8a75;
+  border-left:4px solid #00e6b8;
+  border-radius:8px;
+  color:#c9d9e3;
+  font-size:13px;
+  line-height:1.7;
+  text-align:justify;
+}
+.ley-aceptacion strong{color:#00e6b8;font-weight:700}
+.ley-aceptacion .si{
+  color:#ffd77a;
+  font-weight:800;
+  letter-spacing:1.5px;
+  background:#4a3510;
+  padding:1px 8px;
+  border-radius:4px;
+  border:1px solid #bd8822;
+}
+
+.acuerdo-actions{
+  padding:18px 26px 22px;border-top:1px solid #2f4a5f;
+  background:#172a36;border-radius:0 0 16px 16px;
+  display:flex;gap:12px;flex-wrap:wrap;
+}
+.acuerdo-actions button{
+  flex:1;min-width:140px;padding:14px 18px;border:0;
+  border-radius:9px;font-size:14px;font-weight:700;
+  transition:filter .15s,transform .1s;cursor:pointer;
+}
+.acuerdo-actions button:hover{filter:brightness(1.15)}
+.acuerdo-actions button:active{transform:translateY(1px)}
+.acuerdo-btn-aceptar{background:#00a882;color:#fff}
+.acuerdo-btn-rechazar{background:#9c3a32;color:#fff}
+
+/* === PANTALLA DE BLOQUEO (si rechaza) === */
+#bloqueo-pantalla{
+  position:fixed;inset:0;z-index:9997;
+  background:radial-gradient(circle at 50% 40%, #0e2a40 0%, #0a1e2e 50%, #05111a 100%);
+  display:none;align-items:center;justify-content:center;
+  padding:24px;overflow-y:auto;
+}
+#bloqueo-pantalla.visible{display:flex}
+.bloqueo-content{
+  text-align:center;max-width:520px;position:relative;z-index:2;
+}
+.bloqueo-titulo{
+  font-size:clamp(52px,15vw,80px);font-weight:800;letter-spacing:12px;margin:0 0 14px;
+  background:linear-gradient(135deg,#7ce0ff,#00e6b8);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  line-height:1;
+}
+.bloqueo-sub{
+  color:#8ec8ff;font-size:12px;letter-spacing:3.5px;line-height:1.7;
+  text-transform:uppercase;margin:0 0 40px;font-weight:600;
+}
+.bloqueo-mensaje{
+  background:#172a36;border:1px solid #294150;
+  border-left:4px solid #bd8822;
+  padding:20px 24px;border-radius:12px;margin-bottom:24px;
+  font-size:13.5px;color:#c9d9e3;line-height:1.7;
+}
+.bloqueo-mensaje p{margin:0}
+.bloqueo-mensaje strong{color:#ffd77a;font-weight:700}
+.bloqueo-btn{
+  width:100%;padding:15px 20px;border:0;border-radius:10px;
+  background:#00a882;color:#fff;font-size:14px;font-weight:700;
+  transition:filter .15s;cursor:pointer;letter-spacing:.5px;
+  box-shadow:0 8px 24px rgba(0,168,130,.35);
+}
+.bloqueo-btn:hover{filter:brightness(1.15)}
+.bloqueo-btn:active{transform:translateY(1px)}
+
 @media (max-width:768px){
   #body{grid-template-columns:1fr}
   #sidebar{position:fixed;left:-280px;top:56px;bottom:0;width:280px;z-index:16;transition:left .3s;box-shadow:8px 0 24px rgba(0,0,0,.5)}
@@ -369,6 +562,18 @@ input,select,textarea{font-family:inherit}
   #fab-nomenclatura .fab-label{display:none}
   #sin-equipo::before{font-size:42px;letter-spacing:6px}
   .splash-title{letter-spacing:8px}
+  .bloqueo-titulo{letter-spacing:8px}
+
+  .acuerdo-box{max-height:96vh;margin:8px auto}
+  .acuerdo-header{padding:16px 20px}
+  .acuerdo-header h2{font-size:15px}
+  .acuerdo-body{padding:18px 20px;font-size:13px}
+  .acuerdo-actions{padding:14px 18px 18px}
+  .acuerdo-actions button{padding:13px 14px;font-size:13.5px}
+  .ley-titulo{font-size:13.5px;letter-spacing:.5px}
+  .ley-art{padding:10px 12px 10px 14px;gap:8px}
+  .ley-art-num{font-size:12.5px}
+  .ley-aceptacion{padding:14px 16px;font-size:12.5px}
 
   #toolbar{
     overflow-x:auto;
@@ -392,6 +597,18 @@ input,select,textarea{font-family:inherit}
   <div class="splash-content">
     <h1 class="splash-title">CAMIT</h1>
     <p class="splash-subtitle">Catastro Médico<br>Interactivo Territorial</p>
+  </div>
+</div>
+
+<!-- PANTALLA DE BLOQUEO (si rechaza el acuerdo) -->
+<div id="bloqueo-pantalla">
+  <div class="bloqueo-content">
+    <h1 class="bloqueo-titulo">CAMIT</h1>
+    <p class="bloqueo-sub">Catastro Médico<br>Interactivo Territorial</p>
+    <div class="bloqueo-mensaje">
+      <p>Para utilizar el sistema es necesario <strong>aceptar el Acuerdo de Confidencialidad</strong>.</p>
+    </div>
+    <button class="bloqueo-btn" onclick="abrirAcuerdo()">📄 Revisar el Acuerdo de Confidencialidad</button>
   </div>
 </div>
 
@@ -503,6 +720,7 @@ input,select,textarea{font-family:inherit}
           <button class="btn btn-blue" onclick="abrirAgenda()">📅 Agenda de visitas</button>
           <button class="btn btn-blue" onclick="abrirBusqueda()">🔍 Búsqueda rápida</button>
           <button class="btn btn-blue" onclick="abrirMatriz('eais')">📊 Pacientes del EAIS</button>
+          <button class="btn btn-dark" onclick="abrirAcuerdo()">📄 Ver Acuerdo de Confidencialidad</button>
           <button class="btn btn-gray" onclick="exportarJSON()">📤 Exportar JSON</button>
           <button class="btn btn-gray" onclick="document.getElementById('import-input').click()">📥 Importar JSON</button>
           <button class="btn btn-dark" onclick="abrirInfoAlmacenamiento()">💾 Info de almacenamiento</button>
@@ -816,6 +1034,65 @@ input,select,textarea{font-family:inherit}
   </div>
 </div>
 
+<!-- ACUERDO DE CONFIDENCIALIDAD -->
+<div id="acuerdo-overlay">
+  <div class="acuerdo-box">
+    <div class="acuerdo-header">
+      <h2>Acuerdo de Confidencialidad</h2>
+      <span class="sub">CAMIT · Lectura obligatoria</span>
+    </div>
+
+    <div class="acuerdo-body">
+
+      <div class="ley-titulo">Reglamento de Información Confidencial en el Sistema Nacional de Salud</div>
+      <div class="ley-sub">
+        Acuerdo Ministerial 5216<br>
+        Oficial Suplemento 427 de 29-ene-2015<br>
+        <span class="ley-estado">Estado: Vigente</span>
+      </div>
+
+      <div class="ley-art">
+        <span class="ley-art-num">Art. 9.-</span>
+        <span class="ley-art-texto">El personal operativo y administrativo de los establecimientos del Sistema Nacional de Salud que tenga acceso a información de los/las usuarios/as durante el ejercicio de sus funciones, deberá guardar reserva de manera indefinida respecto de dicha información y no podrá divulgar la información contenida en la historia clínica, ni aquella constante en todo documento donde reposen datos confidenciales de los/las usuarios/as.</span>
+      </div>
+
+      <div class="ley-art">
+        <span class="ley-art-num">Art. 10.-</span>
+        <span class="ley-art-texto">Los documentos que contengan información confidencial se mantendrán abiertos (tanto en formato físico como parte de un estudio epidemiológico, una auditoría de calidad de la atención en salud u otros debidamente justificados) y que se enmarquen en los casos establecidos en el presente Reglamento.</span>
+      </div>
+
+      <div class="ley-art">
+        <span class="ley-art-num">Art. 61.-</span>
+        <span class="ley-art-texto">Las instituciones públicas y privadas, los profesionales de salud y la población en general, reportarán en forma oportuna la existencia de casos sospechosos, probables, compatibles y confirmados de enfermedades declaradas por la autoridad sanitaria nacional como de notificación obligatoria y aquellas de reporte internacional. Las instituciones y profesionales de salud, garantizan la confidencialidad de la información entregada y recibida.</span>
+      </div>
+
+      <div class="ley-seccion">Ley de Estadística</div>
+
+      <div class="ley-sub">
+        Registro Oficial<br>
+        Órgano del Gobierno del Ecuador<br>
+        Quito, viernes 7 de mayo de 1976 — Número 82<br>
+        <span class="ley-estado">N.- 323</span>
+      </div>
+
+      <div class="ley-art">
+        <span class="ley-art-num">Art. 25.-</span>
+        <span class="ley-art-texto">Las personas que, de cualquier modo, intervengan en la ejecución de investigaciones que realicen las entidades sujetas al Sistema Estadístico Nacional, no podrán requerir información distinta de la que haya sido autorizada. De contravenir a esta prohibición, se les impondrá las sanciones establecidas en la Ley de Servicio Civil y Carrera Administrativa.</span>
+      </div>
+
+      <div class="ley-aceptacion">
+        De acuerdo al <strong>Reglamento de Información Confidencial en el Sistema Nacional de Salud</strong> y la <strong>Ley de Estadística</strong>, <span class="si">ACEPTO</span> el cumplimiento de los artículos descritos.
+      </div>
+
+    </div>
+
+    <div class="acuerdo-actions">
+      <button class="acuerdo-btn-aceptar" onclick="aceptarAcuerdo()">✓ Acepto</button>
+      <button class="acuerdo-btn-rechazar" onclick="rechazarAcuerdo()">✗ Rechazo</button>
+    </div>
+  </div>
+</div>
+
 <div id="log-panel" onclick="this.classList.remove('visible')"></div>
 <div id="toast"></div>
 
@@ -1039,6 +1316,51 @@ function getEventPos(e){
   if(e.touches && e.touches.length > 0) return {x:e.touches[0].clientX, y:e.touches[0].clientY};
   if(e.clientX != null) return {x:e.clientX, y:e.clientY};
   return {x:0, y:0};
+}
+
+/* =========================================================
+   ACUERDO DE CONFIDENCIALIDAD
+   ========================================================= */
+const ACUERDO_VERSION = 'v1.0';
+const ACUERDO_KEY = 'cat_v2_acuerdo_aceptado';
+
+function acuerdoAceptado(){
+  try{
+    const v = lsGet(ACUERDO_KEY, null);
+    return v === ACUERDO_VERSION;
+  }catch(e){ return false; }
+}
+
+function abrirAcuerdo(){
+  document.getElementById('acuerdo-overlay').classList.add('open');
+}
+
+function cerrarAcuerdo(){
+  document.getElementById('acuerdo-overlay').classList.remove('open');
+}
+
+function aceptarAcuerdo(){
+  lsSet(ACUERDO_KEY, ACUERDO_VERSION);
+  cerrarAcuerdo();
+  document.getElementById('bloqueo-pantalla').classList.remove('visible');
+  toast('Acuerdo aceptado. Bienvenido/a a CAMIT.', 'success');
+  log('Acuerdo de confidencialidad aceptado','ok');
+}
+
+function rechazarAcuerdo(){
+  if(!confirm('Si rechazas el Acuerdo de Confidencialidad no podrás usar el sistema.\n\n¿Confirmas el rechazo?')) return;
+  cerrarAcuerdo();
+  document.getElementById('bloqueo-pantalla').classList.add('visible');
+  toast('Acuerdo rechazado','warning');
+  log('Acuerdo de confidencialidad rechazado','info');
+}
+
+function verificarAcuerdoInicial(){
+  if(acuerdoAceptado()){
+    log('Acuerdo ya aceptado en este dispositivo','info');
+    return;
+  }
+  abrirAcuerdo();
 }
 
 /* =========================================================
@@ -3321,7 +3643,7 @@ window.addEventListener('load', async () => {
     }
   });
 
-  // Ocultar splash: mínimo 1.8 s visible
+  // Ocultar splash → después verificar acuerdo
   const splash = document.getElementById('splash');
   const splashStart = window._camitStart || Date.now();
   const elapsed = Date.now() - splashStart;
@@ -3331,6 +3653,8 @@ window.addEventListener('load', async () => {
       splash.classList.add('hidden');
       setTimeout(() => splash.remove(), 900);
     }
+    // Esperar a que termine el fade out y verificar el acuerdo
+    setTimeout(() => verificarAcuerdoInicial(), 400);
   }, wait);
 
   log('Listo','ok');
