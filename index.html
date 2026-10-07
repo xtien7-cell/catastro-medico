@@ -4,15 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0c273b">
-<title>CAMIT v3.9 — Catastro Médico Interactivo Territorial</title>
+<title>CAMIT v3.10 — Catastro Médico Interactivo Territorial</title>
 <link rel="manifest" id="manifest-placeholder">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230c273b'/%3E%3Ctext x='50' y='72' font-size='62' font-weight='bold' text-anchor='middle' fill='%2300e6b8' font-family='sans-serif'%3EC%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230c273b'/%3E%3Ctext x='50' y='72' font-size='62' font-weight='bold' text-anchor='middle' fill='%2300e6b8' font-family='sans-serif'%3EC%3C/text%3E%3C/svg%3E">
+<!-- ✨ v3.10: Firebase actualizado de 10.7.1 a 10.14.1 (fix del INTERNAL ASSERTION FAILED) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#0f1a24;color:#e7f0f7;overflow:hidden;user-select:none;overscroll-behavior-y:none}
@@ -405,7 +406,6 @@ input,select,textarea{font-family:inherit}
 .acuerdo-body::-webkit-scrollbar{width:8px}
 .acuerdo-body::-webkit-scrollbar-thumb{background:#294150;border-radius:4px}
 
-/* Estilos tipo ley */
 .ley-titulo{
   text-align:center;
   font-size:15px;
@@ -517,7 +517,7 @@ input,select,textarea{font-family:inherit}
 .acuerdo-btn-aceptar{background:#00a882;color:#fff}
 .acuerdo-btn-rechazar{background:#9c3a32;color:#fff}
 
-/* === PANTALLA DE BLOQUEO (si rechaza) === */
+/* === PANTALLA DE BLOQUEO === */
 #bloqueo-pantalla{
   position:fixed;inset:0;z-index:9997;
   background:radial-gradient(circle at 50% 40%, #0e2a40 0%, #0a1e2e 50%, #05111a 100%);
@@ -608,11 +608,11 @@ input,select,textarea{font-family:inherit}
   <div class="splash-content">
     <h1 class="splash-title">CAMIT</h1>
     <p class="splash-subtitle">Catastro Médico<br>Interactivo Territorial</p>
-    <p class="splash-version">Versión 3.9</p>
+    <p class="splash-version">Versión 3.10</p>
   </div>
 </div>
 
-<!-- PANTALLA DE BLOQUEO (si rechaza el acuerdo) -->
+<!-- PANTALLA DE BLOQUEO -->
 <div id="bloqueo-pantalla">
   <div class="bloqueo-content">
     <h1 class="bloqueo-titulo">CAMIT</h1>
@@ -629,7 +629,7 @@ input,select,textarea{font-family:inherit}
     <button id="btn-hamburguesa" onclick="toggleSidebar()">☰</button>
     <h1>
       <span>CAMIT</span>
-      <span class="version-tag">v3.9</span>
+      <span class="version-tag">v3.10</span>
     </h1>
     <span class="pill uo clickable" id="uo-pill" onclick="abrirModalUnidad()" title="Editar Unidad Operativa">
       <span class="ico">🏢</span><span id="uo-pill-txt">Sin UO</span>
@@ -1111,7 +1111,7 @@ input,select,textarea{font-family:inherit}
 
 <script>
 window._camitStart = Date.now();
-const CAMIT_VERSION = '3.9';
+const CAMIT_VERSION = '3.10';
 
 /* =========================================================
    BIGSTORE - IndexedDB
@@ -1309,6 +1309,14 @@ let _destacarTimer = null;
 let _destacarFinTimer = null;
 let agendaTab = 'dia';
 let _ultimoTap = {ts:0, id:null, x:0, y:0};
+
+/* =========================================================
+   ✨ v3.10: COLA DE SUBIDA POR LOTES (fix del INTERNAL ASSERTION FAILED)
+   ========================================================= */
+const COLA_TAMANO_LOTE = 50;         // Máximo de docs por lote
+const COLA_PAUSA_MS = 500;           // Pausa entre lotes
+let _colaSubidaCasas = [];           // IDs de casas pendientes
+let _procesandoColaCasas = false;    // Flag para evitar doble ejecución
 
 /* =========================================================
    UTILIDADES
@@ -2383,7 +2391,7 @@ function inicializarGestosTactiles(){
 }
 
 /* =========================================================
-   ON CASA MOVIDA — solo recalcula si hubo escalado
+   ON CASA MOVIDA
    ========================================================= */
 function onCasaMovida(e){
   const obj = e.target;
@@ -3423,15 +3431,89 @@ async function bajarUnidadDeNube(){
 }
 function subirMetaEquipo(){if(!S.usuario||!S.equipo)return;db.collection('catastros').doc(S.equipo).collection('meta').doc('info').set({barrios:S.barrios,actualizadoEn:nowISO(),actualizadoPor:S.usuario.displayName||S.usuario.email},{merge:true}).catch(e=>log('Error meta: '+e.message,'error'));}
 function subirMapa(barrioId){if(!S.usuario||!S.equipo)return;const m=S.mapas[barrioId];if(!m)return;db.collection('catastros').doc(S.equipo).collection('mapas').doc(barrioId).set({dataURL:m.dataURL,w:m.w,h:m.h,actualizadoEn:nowISO()}).catch(e=>log('Error mapa: '+e.message,'error'));}
-function subirCasa(idCasa){if(!S.usuario||!S.equipo)return;const c=S.casas[idCasa];if(!c)return;db.collection('catastros').doc(S.equipo).collection('casas').doc(idCasa).set(c,{merge:true}).catch(e=>log('Error casa: '+e.message,'error'));}
+
+/* =========================================================
+   ✨ v3.10: SUBIDA DE CASA CON COLA (fix del INTERNAL ASSERTION FAILED)
+   Antes: cada casa se subía al instante. Con 138 casas se saturaba Firestore.
+   Ahora: las casas se añaden a una cola y se suben en lotes de 50 con pausas.
+   ========================================================= */
+function subirCasa(idCasa){
+  if(!S.usuario||!S.equipo) return;
+  // Añadir a la cola (sin duplicados)
+  if(!_colaSubidaCasas.includes(idCasa)){
+    _colaSubidaCasas.push(idCasa);
+  }
+  // Disparar el procesamiento si no está en marcha
+  if(!_procesandoColaCasas){
+    procesarColaSubidaCasas();
+  }
+}
+
+async function procesarColaSubidaCasas(){
+  if(_procesandoColaCasas) return;
+  if(_colaSubidaCasas.length === 0) return;
+  _procesandoColaCasas = true;
+
+  try{
+    while(_colaSubidaCasas.length > 0){
+      // Tomar un lote de hasta 50 casas
+      const lote = _colaSubidaCasas.splice(0, COLA_TAMANO_LOTE);
+
+      // Construir promesas de escritura
+      const promesas = lote.map(idCasa => {
+        const casa = S.casas[idCasa];
+        if(!casa) return Promise.resolve();
+        return db.collection('catastros').doc(S.equipo)
+                 .collection('casas').doc(idCasa)
+                 .set(casa, {merge:true})
+                 .catch(e => {
+                   log('Error subiendo casa '+idCasa+': '+e.message,'error');
+                 });
+      });
+
+      await Promise.all(promesas);
+      log('Lote de '+lote.length+' casa(s) subido. Quedan '+_colaSubidaCasas.length+' en cola.','ok');
+
+      // Pausa entre lotes para no saturar Firestore
+      if(_colaSubidaCasas.length > 0){
+        await new Promise(r => setTimeout(r, COLA_PAUSA_MS));
+      }
+    }
+    log('Cola de subida de casas procesada completamente.','ok');
+  }catch(e){
+    log('Error procesando cola de casas: '+e.message,'error');
+  }finally{
+    _procesandoColaCasas = false;
+  }
+}
+
+/* =========================================================
+   SUBIR: FICHA, VISITA (permanecen igual, son pocas operaciones)
+   ========================================================= */
 function subirFicha(idCasa){if(!S.usuario||!S.equipo)return;const f=S.fichas[idCasa];if(!f)return;db.collection('catastros').doc(S.equipo).collection('fichas').doc(idCasa).set(f,{merge:true}).catch(e=>log('Error ficha: '+e.message,'error'));}
 function subirVisita(idCasa,v){if(!S.usuario||!S.equipo)return;db.collection('catastros').doc(S.equipo).collection('visitas').doc(v.id).set(Object.assign({idCasa},v)).catch(e=>log('Error visita: '+e.message,'error'));}
+
 async function subirTodo(silencioso){
   if(!S.usuario||!S.equipo){if(!silencioso)toast('Conecta con Google primero','error');return;}
   try{
     if(S.uo)subirUnidadANube();
-    await Promise.all([subirMetaEquipo(),...Object.keys(S.casas).map(id=>subirCasa(id)),...Object.keys(S.fichas).map(id=>subirFicha(id)),...Object.keys(S.mapas).map(id=>subirMapa(id))]);
-    marcarSincronizado();if(!silencioso)toast('Subido a la nube','success');log('Subida completa','ok');
+    // Encolar todas las casas (la cola las procesa con control de flujo)
+    Object.keys(S.casas).forEach(id => subirCasa(id));
+    // Fichas, visitas y mapas se suben directo (son pocas operaciones)
+    await Promise.all([
+      subirMetaEquipo(),
+      ...Object.keys(S.fichas).map(id=>subirFicha(id)),
+      ...Object.keys(S.mapas).map(id=>subirMapa(id))
+    ]);
+    // No marcamos sincronizado hasta que la cola termine
+    const chequearCola = setInterval(() => {
+      if(!_procesandoColaCasas && _colaSubidaCasas.length === 0){
+        clearInterval(chequearCola);
+        marcarSincronizado();
+        if(!silencioso) toast('Subido a la nube','success');
+        log('Subida completa (incluye cola de casas)','ok');
+      }
+    }, 500);
   }catch(e){log('Error subiendo: '+e.message,'error');if(!silencioso)toast('Error: '+e.message,'error');}
 }
 async function bajarTodo(){
@@ -3658,7 +3740,6 @@ window.addEventListener('load', async () => {
     }
   });
 
-  // Ocultar splash → después verificar acuerdo
   const splash = document.getElementById('splash');
   const splashStart = window._camitStart || Date.now();
   const elapsed = Date.now() - splashStart;
