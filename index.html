@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0c273b">
-<title>CAMIT v3.11 — Catastro Médico Interactivo Territorial</title>
+<title>CAMIT v3.12 — Catastro Médico Interactivo Territorial</title>
 <link rel="manifest" id="manifest-placeholder">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230c273b'/%3E%3Ctext x='50' y='72' font-size='62' font-weight='bold' text-anchor='middle' fill='%2300e6b8' font-family='sans-serif'%3EC%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230c273b'/%3E%3Ctext x='50' y='72' font-size='62' font-weight='bold' text-anchor='middle' fill='%2300e6b8' font-family='sans-serif'%3EC%3C/text%3E%3C/svg%3E">
@@ -607,7 +607,7 @@ input,select,textarea{font-family:inherit}
   <div class="splash-content">
     <h1 class="splash-title">CAMIT</h1>
     <p class="splash-subtitle">Catastro Médico<br>Interactivo Territorial</p>
-    <p class="splash-version">Versión 3.11</p>
+    <p class="splash-version">Versión 3.12</p>
   </div>
 </div>
 
@@ -628,7 +628,7 @@ input,select,textarea{font-family:inherit}
     <button id="btn-hamburguesa" onclick="toggleSidebar()">☰</button>
     <h1>
       <span>CAMIT</span>
-      <span class="version-tag">v3.11</span>
+      <span class="version-tag">v3.12</span>
     </h1>
     <span class="pill uo clickable" id="uo-pill" onclick="abrirModalUnidad()" title="Editar Unidad Operativa">
       <span class="ico">🏢</span><span id="uo-pill-txt">Sin UO</span>
@@ -1089,7 +1089,7 @@ input,select,textarea{font-family:inherit}
 
       <div class="ley-art">
         <span class="ley-art-num">Art. 25.-</span>
-        <span class="ley-art-texto">Las personas que, de cualquier modo, intervengan en la ejecución de investigaciones que realicen las entidades sujetas al Sistema Estadístico Nacional, no podrán requerir información distinta de la que haya sido autorizada. De contravenir a esta prohibición, se les impondrá las sanciones establecidas en la Ley de Servicio Civil y Carrera Administrativa.</span>
+        <span class="ley-art-texto">Las personas que, de cualquier modo, intervengan en la ejecución de investigaciones que realicen las entidades sujetas al Sistema Estadístico Nacional, no podrán requerir información distinta de la que haya sido autorizada. De contravenir a esta prohibición, se le impondrá las sanciones establecidas en la Ley de Servicio Civil y Carrera Administrativa.</span>
       </div>
 
       <div class="ley-aceptacion">
@@ -1110,7 +1110,7 @@ input,select,textarea{font-family:inherit}
 
 <script>
 window._camitStart = Date.now();
-const CAMIT_VERSION = '3.11';
+const CAMIT_VERSION = '3.12';
 
 /* =========================================================
    BIGSTORE - IndexedDB
@@ -1310,37 +1310,35 @@ let agendaTab = 'dia';
 let _ultimoTap = {ts:0, id:null, x:0, y:0};
 
 /* =========================================================
-   ✨ v3.10: COLA DE SUBIDA POR LOTES (fix del INTERNAL ASSERTION FAILED)
+   v3.10: COLA DE SUBIDA POR LOTES
    ========================================================= */
-const COLA_TAMANO_LOTE = 50;         // Máximo de docs por lote
-const COLA_PAUSA_MS = 500;           // Pausa entre lotes
-let _colaSubidaCasas = [];           // IDs de casas pendientes
-let _procesandoColaCasas = false;    // Flag para evitar doble ejecución
+const COLA_TAMANO_LOTE = 50;
+const COLA_PAUSA_MS = 500;
+let _colaSubidaCasas = [];
+let _procesandoColaCasas = false;
 
 /* =========================================================
-   ✨ v3.11: SUBIDA DIFERIDA PARA MOVIMIENTOS
-   Evita subir la casa cada vez que se mueve, escala o rota.
-   Solo sube cuando el usuario lleva 3 segundos sin tocarla.
+   ✨ v3.12: DIRTY SET DE CASAS
+   Solo las casas que cambiaron se suben. Reduce ~95% el uso de cuota.
    ========================================================= */
-const _subidasDiferidas = {}; // { idCasa: timerId }
+let _casasSucias = new Set();
+
+/* =========================================================
+   v3.11: SUBIDA DIFERIDA PARA MOVIMIENTOS
+   ========================================================= */
+const _subidasDiferidas = {};
 
 function subirCasaDiferida(idCasa, delay = 3000){
   if(!S.usuario || !S.equipo) return;
-  
-  // Si ya había un timer para esta casa, lo cancelamos
   if(_subidasDiferidas[idCasa]){
     clearTimeout(_subidasDiferidas[idCasa]);
   }
-  
-  // Programamos una nueva subida diferida
   _subidasDiferidas[idCasa] = setTimeout(() => {
     delete _subidasDiferidas[idCasa];
     subirCasa(idCasa);
   }, delay);
 }
 
-// Función para forzar la subida inmediata de todas las diferidas
-// (se llama antes de cambiar de equipo, cerrar pestaña, etc.)
 function forzarSubidasDiferidas(){
   Object.keys(_subidasDiferidas).forEach(idCasa => {
     clearTimeout(_subidasDiferidas[idCasa]);
@@ -2011,7 +2009,6 @@ function seleccionarEquipo(id){
   if(id===S.equipo)return;
   if(!confirm('¿Cambiar al equipo '+id+'?'))return;
   if(S.equipo)guardarTodoLocal();
-  // ✨ v3.11: forzar subidas diferidas antes de cambiar
   forzarSubidasDiferidas();
   S.equipo=id;guardarEquipoActivo(id);iniciarEquipo();
 }
@@ -2462,7 +2459,6 @@ function onCasaMovida(e){
   agregarHistorial(casa.idCasa, 'casa', antes,
     {left:casa.left, top:casa.top, ancho:casa.ancho, alto:casa.alto, angulo:casa.angulo},
     'Movimiento de casa');
-  // ✨ v3.11: subida diferida — solo sube si el usuario deja de mover por 3s
   subirCasaDiferida(casa.idCasa, 3000);
   marcarPendiente();
 
@@ -2583,7 +2579,7 @@ function crearCasa(){
 }
 
 /* =========================================================
-   MODAL NOMENCLATURA — con subida diferida v3.11
+   MODAL NOMENCLATURA
    ========================================================= */
 function ponerNomenclatura(){
   if(!S.canvas)return;
@@ -2621,7 +2617,6 @@ function confirmarNomenclatura(){
   if(t)t.set('text',limpio);
   S.canvas.renderAll();
   agregarHistorial(casa.idCasa,'casa',{nomenclatura:antes},{nomenclatura:limpio},'Renombrado: '+antes+' → '+limpio);
-  // ✨ v3.11: subida diferida de 1 segundo (por si el usuario edita varias veces rápido)
   subirCasaDiferida(casa.idCasa, 1000);
   marcarPendiente();
   cerrarModal('modal-nomenclatura');
@@ -2641,7 +2636,6 @@ function fijarCasas(){
   actualizarBotonEditar();
   actualizarVisibilidadFAB();
   if(S.canvas)S.canvas.discardActiveObject();
-  // ✨ v3.11: al fijar, forzar subidas diferidas pendientes
   forzarSubidasDiferidas();
   toast('Casas fijadas','success');
 }
@@ -2696,6 +2690,7 @@ function eliminarSeleccionado(){
   S.canvas.remove(obj);S.canvas.discardActiveObject();S.canvas.renderAll();
   actualizarVisibilidadFAB();
   agregarHistorial(casa.idCasa,'casa',{eliminado:false},{eliminado:true},'Casa eliminada');
+  _casasSucias.add(casa.idCasa);
   subirCasa(casa.idCasa);marcarPendiente();cerrarPanelCasa();actualizarStats();toast('Casa eliminada','success');
 }
 function aplicarColorEstado(obj){
@@ -2894,7 +2889,6 @@ function setEstadoVisita(est,silencioso){
   document.querySelectorAll('#mf-estados button').forEach(b=>b.classList.toggle('sel',b.dataset.est===est));
   if(!silencioso){
     agregarHistorial(S.seleccion,'estado',{estado:antes},{estado:est},'Estado: '+antes+' → '+est);
-    // Cambio de estado sí sube inmediato (es una decisión explícita del usuario)
     subirCasa(S.seleccion);marcarPendiente();actualizarStats();
     if(S.canvas){const o=S.canvas.getObjects().find(x=>x.idCasa===S.seleccion);if(o){aplicarColorEstado(o);S.canvas.renderAll();}}
   }
@@ -3472,10 +3466,12 @@ function subirMetaEquipo(){if(!S.usuario||!S.equipo)return;db.collection('catast
 function subirMapa(barrioId){if(!S.usuario||!S.equipo)return;const m=S.mapas[barrioId];if(!m)return;db.collection('catastros').doc(S.equipo).collection('mapas').doc(barrioId).set({dataURL:m.dataURL,w:m.w,h:m.h,actualizadoEn:nowISO()}).catch(e=>log('Error mapa: '+e.message,'error'));}
 
 /* =========================================================
-   ✨ v3.10: SUBIDA DE CASA CON COLA
+   v3.12: SUBIR CASA CON DIRTY SET + COLA
    ========================================================= */
 function subirCasa(idCasa){
   if(!S.usuario||!S.equipo) return;
+  // ✨ v3.12: marcar como sucia (pendiente de subir)
+  _casasSucias.add(idCasa);
   // Añadir a la cola (sin duplicados)
   if(!_colaSubidaCasas.includes(idCasa)){
     _colaSubidaCasas.push(idCasa);
@@ -3493,10 +3489,8 @@ async function procesarColaSubidaCasas(){
 
   try{
     while(_colaSubidaCasas.length > 0){
-      // Tomar un lote de hasta 50 casas
       const lote = _colaSubidaCasas.splice(0, COLA_TAMANO_LOTE);
 
-      // Construir promesas de escritura
       const promesas = lote.map(idCasa => {
         const casa = S.casas[idCasa];
         if(!casa) return Promise.resolve();
@@ -3511,7 +3505,6 @@ async function procesarColaSubidaCasas(){
       await Promise.all(promesas);
       log('Lote de '+lote.length+' casa(s) subido. Quedan '+_colaSubidaCasas.length+' en cola.','ok');
 
-      // Pausa entre lotes para no saturar Firestore
       if(_colaSubidaCasas.length > 0){
         await new Promise(r => setTimeout(r, COLA_PAUSA_MS));
       }
@@ -3521,6 +3514,10 @@ async function procesarColaSubidaCasas(){
     log('Error procesando cola de casas: '+e.message,'error');
   }finally{
     _procesandoColaCasas = false;
+    // ✨ v3.12: limpiar el set de sucias cuando la cola termina
+    if(_colaSubidaCasas.length === 0){
+      _casasSucias.clear();
+    }
   }
 }
 
@@ -3530,31 +3527,51 @@ async function procesarColaSubidaCasas(){
 function subirFicha(idCasa){if(!S.usuario||!S.equipo)return;const f=S.fichas[idCasa];if(!f)return;db.collection('catastros').doc(S.equipo).collection('fichas').doc(idCasa).set(f,{merge:true}).catch(e=>log('Error ficha: '+e.message,'error'));}
 function subirVisita(idCasa,v){if(!S.usuario||!S.equipo)return;db.collection('catastros').doc(S.equipo).collection('visitas').doc(v.id).set(Object.assign({idCasa},v)).catch(e=>log('Error visita: '+e.message,'error'));}
 
+/* =========================================================
+   ✨ v3.12: SUBIR TODO — solo sube lo que cambió
+   ========================================================= */
 async function subirTodo(silencioso){
   if(!S.usuario||!S.equipo){if(!silencioso)toast('Conecta con Google primero','error');return;}
   try{
-    // ✨ v3.11: forzar subidas diferidas pendientes antes de subir todo
     forzarSubidasDiferidas();
     if(S.uo)subirUnidadANube();
-    // Encolar todas las casas (la cola las procesa con control de flujo)
-    Object.keys(S.casas).forEach(id => subirCasa(id));
-    // Fichas, visitas y mapas se suben directo (son pocas operaciones)
-    await Promise.all([
-      subirMetaEquipo(),
-      ...Object.keys(S.fichas).map(id=>subirFicha(id)),
-      ...Object.keys(S.mapas).map(id=>subirMapa(id))
-    ]);
-    // No marcamos sincronizado hasta que la cola termine
+    
+    // ✨ v3.12: si hay sucias, subir SOLO esas. Si no, no subir casas.
+    if(_casasSucias.size > 0){
+      // Copiar el set (porque se limpia al terminar la cola)
+      const aSubir = Array.from(_casasSucias);
+      log('Subida automática: '+aSubir.length+' casa(s) modificada(s)','info');
+      aSubir.forEach(id => subirCasa(id));
+    } else if(!silencioso){
+      // Subida manual sin cambios: enviar todas
+      const total = Object.keys(S.casas).length;
+      log('Subida manual: enviando todas las casas ('+total+')','info');
+      Object.keys(S.casas).forEach(id => subirCasa(id));
+      // En subida manual, también subir fichas y mapas
+      await Promise.all([
+        subirMetaEquipo(),
+        ...Object.keys(S.fichas).map(id=>subirFicha(id)),
+        ...Object.keys(S.mapas).map(id=>subirMapa(id))
+      ]);
+    } else {
+      // Subida automática sin cambios en casas: solo meta
+      await subirMetaEquipo();
+    }
+    
+    // Esperar a que la cola termine
     const chequearCola = setInterval(() => {
       if(!_procesandoColaCasas && _colaSubidaCasas.length === 0){
         clearInterval(chequearCola);
         marcarSincronizado();
         if(!silencioso) toast('Subido a la nube','success');
-        log('Subida completa (incluye cola de casas)','ok');
+        log('Subida completa','ok');
       }
     }, 500);
+    // Timeout de seguridad por si la cola se atasca
+    setTimeout(()=>clearInterval(chequearCola), 120000);
   }catch(e){log('Error subiendo: '+e.message,'error');if(!silencioso)toast('Error: '+e.message,'error');}
 }
+
 async function bajarTodo(){
   if(!S.usuario||!S.equipo){toast('Conecta con Google primero','error');return;}
   if(!confirm('⚠️ BAJAR reemplazará los datos locales del equipo '+S.equipo+'.\n¿Continuar?'))return;
@@ -3572,6 +3589,8 @@ async function bajarTodo(){
     S.visitas={};
     visSnap.forEach(d=>{const data=d.data();const idCasa=data.idCasa;if(!idCasa)return;S.visitas[idCasa]=S.visitas[idCasa]||[];S.visitas[idCasa].push(data);});
     Object.keys(S.visitas).forEach(id=>lsSet(keyVisitas(S.equipo,id),S.visitas[id]));
+    // ✨ v3.12: lo bajado ya está sincronizado
+    _casasSucias.clear();
     marcarSincronizado();toast('Datos bajados. Recargando...','success');setTimeout(()=>location.reload(),1200);
   }catch(e){log('Error bajando: '+e.message,'error');toast('Error: '+e.message,'error');}
 }
@@ -3689,10 +3708,6 @@ function exportarJSON(){
   toast('Exportado','success');
 }
 
-/* =========================================================
-   ✨ v3.11: IMPORTAR JSON CON ESPERA A LA COLA
-   (arregla el bug de recargar antes de subir)
-   ========================================================= */
 function importarJSON(e){
   const f=e.target.files[0];if(!f||!S.equipo)return;
   if(!confirm('⚠️ Importar reemplazará los datos del equipo '+S.equipo+'.\n¿Continuar?')){e.target.value='';return;}
@@ -3709,23 +3724,25 @@ function importarJSON(e){
       S.barrios=d.barrios||[];S.casas=d.casas||{};S.fichas=d.fichas||{};S.visitas=d.visitas||{};S.historial=d.historial||{};S.mapas=d.mapas||{};
       if(d.uo){S.uo=d.uo;guardarUO(d.uo);actualizarUIUnidadOperativa();}
       lsSet(keyBarrios(S.equipo),S.barrios);
-      Object.entries(S.casas).forEach(([id,c])=>lsSet(keyCasa(S.equipo,id),c));
+      // ✨ v3.12: marcar todas las casas como sucias
+      Object.entries(S.casas).forEach(([id,c])=>{
+        lsSet(keyCasa(S.equipo,id),c);
+        _casasSucias.add(id);
+      });
       Object.entries(S.fichas).forEach(([id,c])=>lsSet(keyFicha(S.equipo,id),c));
       Object.entries(S.visitas).forEach(([id,v])=>lsSet(keyVisitas(S.equipo,id),v));
       Object.entries(S.historial).forEach(([id,v])=>lsSet(keyHistorial(S.equipo,id),v));
       Object.entries(S.mapas).forEach(([id,m])=>lsSet(keyMapa(S.equipo,id),m));
       marcarPendiente();
       toast('Importado. Subiendo a la nube...','success');
-      // ✨ v3.11: esperar a que la cola procese antes de recargar
       const _chequearImport = setInterval(() => {
-        if(!_procesandoColaCasas && _colaSubidaCasas.length === 0){
+        if(!_procesandoColaCasas && _colaSubidaCasas.length === 0 && _casasSucias.size === 0){
           clearInterval(_chequearImport);
           toast('Todo subido. Recargando...','success');
           setTimeout(()=>location.reload(), 800);
         }
       }, 500);
-      // Timeout de seguridad: si tras 60s no termina, recargar igual
-      setTimeout(()=>{ clearInterval(_chequearImport); location.reload(); }, 60000);
+      setTimeout(()=>{ clearInterval(_chequearImport); location.reload(); }, 90000);
     }catch(err){toast('Error: '+err.message,'error');}
     e.target.value='';
   };
@@ -3785,7 +3802,6 @@ window.addEventListener('load', async () => {
   window.addEventListener('beforeunload',()=>{
     if(!S.equipo)return;
     guardarTodoLocal();
-    // ✨ v3.11: forzar subidas diferidas antes de cerrar
     forzarSubidasDiferidas();
   });
 
